@@ -24,11 +24,11 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         </div>
         <h1 className="picker-title">Choose Your Getaway Car</h1>
         <p className="picker-desc">
-          Select a vehicle from your garage tuned for high-speed police evasion. Each chassis features distinct handling and durability.
+          Select a vehicle from your garage tuned for high-speed police evasion. Each chassis features distinct handling, top speed, and durability.
         </p>
       </div>
 
-      {/* Car Cards Grid */}
+      {/* Car Cards Grid - All in 1 line */}
       <div className="cars-grid">
         {CARS.map((car: CarOption) => {
           const isSelected = car.id === selectedCarId;
@@ -39,7 +39,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               onClick={() => onSelectCar(car.id)}
               style={{
                 borderColor: isSelected ? car.badgeColor : undefined,
-                boxShadow: isSelected ? `0 8px 30px ${car.accentColor}` : undefined,
+                boxShadow: isSelected ? `0 10px 30px ${car.accentColor}` : undefined,
               }}
               role="button"
               tabIndex={0}
@@ -55,7 +55,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
                   className="selected-pill"
                   style={{ background: car.badgeColor }}
                 >
-                  ACTIVE CHOICE
+                  ACTIVE
                 </div>
               )}
 
@@ -70,7 +70,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
                     className="car-type-badge"
                     style={{ color: car.badgeColor, borderColor: car.badgeColor }}
                   >
-                    {car.id}
+                    {car.id.toUpperCase()}
                   </span>
                 </div>
                 <p className="car-subtitle">{car.subtitle}</p>
@@ -81,8 +81,9 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               <div className="car-stats">
                 <div className="stat-row">
                   <div className="stat-label">
-                    <Zap size={14} style={{ color: '#4285F4' }} />
+                    <Zap size={13} style={{ color: '#4285F4' }} />
                     <span>Top Speed</span>
+                    <span className="stat-value font-mono">{car.stats.speed}</span>
                   </div>
                   <div className="stat-bar-track">
                     <div
@@ -97,8 +98,9 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
                 <div className="stat-row">
                   <div className="stat-label">
-                    <Gauge size={14} style={{ color: '#FBBC05' }} />
+                    <Gauge size={13} style={{ color: '#FBBC05' }} />
                     <span>Handling</span>
+                    <span className="stat-value font-mono">{car.stats.handling}</span>
                   </div>
                   <div className="stat-bar-track">
                     <div
@@ -113,8 +115,9 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
                 <div className="stat-row">
                   <div className="stat-label">
-                    <Shield size={14} style={{ color: '#34A853' }} />
+                    <Shield size={13} style={{ color: '#34A853' }} />
                     <span>Durability</span>
+                    <span className="stat-value font-mono">{car.stats.durability}</span>
                   </div>
                   <div className="stat-bar-track">
                     <div
@@ -165,14 +168,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
       <style>{`
         .car-picker-container {
-          max-width: 1100px;
+          max-width: 1360px;
           margin: 0 auto;
-          padding: 40px 24px;
+          padding: 36px 20px 60px;
         }
 
         .picker-header {
           text-align: center;
-          margin-bottom: 36px;
+          margin-bottom: 30px;
         }
 
         .garage-tag {
@@ -184,41 +187,42 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           border: 1px solid rgba(66, 133, 244, 0.3);
           border-radius: 20px;
           font-family: var(--font-mono);
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           font-weight: 700;
           color: var(--google-blue);
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
         .picker-title {
-          font-size: 2.6rem;
-          margin-bottom: 12px;
+          font-size: 2.5rem;
+          margin-bottom: 10px;
           background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
         .picker-desc {
-          max-width: 620px;
+          max-width: 680px;
           margin: 0 auto;
           color: var(--text-secondary);
-          font-size: 1rem;
-          line-height: 1.55;
+          font-size: 0.95rem;
+          line-height: 1.5;
         }
 
+        /* 1 Single Line Grid for all 4 cars */
         .cars-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-          margin-bottom: 36px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-bottom: 30px;
         }
 
         .car-card {
           position: relative;
           display: flex;
           flex-direction: column;
-          padding: 24px;
-          border-radius: var(--radius-xl);
+          padding: 20px 16px;
+          border-radius: var(--radius-lg);
           cursor: pointer;
           transition: all 0.22s ease-in-out;
           border: 1px solid var(--border-medium);
@@ -226,8 +230,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .car-card:hover {
-          transform: translateY(-6px);
-          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-5px);
+          border-color: rgba(255, 255, 255, 0.35);
         }
 
         .car-card.selected {
@@ -237,100 +241,125 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .selected-pill {
           position: absolute;
-          top: -10px;
-          right: 20px;
+          top: -9px;
+          right: 14px;
           color: #FFFFFF;
           font-family: var(--font-mono);
-          font-size: 0.65rem;
+          font-size: 0.62rem;
           font-weight: 800;
-          padding: 3px 10px;
-          border-radius: 12px;
+          padding: 2px 8px;
+          border-radius: 10px;
           letter-spacing: 0.05em;
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
         }
 
         .car-icon-wrapper {
-          width: 80px;
-          height: 80px;
-          border-radius: var(--radius-lg);
+          width: 64px;
+          height: 64px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 20px;
+          margin-bottom: 14px;
           border: 1px solid var(--border-subtle);
         }
 
         .car-emoji {
-          font-size: 42px;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+          font-size: 34px;
+          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
         }
 
         .car-info {
           flex-grow: 1;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .car-name-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 6px;
           margin-bottom: 4px;
         }
 
         .car-name {
-          font-size: 1.3rem;
+          font-size: 1.15rem;
+          font-weight: 700;
           color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .car-type-badge {
           font-family: var(--font-mono);
-          font-size: 0.7rem;
-          font-weight: 700;
-          padding: 2px 6px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 1px 5px;
           border-radius: 4px;
           border: 1px solid;
+          flex-shrink: 0;
         }
 
         .car-subtitle {
-          font-size: 0.82rem;
+          font-size: 0.78rem;
           font-weight: 600;
           color: var(--google-blue);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .car-desc {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: var(--text-secondary);
-          line-height: 1.45;
+          line-height: 1.4;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          min-height: 3.4em;
         }
 
         .car-stats {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          padding: 16px;
-          background: rgba(0, 0, 0, 0.25);
+          gap: 8px;
+          padding: 12px 14px;
+          background: rgba(0, 0, 0, 0.3);
           border-radius: var(--radius-md);
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .stat-row {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
         }
 
         .stat-label {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.75rem;
+          justify-content: space-between;
+          font-size: 0.72rem;
           font-weight: 600;
           color: var(--text-muted);
         }
 
+        .stat-label span:first-of-type {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .stat-value {
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+        }
+
         .stat-bar-track {
-          height: 6px;
+          height: 5px;
           width: 100%;
           background: rgba(255, 255, 255, 0.08);
           border-radius: 3px;
@@ -345,6 +374,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .select-car-btn {
           width: 100%;
+          padding: 9px 12px;
+          font-size: 0.88rem;
         }
 
         .launch-section {
@@ -353,7 +384,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           align-items: center;
           justify-content: space-between;
           border: 1px solid var(--border-medium);
-          border-radius: var(--radius-xl);
+          border-radius: var(--radius-lg);
           background: var(--bg-surface);
         }
 
@@ -394,10 +425,22 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           letter-spacing: 0.02em;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1080px) {
           .cars-grid {
-            grid-template-columns: 1fr;
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding-bottom: 8px;
+            gap: 14px;
           }
+          .car-card {
+            min-width: 260px;
+            flex: 0 0 260px;
+            scroll-snap-align: start;
+          }
+        }
+
+        @media (max-width: 768px) {
           .launch-section {
             flex-direction: column;
             gap: 20px;
