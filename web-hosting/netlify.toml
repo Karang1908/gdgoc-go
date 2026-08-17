@@ -1,0 +1,60 @@
+# Netlify hosting config for the GDG Go WebGL build.
+# Place this file at the root of the folder you deploy (web-hosting/).
+# Source: docs/PROJECT.md §7.
+
+[build]
+  # We do NOT let Netlify build Unity for us — Unity is built locally and the
+  # `Build/` output is dropped into `web-hosting/`. Netlify just hosts files.
+  publish = "."
+
+# ---------- Caching & content-encoding ----------
+
+# Unity outputs .br (brotli) variants alongside the original files. Netlify
+# auto-negotiates them, but we set explicit Content-Encoding headers for the
+# decompression-fallback path Unity uses.
+
+[[headers]]
+  for = "/Build/*.br"
+  [headers.values]
+    Content-Encoding = "br"
+    Content-Type     = "application/octet-stream"
+    Cache-Control    = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/Build/*.wasm.br"
+  [headers.values]
+    Content-Encoding = "br"
+    Content-Type     = "application/wasm"
+    Cache-Control    = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/Build/*.js.br"
+  [headers.values]
+    Content-Encoding = "br"
+    Content-Type     = "application/javascript"
+    Cache-Control    = "public, max-age=31536000, immutable"
+
+# Unity also writes gzip variants as .gz; covering them is harmless and helps
+# CDNs that prefer gzip over brotli.
+
+[[headers]]
+  for = "/Build/*.gz"
+  [headers.values]
+    Content-Encoding = "gzip"
+    Cache-Control    = "public, max-age=31536000, immutable"
+
+# TemplateData sprites can be cached aggressively.
+[[headers]]
+  for = "/TemplateData/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# index.html is small and updated on every build — never cache.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[functions]
+  # Reserved — no serverless functions in MVP. WebGL build talks to Supabase directly.
+  directory = "netlify-functions"
