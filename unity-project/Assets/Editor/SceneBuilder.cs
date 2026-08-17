@@ -186,6 +186,9 @@ namespace GDGGo.EditorTools
 
             var session = new GameObject("GameSession");
             session.AddComponent<Core.GameSession>();
+
+            var audio = new GameObject("AudioManager");
+            audio.AddComponent<Audio.AudioManager>();
         }
 
         private static void BuildPolice()
@@ -636,7 +639,7 @@ namespace GDGGo.EditorTools
 
             // Label the bar. An unlabelled coloured strip tells a new player nothing, and
             // Heat is the one number that decides when the run ends.
-            var caption = MakeLabel(barGo.transform, "Caption", UIScreenBuilder.SafeDefaultFont(), "HEAT",
+            var caption = MakeLabel(barGo.transform, "Caption", FontSetup.Display(), "HEAT",
                 new Vector2(0.5f, 1f), new Vector2(0f, 20f), 18f, TextAlignmentOptions.Center);
             caption.color = new Color(1f, 1f, 1f, 0.6f);
             caption.characterSpacing = 8f;

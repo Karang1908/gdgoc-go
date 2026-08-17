@@ -324,11 +324,22 @@ namespace GDGGo.Core
         }
         private void UnfreezeHeat() => IsHeatFrozen = false;
 
-        // ============================================================
-        // End of run
-        // ============================================================
+        [System.Serializable]
+        private struct GameOverReport
+        {
+            public string type;
+            public int score;
+            public int coins;
+            public int distance;
+            public int duration;
+        }
 
-        /// <summary>Ends the run. Safe to call more than once; only the first call counts.</summary>
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void ReportGameOverToHost(string json);
+#endif
+
+        /// <summary>Ends the run and reports the final telemetry to the hosting website.</summary>
         public void EndGame()
         {
             if (!IsRunning) return;
@@ -337,24 +348,54 @@ namespace GDGGo.Core
             int finalScore = Score;
             int finalCoins = CoinCount;
             int finalMeters = Mathf.RoundToInt(DistanceMeters);
+            int finalDuration = Mathf.RoundToInt(RunSeconds);
 
             LastScore = finalScore;
             LastCoins = finalCoins;
             LastMeters = finalMeters;
             LastPills = GDGPillsCollected;
-            LastDurationSeconds = Mathf.RoundToInt(RunSeconds);
+            LastDurationSeconds = finalDuration;
 
+            Audio.AudioManager.Instance?.PlayGameOver();
             OnGameOver?.Invoke(finalScore, finalCoins, finalMeters);
 
-            // Hold on the crash for a beat so the camera shake and SFX land before the
-            // scene swaps. GameManager survives the load, so this is safe.
-            Invoke(nameof(GoToGameOver), 1.4f);
+            ReportGameOver(finalScore, finalCoins, finalMeters, finalDuration);
         }
 
-        private void GoToGameOver()
+        private void ReportGameOver(int s, int c, int m, int d)
         {
-            if (GameManager.Instance != null) GameManager.Instance.LoadGameOver();
-            else UnityEngine.SceneManagement.SceneManager.LoadScene(GameManager.SceneGameOver);
+            var report = new GameOverReport
+            {
+                type = "gameover",
+                score = s,
+                coins = c,
+                distance = m,
+                duration = d
+            };
+
+            string json = JsonUtility.ToJson(report);
+            Debug.Log("[GameSession] Reporting game over to parent window: " + json);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try
+            {
+                ReportGameOverToHost(json);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("[GameSession] ReportGameOverToHost error: " + ex.Message);
+            }
+
+            try
+            {
+                string js = "if(window.parent){window.parent.postMessage(" + json + ",'*');}";
+                Application.ExternalEval(js);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("[GameSession] ExternalEval error: " + ex.Message);
+            }
+#endif
         }
     }
 }

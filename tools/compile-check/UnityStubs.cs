@@ -422,6 +422,7 @@ namespace UnityEngine
         public static bool isMobilePlatform => false;
         public static RuntimePlatform platform => RuntimePlatform.WebGLPlayer;
         public static int targetFrameRate { get; set; }
+        public static string absoluteURL { get; set; } = "";
         public static string version => "";
         public static string persistentDataPath => "";
         public static string streamingAssetsPath => "";

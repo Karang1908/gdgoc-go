@@ -23,30 +23,30 @@ namespace GDGGo.EditorTools
         private const string Impacts = "Assets/Audio/Impacts";
         private const string Jingles = "Assets/Audio/Jingles";
 
-        private const string BootScenePath = "Assets/Scenes/Boot.unity";
+        private const string GameScenePath = "Assets/Scenes/Game.unity";
 
         /// <summary>
-        /// Opens the Boot scene (where the AudioManager lives) and wires its clips.
+        /// Opens the Game scene (where the AudioManager lives) and wires its clips.
         /// Opening the scene here rather than requiring the user to have it open is what
         /// lets this run unattended as the last step of the full setup.
         /// </summary>
         [MenuItem("GDG Go/5. Assign Audio Clips", priority = 40)]
         public static void AssignAll()
         {
-            if (!System.IO.File.Exists(BootScenePath))
+            if (!System.IO.File.Exists(GameScenePath))
             {
-                Debug.LogError($"[AudioSetup] {BootScenePath} missing — run \"GDG Go > 1. Project Setup\" first.");
+                Debug.LogError($"[AudioSetup] {GameScenePath} missing — run \"GDG Go > 1. Project Setup\" first.");
                 return;
             }
 
             UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
-                BootScenePath, UnityEditor.SceneManagement.OpenSceneMode.Single);
+                GameScenePath, UnityEditor.SceneManagement.OpenSceneMode.Single);
 
             var managers = Object.FindObjectsByType<Audio.AudioManager>(FindObjectsSortMode.None);
             if (managers == null || managers.Length == 0)
             {
-                Debug.LogWarning("[AudioSetup] No AudioManager in the Boot scene — " +
-                                 "run \"GDG Go > 4. Build UI Scenes\" first.");
+                Debug.LogWarning("[AudioSetup] No AudioManager in the Game scene — " +
+                                 "run \"GDG Go > 3. Build Game Scene\" first.");
                 return;
             }
 

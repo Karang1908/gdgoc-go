@@ -166,7 +166,14 @@ namespace GDGGo.EditorTools
         {
             var liberation = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(LiberationPath);
             if (liberation != null) return liberation;
-            return UIScreenBuilder.SafeDefaultFont();
+            return SafeDefaultFont();
+        }
+
+        private static TMP_FontAsset SafeDefaultFont()
+        {
+            var fallback = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (fallback != null) return fallback;
+            return TMP_Settings.defaultFontAsset;
         }
 
         private const string LiberationPath =

@@ -20,10 +20,9 @@ namespace GDGGo.EditorTools
     /// </summary>
     public static class ProjectSetup
     {
-        private const string ConfigPath = "Assets/Resources/SupabaseConfig.asset";
         private const string ScenesFolder = "Assets/Scenes";
 
-        private static readonly string[] SceneNames = { "Boot", "Menu", "CarSelect", "Game", "GameOver" };
+        private static readonly string[] SceneNames = { "Game" };
 
         // ==================================================================
         // Entry points
@@ -35,7 +34,7 @@ namespace GDGGo.EditorTools
         {
             Debug.Log("[GDG Go] ===== Full setup starting =====");
 
-            Run();                        // tags, config, scenes, materials
+            Run();                        // tags, scenes, materials
 
             // Import settings first: prefabs bake in whatever the mesh looks like at build
             // time, and UI Images resolve their sprite once. Fixing either afterwards
@@ -55,16 +54,15 @@ namespace GDGGo.EditorTools
 
             PrefabsBuilder.BuildAll();    // needs tags + coin materials + correct axes
             SceneBuilder.BuildGameScene();// needs prefabs
-            UIScreenBuilder.BuildAll();   // needs scenes + sprites + font
-            AudioSetup.AssignAll();       // needs the Boot scene's AudioManager
+            AudioSetup.AssignAll();       // needs the Game scene's AudioManager
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             Debug.Log("[GDG Go] ===== Full setup complete. =====\n" +
-                      "  1. Paste your Supabase URL + anon key into Assets/Resources/SupabaseConfig.asset\n" +
-                      "  2. Run both SQL files in supabase/migrations/ in the Supabase SQL editor\n" +
-                      "  3. Open Assets/Scenes/Boot.unity and press Play");
+                      "  1. Run both SQL files in supabase/migrations/ in the Supabase SQL editor\n" +
+                      "  2. Open Assets/Scenes/Game.unity and press Play\n" +
+                      "  3. Build WebGL to unity-project/Build");
         }
 
         [MenuItem("GDG Go/1. Project Setup", priority = 0)]
@@ -73,7 +71,6 @@ namespace GDGGo.EditorTools
             Debug.Log("[GDG Go Setup] Starting.");
 
             EnsureTags();
-            EnsureSupabaseConfig();
             EnsureScenes();
             EnsureCoinMaterials();
             EnsureSkyboxMaterial();
@@ -138,22 +135,6 @@ namespace GDGGo.EditorTools
             return false;
         }
 
-        private static void EnsureSupabaseConfig()
-        {
-            MaterialLibrary.EnsureFolder("Assets/Resources");
-
-            var config = AssetDatabase.LoadAssetAtPath<Supabase.SupabaseConfig>(ConfigPath);
-            if (config == null)
-            {
-                config = ScriptableObject.CreateInstance<Supabase.SupabaseConfig>();
-                AssetDatabase.CreateAsset(config, ConfigPath);
-                Debug.Log("[GDG Go Setup] Created SupabaseConfig — paste your project URL + anon key into it.");
-            }
-
-            Selection.activeObject = config;
-            EditorGUIUtility.PingObject(config);
-        }
-
         private static void EnsureScenes()
         {
             MaterialLibrary.EnsureFolder(ScenesFolder);
@@ -172,7 +153,7 @@ namespace GDGGo.EditorTools
             }
 
             EditorBuildSettings.scenes = buildScenes;
-            Debug.Log("[GDG Go Setup] Build Settings scene order: Boot, Menu, CarSelect, Game, GameOver.");
+            Debug.Log("[GDG Go Setup] Build Settings scene: Game.");
         }
 
         /// <summary>
@@ -328,25 +309,15 @@ namespace GDGGo.EditorTools
         public static void Validate()
         {
             bool shaderOk = MaterialLibrary.LitShader() != null;
-            bool configOk = AssetDatabase.LoadAssetAtPath<Supabase.SupabaseConfig>(ConfigPath) != null;
             bool coinsOk = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialLibrary.CoinsFolder}/CoinGDGPill.mat") != null;
             bool playerOk = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PlayerCar.prefab") != null;
-            bool scenesOk = EditorBuildSettings.scenes != null && EditorBuildSettings.scenes.Length >= SceneNames.Length;
-
-            var config = AssetDatabase.LoadAssetAtPath<Supabase.SupabaseConfig>(ConfigPath);
-            bool credentialsOk = config != null && config.IsValid;
+            bool scenesOk = EditorBuildSettings.scenes != null && EditorBuildSettings.scenes.Length >= 1;
 
             Debug.Log($"[GDG Go Validate]\n" +
                       $"  lit shader found : {shaderOk}\n" +
-                      $"  SupabaseConfig   : {configOk}\n" +
-                      $"  Supabase filled  : {credentialsOk}\n" +
                       $"  coin materials   : {coinsOk}\n" +
                       $"  prefabs built    : {playerOk}\n" +
                       $"  scenes wired     : {scenesOk}");
-
-            if (!credentialsOk)
-                Debug.LogWarning("[GDG Go Validate] Supabase URL/anon key are empty — login and the " +
-                                 "leaderboard will fail until you fill them in on " + ConfigPath);
         }
     }
 }

@@ -7,15 +7,18 @@ that a local build would not have: touch input, small download, and score integr
 
 ## Stack
 
-- **Unity 6 LTS**, `6000.0.x` line → WebGL → **Netlify** (`web-hosting/`). Any patch in
-  that line works; Unity rewrites `ProjectSettings/ProjectVersion.txt` to whatever opened
-  it, so don't treat that file's exact value as the target. Avoid jumping to `6000.3.x` —
-  that's a minor-version change, not a patch upgrade.
-- **Supabase** for auth + leaderboard. **No backend JS bridge**; C# hits Supabase REST
-  directly via `UnityWebRequest`. The Firebase Unity SDK was rejected because it does
-  **not** support WebGL (verified 2026-08-16).
-- All HTTP via `UnityWebRequest`. No native plugins, no `.jslib`. Coroutines return to
-  `Action<bool, string>` callbacks.
+- **React + TypeScript + Vite SPA** (`web-hosting/`) deployed to **Netlify** (`dist/`).
+  The website shells the entire user lifecycle: Supabase auth, garage car picker,
+  result overlays with confetti, and live global leaderboard.
+- **Unity 6 LTS**, `6000.0.x` line → WebGL build (`unity-project/Build/` copied to
+  `web-hosting/public/Build/`). Contains the **Game scene ONLY**.
+- **Iframe Boundary & Communication**:
+  - React passes session & car choice to Unity via URL query params:
+    `/Build/index.html?token=<jwt>&u=<username>&dn=<display_name>&car=<id>`
+  - Unity WebGL reports game-over to React host via `PostMessageBridge.jslib`:
+    `postMessage({ type: 'gameover', score, coins, distance, duration })`
+  - React site auto-submits the score to Supabase REST `/rest/v1/scores` upon receiving
+    the gameover message.
 
 ## Verify before you claim it compiles
 
@@ -235,14 +238,13 @@ Two traps:
 
 ## Audio is wired but has no music
 
-`GDG Go > 5. Assign Audio Clips` wires 13 clips onto the Boot scene's `AudioManager`.
+`GDG Go > 5. Assign Audio Clips` wires 13 clips onto the Game scene's `AudioManager`.
 **`musicLoop` is deliberately left null** — every clip in the Kenney pack is a *jingle*
 (longest 1.76 s) and looping a one-second sting under continuous gameplay is worse than
 silence. `PlayMusic()` no-ops on null. Drop a real loop into `Assets/Audio/Music/` and
 assign it in `AudioSetup` to enable it.
 
-Note `AudioManager` lives only in **Boot** and survives via `DontDestroyOnLoad`, so
-pressing Play directly on `Game.unity` gives a silent game — that is expected, not a bug.
+Note `AudioManager` lives directly in **Game.unity** and survives via `DontDestroyOnLoad`.
 
 3z. **Measure inside Unity. Never infer geometry from the FBX bytes.**
    Everything in 3a below was worked out by decoding FBX files on disk, and most of it was
@@ -452,19 +454,19 @@ Build Settings references, so that number is not the build size. If the build re
 exceeds budget, strip unused FBX from imported packs before touching anything else.
 
 ## Setup — one click
-
+ 
 Open the project, wait for the import to finish, then **GDG Go → Run Full Project Setup**.
-It runs, in dependency order: tags → SupabaseConfig → 5 scenes → coin materials → WebGL
+It runs, in dependency order: tags → Game scene → coin materials → WebGL
 settings → **Quaternius axis bake → UI sprite import → Kenney font asset → delete stale
-Quaternius prefabs** → all prefabs → Game scene → UI scenes. Every step is idempotent, so
-it is safe to re-run.
+Quaternius prefabs** → all prefabs → Game scene → Audio clips wiring. Every step is
+idempotent, so it is safe to re-run.
 
 The three import steps must come **before** `PrefabsBuilder`: prefabs bake in the mesh
 orientation, and UI `Image`s resolve their sprite once. Fixing either afterwards leaves
 already-built assets wrong (see facts 3a and 3b).
 
-Then paste the Supabase URL + anon key into `Assets/Resources/SupabaseConfig.asset` and
-apply both SQL migrations in the Supabase SQL editor.
+Apply both SQL migrations in `supabase/migrations/` in your Supabase SQL editor.
+For web development, run `cd web-hosting && npm install && npm run dev`.
 
 ## Tests
 

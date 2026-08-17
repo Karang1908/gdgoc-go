@@ -6,19 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Boot.unity
-    guid: b38df4f7a56d24cd9856d1e7f4d1b1a0
-  - enabled: 1
-    path: Assets/Scenes/Menu.unity
-    guid: 7ff6caea31fba433f8ee67a4b57bcae9
-  - enabled: 1
-    path: Assets/Scenes/CarSelect.unity
-    guid: 0c8c3e201a4154b59b88c606225e6458
-  - enabled: 1
     path: Assets/Scenes/Game.unity
     guid: 4cd2c622d9e7349afb90d7c7c487b8ef
-  - enabled: 1
-    path: Assets/Scenes/GameOver.unity
-    guid: da5dbc18ac20245bfb2374d813315652
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

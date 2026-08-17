@@ -3,9 +3,13 @@
 # Source: docs/PROJECT.md §7.
 
 [build]
-  # We do NOT let Netlify build Unity for us — Unity is built locally and the
-  # `Build/` output is dropped into `web-hosting/`. Netlify just hosts files.
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # ---------- Caching & content-encoding ----------
 
