@@ -1,0 +1,47 @@
+# ---------- Unity-generated, do not commit ----------
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# ---------- Asset meta files: keep them (Unity requires them) ----------
+# *.meta — intentionally NOT ignored
+
+# ---------- IDE / OS noise ----------
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.mdb
+*.opendb
+*.VC.db
+
+# ---------- OS junk ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Crashlytics generated file ----------
+crashlytics-build.properties
+sysinfo.txt
+
+# ---------- Exports (don't ship into git) ----------
+*.apk
+*.aab
+*.ipa
+*.unitypackage
+
+# ---------- Unity Package Manager: keep packages.json + lock ----------
+# Packages/manifest.json is committed; packages-lock.json is committed
+# both are tiny and let the project restore deterministically
