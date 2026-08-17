@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Type-checks every game script WITHOUT opening Unity.
+
+      dotnet build tools/compile-check/GDGGo.CompileCheck.csproj
+
+    Why this exists: the project once shipped with two C# syntax errors that made
+    the whole Assembly-CSharp fail, which silently removed the "GDG Go" editor menu
+    and made the one-click setup unreachable. A 20-second check here catches that
+    class of mistake before a 10-minute Unity import does.
+
+    Scope: UnityStubs.cs / UnityEditorStubs.cs are hand-written stand-ins for the
+    slice of the Unity API this project touches. A green build proves syntax,
+    references and arity are self-consistent. It does NOT prove a stub signature
+    matches real Unity — if you call a new Unity API, add it to the stubs.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>GDGGo.CompileCheck</AssemblyName>
+    <NoWarn>CS0108;CS0114;CS0067;CS0649;CS0169;CS0414;CS0660;CS0661;CS0628</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="UnityStubs.cs" />
+    <Compile Include="UnityEditorStubs.cs" />
+    <Compile Include="../../unity-project/Assets/Scripts/**/*.cs" />
+    <Compile Include="../../unity-project/Assets/Editor/**/*.cs" />
+  </ItemGroup>
+</Project>
