@@ -206,33 +206,65 @@ export const Home: React.FC<HomeProps> = ({
           }
 
           @media (max-width: 820px) {
+            .hero-landing-container {
+              padding: 6px 12px;
+              align-items: center;
+              justify-content: center;
+              box-sizing: border-box;
+            }
             .hero-split-grid {
-              grid-template-columns: 1fr;
-              gap: 16px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
               text-align: center;
-              justify-items: center;
+              width: 100%;
+              max-width: 340px;
+              margin: 0 auto;
             }
             .hero-text-col {
+              display: flex;
+              flex-direction: column;
               align-items: center;
               text-align: center;
+              width: 100%;
             }
             .hero-title {
-              font-size: clamp(1.8rem, 6vw, 2.4rem);
-              margin-bottom: 10px;
+              font-size: clamp(1.45rem, 5.8vw, 1.95rem);
+              line-height: 1.12;
+              margin-bottom: 6px;
+              text-align: center;
+              width: 100%;
             }
             .hero-lede {
-              font-size: 0.85rem;
-              margin-bottom: 18px;
-              max-width: 440px;
+              font-size: 0.8rem;
+              line-height: 1.35;
+              margin-bottom: 12px;
+              max-width: 320px;
+              text-align: center;
+              width: 100%;
+            }
+            .hero-actions {
+              display: flex;
+              flex-direction: row;
+              justify-content: center;
+              gap: 8px;
+              width: 100%;
             }
             .hero-cta-btn, .hero-secondary-btn {
-              height: 44px;
-              padding: 0 18px;
-              font-size: 0.88rem;
+              flex: 1 1 0;
+              height: 40px;
+              padding: 0 8px;
+              font-size: 0.78rem;
+              font-weight: 700;
+              white-space: nowrap;
+              min-width: 0;
             }
             .hero-brand-logo {
-              max-width: 180px;
-              max-height: 140px;
+              max-width: 145px;
+              max-height: 115px;
+              margin-top: 2px;
             }
           }
         `}</style>

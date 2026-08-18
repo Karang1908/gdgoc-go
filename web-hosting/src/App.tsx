@@ -59,7 +59,7 @@ export function App() {
                 <span className="footer-long">Google Developer Groups on Campus · </span>
                 BITS Pilani Dubai Campus
               </span>
-              <span className="footer-dots">
+              <span className="footer-dots" aria-hidden="true">
                 <i></i><i></i><i></i><i></i>
               </span>
             </div>
@@ -88,26 +88,28 @@ export function App() {
             flex-direction: column;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
           }
 
           .footer {
             flex: 0 0 auto;
-            height: 42px;
+            height: 44px;
             border-top: 1px solid var(--border);
             padding: 0 clamp(16px, 4vw, 40px);
             padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
             background: var(--bg);
             color: var(--text-2);
-            font-size: 0.8rem;
+            font-size: 0.8125rem;
             display: flex;
             align-items: center;
             z-index: 10;
+            box-sizing: border-box;
             transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
           }
 
           .footer-content {
             width: 100%;
-            max-width: 1320px;
+            max-width: 1280px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -119,15 +121,40 @@ export function App() {
             font-weight: 500;
           }
 
+          .footer-dots {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+          }
+
+          .footer-dots i {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+          }
+
+          .footer-dots i:nth-child(1) { background: var(--g-blue); }
+          .footer-dots i:nth-child(2) { background: var(--g-red); }
+          .footer-dots i:nth-child(3) { background: var(--g-yellow); }
+          .footer-dots i:nth-child(4) { background: var(--g-green); }
+
           @media (max-width: 600px) {
             .footer {
               height: 38px;
-              padding: 0 16px;
+              padding: 0 14px;
               font-size: 0.75rem;
             }
 
             .footer-long {
               display: none;
+            }
+
+            .footer-dots i {
+              width: 7px;
+              height: 7px;
+              gap: 4px;
             }
           }
         `}</style>
