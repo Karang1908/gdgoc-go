@@ -84,7 +84,7 @@ export const Home: React.FC<HomeProps> = ({
       <main className="hero-landing-container">
         <div className="hero-content">
           <div className="hero-badge">
-            <span>GOOGLE DEVELOPER GROUPS ON CAMPUS</span>
+            <span>Google Developer Groups on Campus</span>
           </div>
 
           <h1 className="hero-title">
@@ -138,11 +138,11 @@ export const Home: React.FC<HomeProps> = ({
           </div>
         </div>
 
-        {/* Forced Auth Modal for Unauthenticated Users */}
+        {/* Auth Modal for Sign In / Sign Up */}
         <AuthModal
-          isOpen={isAuthModalOpen || !session}
+          isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
-          canDismiss={false}
+          canDismiss={true}
         />
 
         <style>{`
