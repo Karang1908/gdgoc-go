@@ -1,5 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Maximize2 } from 'lucide-react';
+
+export interface UnityEmbedHandle {
+  triggerFullscreen: () => void;
+}
 
 interface UnityEmbedProps {
   token: string;
@@ -8,12 +12,12 @@ interface UnityEmbedProps {
   carId: string;
 }
 
-export const UnityEmbed: React.FC<UnityEmbedProps> = ({
+export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   token,
   username,
   displayName,
   carId,
-}) => {
+}, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +29,35 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
   });
 
   const src = `/Build/index.html?${queryParams.toString()}`;
+
+  const triggerFullscreen = () => {
+    // 1. Post message to iframe for Unity instance SetFullscreen(1)
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
+          win.unityInstance.SetFullscreen(1);
+          return;
+        }
+      } catch {
+        // cross-origin
+      }
+    }
+
+    // 2. Fallback to HTML5 fullscreen API on container or iframe
+    if (containerRef.current) {
+      if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    triggerFullscreen,
+  }));
 
   // Automatically focus the iframe on mount so keyboard controls (WASD, Arrows, Space) work immediately
   useEffect(() => {
@@ -43,20 +76,6 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
     };
   }, []);
 
-  const handleFullscreen = () => {
-    if (containerRef.current) {
-      if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch((err) => {
-          console.warn('[UnityEmbed] Fullscreen request error:', err);
-        });
-      } else {
-        document.exitFullscreen().catch((err) => {
-          console.warn('[UnityEmbed] Exit fullscreen error:', err);
-        });
-      }
-    }
-  };
-
   return (
     <div className="unity-embed-container" ref={containerRef}>
       <iframe
@@ -68,11 +87,12 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
         tabIndex={0}
       />
 
+      {/* Floating button on the canvas with the best experience notice */}
       <button
         className="fullscreen-toggle-btn"
-        onClick={handleFullscreen}
-        title="Toggle Fullscreen"
-        aria-label="Toggle Fullscreen"
+        onClick={triggerFullscreen}
+        title="For the best experience, play in full screen"
+        aria-label="For the best experience, play in full screen"
       >
         <Maximize2 size={18} />
       </button>
@@ -106,8 +126,9 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
           top: 14px;
           right: 14px;
           z-index: 10;
-          background: rgba(18, 23, 34, 0.8);
+          background: rgba(18, 23, 34, 0.85);
           backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           color: var(--text-secondary);
           border: 1px solid rgba(255, 255, 255, 0.15);
           padding: 8px;
@@ -117,13 +138,15 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
           align-items: center;
           justify-content: center;
           transition: all 0.18s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
         .fullscreen-toggle-btn:hover {
           color: #FFFFFF;
-          background: rgba(18, 23, 34, 0.95);
+          background: rgba(26, 35, 54, 0.95);
           border-color: var(--google-blue);
-          transform: scale(1.05);
+          transform: scale(1.06);
+          box-shadow: 0 6px 18px rgba(66, 133, 244, 0.35);
         }
 
         @media (max-width: 768px) {
@@ -136,4 +159,4 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
       `}</style>
     </div>
   );
-};
+});

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, VolumeX } from 'lucide-react';
-import { UnityEmbed } from '../components/UnityEmbed';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowLeft, RefreshCw, Volume2, VolumeX, Maximize2, Sparkles } from 'lucide-react';
+import { UnityEmbed, UnityEmbedHandle } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
 import { GameOverPayload, submitScore } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const [runKey, setRunKey] = useState<number>(1);
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(bgmEngine.getMuted());
+  const unityEmbedRef = useRef<UnityEmbedHandle>(null);
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
@@ -124,28 +125,57 @@ export const GameView: React.FC<GameViewProps> = ({
     setIsMuted(muted);
   };
 
+  const handleFullscreen = () => {
+    unityEmbedRef.current?.triggerFullscreen();
+  };
+
   return (
     <div className="game-view-container animate-fade-in">
       {/* Top HUD Bar */}
       <div className="game-top-bar">
-        <button
-          id="back-to-garage-btn"
-          className="btn btn-secondary back-btn"
-          onClick={() => {
-            bgmEngine.stop();
-            onBackToGarage();
-          }}
-        >
-          <ArrowLeft size={18} />
-          <span>Change Car</span>
-        </button>
+        <div className="top-bar-left">
+          <button
+            id="back-to-garage-btn"
+            className="btn btn-secondary back-btn"
+            onClick={() => {
+              bgmEngine.stop();
+              onBackToGarage();
+            }}
+            title="Back to Car Selection"
+          >
+            <ArrowLeft size={18} />
+            <span>Change Car</span>
+          </button>
 
-        <div className="active-car-pill">
-          <span className="car-pill-icon">{selectedCar.icon}</span>
-          <span className="car-pill-name">{selectedCar.name}</span>
+          <div className="active-car-pill">
+            <span className="car-pill-icon">{selectedCar.icon}</span>
+            <span className="car-pill-name">{selectedCar.name}</span>
+          </div>
+        </div>
+
+        {/* Fullscreen Recommendation Banner */}
+        <div
+          className="fullscreen-recommendation-pill"
+          onClick={handleFullscreen}
+          title="Click to enter Full Screen"
+          role="button"
+          tabIndex={0}
+        >
+          <Sparkles size={14} className="sparkle-icon" />
+          <span>For best experience, play in full screen</span>
         </div>
 
         <div className="top-bar-right-controls">
+          <button
+            id="fullscreen-hud-btn"
+            className="btn btn-secondary fullscreen-hud-btn"
+            onClick={handleFullscreen}
+            title="For best experience, play in full screen"
+          >
+            <Maximize2 size={16} />
+            <span className="fullscreen-label">Full Screen</span>
+          </button>
+
           <button
             id="toggle-music-btn"
             className="btn btn-secondary music-toggle-btn"
@@ -171,6 +201,7 @@ export const GameView: React.FC<GameViewProps> = ({
       {/* Unity Canvas Container */}
       <div className="game-canvas-wrapper">
         <UnityEmbed
+          ref={unityEmbedRef}
           key={runKey}
           token={session?.access_token || ''}
           username={profile?.username || ''}
@@ -205,6 +236,14 @@ export const GameView: React.FC<GameViewProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 6px 4px;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .top-bar-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
         .back-btn {
@@ -233,10 +272,52 @@ export const GameView: React.FC<GameViewProps> = ({
           color: var(--text-primary);
         }
 
+        .fullscreen-recommendation-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.12) 100%);
+          border: 1px solid rgba(66, 133, 244, 0.3);
+          border-radius: 20px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #90CAF9;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          user-select: none;
+        }
+
+        .fullscreen-recommendation-pill:hover {
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.22) 0%, rgba(52, 168, 83, 0.22) 100%);
+          border-color: var(--google-blue);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(66, 133, 244, 0.25);
+          transform: scale(1.02);
+        }
+
+        .sparkle-icon {
+          color: var(--google-yellow);
+        }
+
         .top-bar-right-controls {
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+
+        .fullscreen-hud-btn {
+          padding: 8px 12px;
+          font-size: 0.88rem;
+          background: rgba(66, 133, 244, 0.15);
+          border-color: rgba(66, 133, 244, 0.4);
+          color: #90CAF9;
+        }
+
+        .fullscreen-hud-btn:hover {
+          background: var(--google-blue);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(66, 133, 244, 0.35);
         }
 
         .music-toggle-btn {
@@ -263,8 +344,14 @@ export const GameView: React.FC<GameViewProps> = ({
           overflow: hidden;
         }
 
+        @media (max-width: 820px) {
+          .fullscreen-recommendation-pill {
+            display: none;
+          }
+        }
+
         @media (max-width: 640px) {
-          .restart-label, .music-toggle-label {
+          .fullscreen-label, .restart-label, .music-toggle-label {
             display: none;
           }
           .game-view-container {
