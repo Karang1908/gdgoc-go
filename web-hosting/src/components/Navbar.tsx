@@ -196,21 +196,23 @@ export const Navbar: React.FC<NavbarProps> = ({
         }
 
         .logo-desktop.logo-light {
-          height: 32px;
+          height: 44px;
           width: auto;
           display: block;
+          object-fit: contain;
         }
 
         .logo-desktop.logo-dark {
-          height: 32px;
+          height: 44px;
           width: auto;
           display: none;
+          object-fit: contain;
         }
 
         .logo-mobile-mark {
           display: none;
-          width: 26px;
-          height: 26px;
+          width: 32px;
+          height: 32px;
           object-fit: contain;
         }
 
@@ -224,14 +226,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         .brand-divider {
           width: 2px;
-          height: 20px;
+          height: 24px;
           background: var(--border);
           flex: none;
         }
 
         .brand-title {
           font-family: var(--font-display);
-          font-size: 1.12rem;
+          font-size: 1.22rem;
           font-weight: 700;
           color: var(--text);
           letter-spacing: -0.01em;
