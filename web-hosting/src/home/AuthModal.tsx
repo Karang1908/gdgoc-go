@@ -90,25 +90,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-card glass-panel animate-fade-in">
+      <div className="modal-card card animate-fade-in">
         <div className="google-strip" />
 
         <div className="modal-header">
-          <div className="modal-badge">
-            <Sparkles size={18} className="badge-sparkle" />
-            <span>GDG RACING PROFILE</span>
+          <div className="modal-brand-hub">
+            <img src="/assets/gdg-mark.png" alt="GDG" className="modal-gdg-mark" />
           </div>
+
           <h2 className="modal-title">
-            {tab === 'signup' ? 'Create Your Driver Profile' : 'Welcome Back, Driver'}
+            {tab === 'signup' ? 'Create driver profile' : 'Welcome back'}
           </h2>
           <p className="modal-subtitle">
             {tab === 'signup'
-              ? 'Register your callsign to save high scores and rank on the global leaderboard.'
-              : 'Sign in to access your car garage and continue competing.'}
+              ? 'Register your handle to save high scores and rank on the global leaderboard.'
+              : 'Sign in to access your garage and continue competing.'}
           </p>
         </div>
 
-        {/* Tab Switcher */}
+        {/* Tab Switcher (Google Pills) */}
         <div className="tab-switcher">
           <button
             type="button"
@@ -138,11 +138,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="input-group">
-            <label className="input-label" htmlFor="auth-username">
+          <div className="field">
+            <label className="field-label" htmlFor="auth-username">
               Username
             </label>
-            <div className="input-wrapper">
+            <div className="input-wrap">
               <User size={18} className="input-icon" />
               <input
                 id="auth-username"
@@ -159,11 +159,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {tab === 'signup' && (
-            <div className="input-group animate-fade-in">
-              <label className="input-label" htmlFor="auth-display-name">
+            <div className="field animate-fade-in">
+              <label className="field-label" htmlFor="auth-display-name">
                 Display Name (Optional)
               </label>
-              <div className="input-wrapper">
+              <div className="input-wrap">
                 <Sparkles size={18} className="input-icon" />
                 <input
                   id="auth-display-name"
@@ -175,15 +175,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   maxLength={24}
                 />
               </div>
-              <span className="input-hint">Name shown publicly on the leaderboard</span>
+              <span className="input-hint">Shown publicly on the leaderboard</span>
             </div>
           )}
 
-          <div className="input-group">
-            <label className="input-label" htmlFor="auth-password">
+          <div className="field">
+            <label className="field-label" htmlFor="auth-password">
               Password
             </label>
-            <div className="input-wrapper">
+            <div className="input-wrap">
               <Lock size={18} className="input-icon" />
               <input
                 id="auth-password"
@@ -210,13 +210,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             id="auth-submit-btn"
-            className="btn btn-primary btn-lg submit-btn"
+            className="btn btn-filled btn-lg submit-btn"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={20} className="animate-spin" />
-                <span>{tab === 'signup' ? 'Creating Driver...' : 'Signing In...'}</span>
+                <Loader2 size={18} className="animate-spin" />
+                <span>{tab === 'signup' ? 'Creating...' : 'Signing In...'}</span>
               </>
             ) : (
               <span>{tab === 'signup' ? 'Start Racing' : 'Enter Garage'}</span>
@@ -227,7 +227,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {canDismiss && onClose && (
           <button
             type="button"
-            className="dismiss-btn"
+            className="dismiss-btn btn-text"
             onClick={onClose}
           >
             Cancel
@@ -242,8 +242,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           left: 0;
           width: 100vw;
           height: 100vh;
-          background: rgba(4, 7, 13, 0.88);
-          backdrop-filter: blur(10px);
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -254,103 +254,108 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .modal-card {
           width: 100%;
           max-width: 440px;
-          border-radius: var(--radius-xl);
+          border-radius: var(--r-xl);
+          background: var(--surface);
+          border: 2px solid var(--border);
+          box-shadow: var(--shadow-3);
           overflow: hidden;
-          background: var(--bg-surface);
-          border: 1px solid var(--border-medium);
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          padding: 0;
         }
 
         .modal-header {
-          padding: 28px 28px 16px;
+          padding: 28px 24px 16px;
           text-align: center;
         }
 
-        .modal-badge {
-          display: inline-flex;
+        .modal-brand-hub {
+          width: 48px;
+          height: 48px;
+          border-radius: var(--pill);
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          background: rgba(66, 133, 244, 0.15);
-          border: 1px solid rgba(66, 133, 244, 0.3);
-          border-radius: 20px;
-          font-family: var(--font-mono);
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: var(--google-blue);
-          margin-bottom: 12px;
+          justify-content: center;
+          margin: 0 auto 14px;
+        }
+
+        .modal-gdg-mark {
+          width: 28px;
+          height: 28px;
+          object-fit: contain;
         }
 
         .modal-title {
           font-size: 1.5rem;
-          color: var(--text-primary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .modal-subtitle {
           font-size: 0.88rem;
-          color: var(--text-secondary);
+          color: var(--text-2);
           line-height: 1.45;
+          max-width: 360px;
+          margin: 0 auto;
         }
 
         .tab-switcher {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 6px;
-          background: var(--bg-primary);
+          background: var(--surface-2);
           padding: 4px;
-          margin: 0 28px 20px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-subtle);
+          margin: 0 24px 16px;
+          border-radius: var(--pill);
+          border: 1px solid var(--border);
         }
 
         .tab-btn {
-          padding: 10px;
-          border-radius: calc(var(--radius-md) - 2px);
+          padding: 8px 14px;
+          border-radius: var(--pill);
           background: transparent;
           border: none;
-          color: var(--text-muted);
-          font-family: var(--font-sans);
-          font-weight: 600;
-          font-size: 0.9rem;
+          color: var(--text-2);
+          font-family: var(--font-display);
+          font-weight: 500;
+          font-size: 0.88rem;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: all 0.15s var(--ease);
         }
 
         .tab-btn.active {
-          background: var(--bg-surface-elevated);
-          color: #FFFFFF;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          background: var(--surface);
+          color: var(--text);
+          font-weight: 700;
+          box-shadow: var(--shadow-1);
         }
 
         .error-banner {
           display: flex;
           align-items: flex-start;
           gap: 10px;
-          margin: 0 28px 16px;
-          padding: 12px 14px;
-          background: rgba(234, 67, 53, 0.12);
-          border: 1px solid rgba(234, 67, 53, 0.3);
-          border-radius: var(--radius-md);
-          color: #FF8F8F;
+          margin: 0 24px 16px;
+          padding: 10px 14px;
+          background: var(--danger-soft);
+          border: 1px solid var(--danger);
+          border-radius: var(--r-md);
+          color: var(--danger);
           font-size: 0.85rem;
           line-height: 1.4;
         }
 
         .error-icon {
           flex-shrink: 0;
-          color: var(--google-red);
           margin-top: 1px;
         }
 
         .auth-form {
-          padding: 0 28px 28px;
+          padding: 0 24px 24px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
         }
 
-        .input-wrapper {
+        .input-wrap {
           position: relative;
           display: flex;
           align-items: center;
@@ -359,7 +364,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .input-icon {
           position: absolute;
           left: 14px;
-          color: var(--text-muted);
+          color: var(--text-3);
           pointer-events: none;
         }
 
@@ -374,10 +379,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .password-toggle-btn {
           position: absolute;
           right: 12px;
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
+          color: var(--text-3);
           padding: 4px;
           display: flex;
           align-items: center;
@@ -386,17 +388,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .password-toggle-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .input-hint {
-          font-size: 0.74rem;
-          color: var(--text-muted);
-          margin-top: 2px;
+          color: var(--text);
         }
 
         .submit-btn {
-          margin-top: 8px;
+          margin-top: 6px;
           width: 100%;
         }
 
@@ -404,18 +400,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           display: block;
           width: 100%;
           text-align: center;
-          padding: 12px;
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          font-size: 0.85rem;
-          cursor: pointer;
+          padding: 10px;
           margin-top: -12px;
-          margin-bottom: 8px;
-        }
-
-        .dismiss-btn:hover {
-          color: var(--text-secondary);
+          margin-bottom: 12px;
+          font-size: 0.85rem;
         }
       `}</style>
     </div>

@@ -174,7 +174,7 @@ export const GameView: React.FC<GameViewProps> = ({
             }}
             title="Back to Car Selection"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
             <span>Change Car</span>
           </button>
 
@@ -188,20 +188,20 @@ export const GameView: React.FC<GameViewProps> = ({
         <div
           className="fullscreen-recommendation-pill"
           onClick={handleFullscreen}
-          title="Click to trigger Unity Full Screen"
+          title="Click to trigger full screen"
           role="button"
           tabIndex={0}
         >
           <Sparkles size={14} className="sparkle-icon" />
-          <span>For best experience, play in full screen</span>
+          <span>For the best experience, play in full screen</span>
         </div>
 
         <div className="top-bar-right-controls">
           <button
             id="fullscreen-hud-btn"
-            className="btn btn-secondary fullscreen-hud-btn"
+            className="btn btn-tonal fullscreen-hud-btn"
             onClick={handleFullscreen}
-            title="Trigger Unity Full Screen"
+            title="Full Screen Mode"
           >
             <Maximize2 size={16} />
             <span className="fullscreen-label">Full Screen</span>
@@ -211,7 +211,7 @@ export const GameView: React.FC<GameViewProps> = ({
             id="toggle-music-btn"
             className="btn btn-secondary music-toggle-btn"
             onClick={handleToggleMusic}
-            title={isMuted ? 'Unmute Background Music' : 'Mute Background Music'}
+            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             <span className="music-toggle-label">{isMuted ? 'Music OFF' : 'Music ON'}</span>
@@ -259,9 +259,9 @@ export const GameView: React.FC<GameViewProps> = ({
 
       <style>{`
         .game-view-container {
-          max-width: 1240px;
+          max-width: 1320px;
           margin: 0 auto;
-          padding: 16px 20px 40px;
+          padding: 16px clamp(16px, 3vw, 32px) 40px;
           display: flex;
           flex-direction: column;
           gap: 12px;
@@ -272,7 +272,7 @@ export const GameView: React.FC<GameViewProps> = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 6px 4px;
+          padding: 4px 0;
           gap: 10px;
           flex-wrap: wrap;
         }
@@ -284,18 +284,20 @@ export const GameView: React.FC<GameViewProps> = ({
         }
 
         .back-btn {
-          padding: 8px 14px;
-          font-size: 0.88rem;
+          height: 38px;
+          padding: 0 16px;
+          font-size: 0.875rem;
         }
 
         .active-car-pill {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 6px 14px;
-          background: var(--bg-surface-elevated);
-          border: 1px solid var(--border-medium);
-          border-radius: 20px;
+          height: 38px;
+          padding: 0 14px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--pill);
         }
 
         .car-pill-icon {
@@ -304,84 +306,68 @@ export const GameView: React.FC<GameViewProps> = ({
 
         .car-pill-name {
           font-family: var(--font-display);
-          font-size: 0.92rem;
+          font-size: 0.88rem;
           font-weight: 700;
-          color: var(--text-primary);
+          color: var(--text);
         }
 
         .fullscreen-recommendation-pill {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.12) 100%);
-          border: 1px solid rgba(66, 133, 244, 0.3);
-          border-radius: 20px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #90CAF9;
+          gap: 8px;
+          height: 38px;
+          padding: 0 16px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--pill);
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: var(--text-2);
           cursor: pointer;
-          transition: all 0.18s ease;
+          transition: all 0.15s var(--ease);
           user-select: none;
         }
 
         .fullscreen-recommendation-pill:hover {
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.22) 0%, rgba(52, 168, 83, 0.22) 100%);
-          border-color: var(--google-blue);
-          color: #FFFFFF;
-          box-shadow: 0 4px 16px rgba(66, 133, 244, 0.25);
-          transform: scale(1.02);
+          background: var(--accent-soft);
+          border-color: var(--accent);
+          color: var(--accent);
         }
 
         .sparkle-icon {
-          color: var(--google-yellow);
+          color: var(--g-yellow);
         }
 
         .top-bar-right-controls {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
         .fullscreen-hud-btn {
-          padding: 8px 12px;
-          font-size: 0.88rem;
-          background: rgba(66, 133, 244, 0.15);
-          border-color: rgba(66, 133, 244, 0.4);
-          color: #90CAF9;
+          height: 38px;
+          padding: 0 16px;
+          font-size: 0.875rem;
         }
 
-        .fullscreen-hud-btn:hover {
-          background: var(--google-blue);
-          color: #FFFFFF;
-          box-shadow: 0 4px 16px rgba(66, 133, 244, 0.35);
-        }
-
-        .music-toggle-btn {
-          padding: 8px 12px;
-          font-size: 0.88rem;
-          background: rgba(255, 255, 255, 0.06);
-          color: var(--text-secondary);
-        }
-
-        .music-toggle-btn:hover {
-          color: var(--text-primary);
-          background: rgba(255, 255, 255, 0.12);
-        }
-
+        .music-toggle-btn,
         .restart-btn {
-          padding: 8px 12px;
-          font-size: 0.88rem;
+          height: 38px;
+          padding: 0 14px;
+          font-size: 0.875rem;
         }
 
         .game-canvas-wrapper {
           position: relative;
           width: 100%;
-          border-radius: var(--radius-lg);
+          border-radius: var(--r-xl);
           overflow: hidden;
+          border: 2px solid var(--border);
+          box-shadow: var(--shadow-2);
+          background: #000000;
         }
 
-        @media (max-width: 820px) {
+        @media (max-width: 880px) {
           .fullscreen-recommendation-pill {
             display: none;
           }
@@ -392,7 +378,7 @@ export const GameView: React.FC<GameViewProps> = ({
             display: none;
           }
           .game-view-container {
-            padding: 10px 10px 30px;
+            padding: 10px 12px 30px;
           }
         }
       `}</style>

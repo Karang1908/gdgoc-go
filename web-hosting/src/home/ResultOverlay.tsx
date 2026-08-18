@@ -23,21 +23,21 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   const [loadingRecord, setLoadingRecord] = useState(true);
 
   const isFuelLoss = payload.reason === 'fuel';
-  const title = isFuelLoss ? 'OUT OF FUEL!' : 'POLICE CAUGHT UP!';
+  const title = isFuelLoss ? 'Out of fuel' : 'Police caught up';
   const subtitle = isFuelLoss
-    ? 'Your tank ran dry on the highway — Score & Coins Banked'
-    : 'Heat level peaked & patrol intercepted — Score & Coins Banked';
+    ? 'Your tank ran dry on the highway — telemetry and coins saved.'
+    : 'Heat level peaked & patrol intercepted — telemetry and coins saved.';
   const badgeText = isFuelLoss ? 'TANK EMPTY' : 'INTERCEPTED';
   const badgeIcon = isFuelLoss ? <Fuel size={14} /> : <Siren size={14} />;
 
   useEffect(() => {
-    // Fire celebratory confetti!
+    // Fire celebratory confetti in Google brand colors!
     try {
       confetti({
-        particleCount: 80,
+        particleCount: 75,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'],
+        colors: ['#4285F4', '#EA4335', '#FBBC04', '#34A853'],
       });
     } catch {
       // Confetti fallback
@@ -59,39 +59,39 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
     }
   }, [payload.score, user, refreshCoins]);
 
-  // Display accurate total bank balance (using fresh refreshed coins or fallback to run)
   const displayTotalCoins = userCoins > 0 ? userCoins : payload.coins;
   const displayTotalGdg = userGdgCoins > 0 ? userGdgCoins : Math.max(1, Math.floor(payload.coins / 15));
 
   return (
     <div className="result-backdrop">
-      <div className="result-card glass-panel animate-fade-in">
+      <div className="result-card card animate-fade-in">
         <div className="google-strip" />
 
         <div className="result-header">
           {isNewRecord && !loadingRecord ? (
-            <div className="record-badge animate-fade-in">
-              <Award size={16} />
-              <span>NEW PERSONAL BEST!</span>
+            <div className="record-chip chip chip-accent">
+              <Award size={15} />
+              <span>NEW PERSONAL BEST</span>
             </div>
           ) : (
-            <div className={`status-pill ${isFuelLoss ? 'fuel-status' : 'police-status'} animate-fade-in`}>
+            <div className={`status-chip chip ${isFuelLoss ? 'fuel-chip' : 'police-chip'}`}>
               {badgeIcon}
               <span>{badgeText}</span>
             </div>
           )}
-          <h2 className={`result-title ${isFuelLoss ? 'fuel-title' : 'police-title'}`}>{title}</h2>
+
+          <h2 className="result-title">{title}</h2>
           <p className="result-subtitle">{subtitle}</p>
         </div>
 
-        {/* Main Score Readout */}
+        {/* Main Score Hero */}
         <div className="score-hero-box">
           <span className="score-label">FINAL SCORE</span>
           <div className="score-number-row">
             <span className="score-number font-display">
               {payload.score.toLocaleString()}
             </span>
-            <span className="score-pts">PTS</span>
+            <span className="score-pts font-display">PTS</span>
           </div>
           {personalBest && !isNewRecord && (
             <span className="previous-best">
@@ -103,8 +103,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         {/* Breakdown Stats */}
         <div className="stats-breakdown-grid">
           <div className="stat-card">
-            <div className="stat-icon-wrap" style={{ color: '#4285F4' }}>
-              <MapPin size={20} />
+            <div className="stat-icon-wrap" style={{ color: 'var(--g-blue)' }}>
+              <MapPin size={18} />
             </div>
             <div className="stat-card-details">
               <span className="stat-name">Distance</span>
@@ -113,8 +113,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon-wrap" style={{ color: '#FBBC05' }}>
-              <Coins size={20} />
+            <div className="stat-icon-wrap" style={{ color: 'var(--g-yellow)' }}>
+              <Coins size={18} />
             </div>
             <div className="stat-card-details">
               <span className="stat-name">Coins Earned</span>
@@ -128,13 +128,15 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             </div>
             <div className="stat-card-details">
               <span className="stat-name">GDG Coins Earned</span>
-              <span className="stat-value font-display gdg-pill-stat-val">+{Math.max(1, Math.floor(payload.coins / 15))}</span>
+              <span className="stat-value font-display gdg-pill-stat-val">
+                +{Math.max(1, Math.floor(payload.coins / 15))}
+              </span>
             </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon-wrap" style={{ color: '#34A853' }}>
-              <Clock size={20} />
+            <div className="stat-icon-wrap" style={{ color: 'var(--g-green)' }}>
+              <Clock size={18} />
             </div>
             <div className="stat-card-details">
               <span className="stat-name">Duration</span>
@@ -143,7 +145,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           </div>
         </div>
 
-        {/* Cumulative Bank Banner */}
+        {/* Cumulative Bank Wallet Banner */}
         <div className="banked-wallet-banner">
           <span className="banked-label">YOUR TOTAL BANK:</span>
           <div className="banked-chips">
@@ -159,19 +161,19 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         <div className="result-actions">
           <button
             id="play-again-btn"
-            className="btn btn-primary btn-lg action-btn"
+            className="btn btn-filled btn-lg action-btn"
             onClick={onPlayAgain}
           >
-            <RotateCcw size={20} />
+            <RotateCcw size={18} />
             <span>PLAY AGAIN</span>
           </button>
 
           <button
             id="view-leaderboard-btn"
-            className="btn btn-secondary btn-lg action-btn"
+            className="btn btn-outlined btn-lg action-btn"
             onClick={onViewLeaderboard}
           >
-            <Trophy size={20} />
+            <Trophy size={18} />
             <span>LEADERBOARD</span>
             <ArrowRight size={16} />
           </button>
@@ -179,7 +181,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         <button
           type="button"
-          className="signout-link"
+          className="signout-link btn-text"
           onClick={onSignOut}
         >
           Sign Out
@@ -193,169 +195,142 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(8, 11, 18, 0.88);
-          backdrop-filter: blur(12px);
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(10px);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 24px;
+          padding: 20px;
           z-index: 50;
         }
 
         .result-card {
           width: 100%;
-          max-width: 520px;
-          border-radius: var(--radius-xl);
-          background: var(--bg-surface);
-          border: 1px solid var(--border-medium);
-          box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85);
+          max-width: 500px;
+          border-radius: var(--r-xl);
+          background: var(--surface);
+          border: 2px solid var(--border);
+          box-shadow: var(--shadow-3);
           overflow: hidden;
           text-align: center;
+          padding: 0;
         }
 
         .result-header {
-          padding: 28px 28px 16px;
+          padding: 28px 24px 16px;
         }
 
-        .record-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 12px;
-          background: linear-gradient(135deg, rgba(251, 188, 5, 0.2), rgba(234, 67, 53, 0.2));
-          border: 1px solid rgba(251, 188, 5, 0.4);
-          border-radius: 20px;
-          color: var(--google-yellow);
-          font-family: var(--font-mono);
-          font-size: 0.76rem;
-          font-weight: 800;
+        .record-chip {
           margin-bottom: 12px;
+          height: 28px;
         }
 
-        .status-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-family: var(--font-mono);
-          font-size: 0.76rem;
-          font-weight: 800;
+        .status-chip {
           margin-bottom: 12px;
-          letter-spacing: 0.05em;
+          height: 28px;
         }
 
-        .status-pill.police-status {
-          background: linear-gradient(135deg, rgba(234, 67, 53, 0.2), rgba(66, 133, 244, 0.2));
-          border: 1px solid rgba(234, 67, 53, 0.4);
-          color: #FF8A80;
+        .status-chip.police-chip {
+          background: var(--danger-soft);
+          color: var(--danger);
         }
 
-        .status-pill.fuel-status {
-          background: linear-gradient(135deg, rgba(251, 188, 5, 0.2), rgba(245, 124, 0, 0.2));
-          border: 1px solid rgba(251, 188, 5, 0.45);
+        .status-chip.fuel-chip {
+          background: rgba(251, 188, 4, 0.15);
+          color: #B26A00;
+        }
+
+        :root[data-theme='dark'] .status-chip.fuel-chip {
           color: #FFD54F;
+          background: rgba(251, 188, 4, 0.15);
         }
 
         .result-title {
-          font-size: 2rem;
+          font-size: 1.85rem;
           margin-bottom: 4px;
         }
 
-        .fuel-title {
-          color: #FFD54F;
-          text-shadow: 0 0 20px rgba(251, 188, 5, 0.4);
-        }
-
-        .police-title {
-          color: var(--text-primary);
-          text-shadow: 0 0 20px rgba(234, 67, 53, 0.4);
-        }
-
         .result-subtitle {
-          font-size: 0.88rem;
-          color: var(--text-muted);
+          font-size: 0.875rem;
+          color: var(--text-2);
+          max-width: 380px;
+          margin: 0 auto;
         }
 
         .score-hero-box {
-          margin: 0 28px 20px;
-          padding: 20px;
-          background: linear-gradient(180deg, rgba(26, 33, 48, 0.6) 0%, rgba(18, 23, 34, 0.8) 100%);
-          border: 1px solid var(--border-medium);
-          border-radius: var(--radius-lg);
+          margin: 0 24px 16px;
+          padding: 18px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--r-lg);
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
         .score-label {
-          font-family: var(--font-mono);
+          font-family: var(--font-display);
           font-size: 0.75rem;
           font-weight: 700;
-          color: var(--text-muted);
-          letter-spacing: 0.1em;
+          color: var(--text-3);
+          letter-spacing: 0.08em;
         }
 
         .score-number-row {
           display: flex;
           align-items: baseline;
           gap: 8px;
-          margin: 6px 0;
+          margin: 4px 0;
         }
 
         .score-number {
-          font-size: 3.2rem;
-          font-weight: 800;
-          color: #FFFFFF;
-          text-shadow: 0 0 24px rgba(66, 133, 244, 0.4);
+          font-size: 3rem;
+          font-weight: 700;
+          color: var(--text);
         }
 
         .score-pts {
-          font-family: var(--font-mono);
           font-size: 1.1rem;
           font-weight: 700;
-          color: var(--google-yellow);
+          color: var(--accent);
         }
 
         .previous-best {
           font-size: 0.8rem;
-          color: var(--text-secondary);
+          color: var(--text-3);
         }
 
         .stats-breakdown-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin: 0 28px 24px;
+          gap: 10px;
+          margin: 0 24px 16px;
         }
 
         .stat-card {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          background: rgba(0, 0, 0, 0.25);
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-md);
+          gap: 10px;
+          padding: 10px 14px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--r-md);
           text-align: left;
         }
 
         .stat-card.gdg-coin-card {
-          background: linear-gradient(135deg, rgba(251, 188, 5, 0.12), rgba(234, 67, 53, 0.08));
-          border: 1px solid rgba(251, 188, 5, 0.35);
-          box-shadow: 0 4px 16px rgba(251, 188, 5, 0.15);
+          background: var(--accent-soft);
+          border-color: rgba(66, 133, 244, 0.35);
         }
 
         .gdg-pill-stat-img {
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
           object-fit: contain;
-          filter: drop-shadow(0 2px 6px rgba(251, 188, 5, 0.5));
         }
 
         .gdg-pill-stat-val {
-          color: var(--google-yellow) !important;
-          text-shadow: 0 0 10px rgba(251, 188, 5, 0.4);
+          color: var(--accent) !important;
         }
 
         .stat-icon-wrap {
@@ -370,36 +345,37 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .stat-name {
-          font-size: 0.72rem;
-          color: var(--text-muted);
+          font-size: 0.7rem;
+          color: var(--text-3);
           text-transform: uppercase;
+          font-weight: 500;
         }
 
         .stat-value {
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 700;
-          color: var(--text-primary);
+          color: var(--text);
         }
 
         .banked-wallet-banner {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin: 0 28px 20px;
+          margin: 0 24px 16px;
           padding: 10px 16px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px dashed var(--border-medium);
-          border-radius: var(--radius-md);
+          background: var(--surface-3);
+          border: 1px dashed var(--border-strong);
+          border-radius: var(--r-md);
           font-size: 0.85rem;
           flex-wrap: wrap;
           gap: 8px;
         }
 
         .banked-label {
-          font-family: var(--font-mono);
+          font-family: var(--font-display);
           font-size: 0.72rem;
           font-weight: 700;
-          color: var(--text-muted);
+          color: var(--text-3);
           letter-spacing: 0.05em;
         }
 
@@ -413,32 +389,30 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          padding: 3px 8px;
-          border-radius: 12px;
-          font-weight: 800;
-          font-size: 0.82rem;
-          background: rgba(251, 188, 5, 0.12);
-          color: #FFD54F;
-          border: 1px solid rgba(251, 188, 5, 0.3);
+          padding: 2px 8px;
+          border-radius: var(--pill);
+          font-weight: 700;
+          font-size: 0.8rem;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          color: var(--text);
         }
 
         .banked-chip.gdg {
-          background: rgba(66, 133, 244, 0.15);
-          color: #90CAF9;
-          border-color: rgba(66, 133, 244, 0.4);
+          color: var(--accent);
         }
 
         .banked-mini-pill {
-          width: 14px;
-          height: 14px;
+          width: 13px;
+          height: 13px;
           object-fit: contain;
         }
 
         .result-actions {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 0 28px 16px;
+          gap: 10px;
+          padding: 0 24px 12px;
         }
 
         .action-btn {
@@ -446,25 +420,17 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .signout-link {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
+          margin: 0 auto 16px;
           font-size: 0.82rem;
-          cursor: pointer;
-          padding: 8px 16px 20px;
-          transition: color 0.15s ease;
+          display: inline-block;
         }
 
-        .signout-link:hover {
-          color: var(--google-red);
-        }
-
-        @media (max-width: 600px) {
+        @media (max-width: 560px) {
           .stats-breakdown-grid {
             grid-template-columns: 1fr;
           }
           .score-number {
-            font-size: 2.5rem;
+            font-size: 2.4rem;
           }
         }
       `}</style>
