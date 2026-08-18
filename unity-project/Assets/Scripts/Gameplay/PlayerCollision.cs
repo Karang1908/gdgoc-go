@@ -17,7 +17,7 @@ namespace GDGGo.Gameplay
     public sealed class PlayerCollision : MonoBehaviour
     {
         [Tooltip("Seconds of immunity after a crash, so one pile-up cannot drain Heat in a single frame.")]
-        public float invulnerabilitySeconds = 1.1f;
+        public float invulnerabilitySeconds = 1.8f;
 
         [Tooltip("Mesh root to flash while immune. Optional.")]
         public Renderer[] flashRenderers;
