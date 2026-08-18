@@ -23,15 +23,14 @@ namespace GDGGo.Police
         public float maxGap = 22f;
 
         [Tooltip("Distance behind the player at Heat = 0 (caught).")]
-        public float minGap = 3.2f;
+        public float minGap = 2.4f;
 
         [Tooltip("How quickly the car eases to its target distance.")]
-        public float followLerp = 2.5f;
+        public float followLerp = 3.8f;
 
         [Header("Weave")]
-        [Tooltip("How far the car drifts sideways while chasing.")]
-        public float weaveAmplitude = 2.2f;
-        public float weaveHz = 0.32f;
+        public float weaveAmplitude = 2.4f;
+        public float weaveHz = 0.45f;
 
         [Tooltip("How strongly the car swings toward the player's lane as Heat drops.")]
         [Range(0f, 1f)] public float lockOnStrength = 0.75f;
