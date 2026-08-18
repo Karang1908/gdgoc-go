@@ -7,6 +7,11 @@ interface LeaderboardProps {
   onBackToGame: () => void;
 }
 
+const fmt = (n: number | string | null | undefined): string => {
+  const val = Number(n);
+  return isNaN(val) ? '0' : val.toLocaleString();
+};
+
 export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
   const { user, profile, userCoins, userGdgCoins, userStats } = useAuth();
   const [drivers, setDrivers] = useState<DriverStats[]>([]);
@@ -21,7 +26,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
     try {
       const data = await fetchLeaderboardDrivers(100);
-      setDrivers(data);
+      setDrivers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error('[Leaderboard] Fetch error:', err);
       setError('Could not load leaderboard data. Please check your network connection.');
@@ -36,19 +41,20 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
   }, []);
 
   const filteredDrivers = drivers.filter((row) => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = (searchQuery || '').toLowerCase().trim();
     if (!q) return true;
-    return (
-      row.displayName?.toLowerCase().includes(q) ||
-      row.username?.toLowerCase().includes(q)
-    );
+    const nameMatch = row?.displayName && row.displayName.toLowerCase().includes(q);
+    const userMatch = row?.username && row.username.toLowerCase().includes(q);
+    return Boolean(nameMatch || userMatch);
   });
 
-  const userDriverIndex = drivers.findIndex(
-    (r) =>
-      (user && r.userId === user.id) ||
-      (profile && r.username.toLowerCase() === profile.username.toLowerCase())
-  );
+  const userDriverIndex = drivers.findIndex((r) => {
+    if (!r) return false;
+    if (user && r.userId && r.userId === user.id) return true;
+    if (profile?.username && r.username && r.username.toLowerCase() === profile.username.toLowerCase()) return true;
+    return false;
+  });
+
   const userStanding = userDriverIndex !== -1 ? drivers[userDriverIndex] : userStats;
 
   return (
@@ -79,97 +85,97 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       {!loading && drivers.length > 0 && !searchQuery && (
         <div className={`podium-grid podium-count-${Math.min(drivers.length, 3)}`}>
           {/* 2nd Place (Silver) */}
-          {drivers.length >= 2 && (
+          {drivers.length >= 2 && drivers[1] && (
             <div className="podium-card card silver">
               <div className="podium-rank-badge font-display">#2</div>
               <div className="podium-avatar-wrap silver-avatar">
                 <Medal size={28} />
               </div>
               <h3 className="podium-username" title={`@${drivers[1].username}`}>
-                @{drivers[1].username}
+                @{drivers[1].username || 'driver'}
               </h3>
               <span className="podium-realname">
-                {drivers[1].displayName || drivers[1].username}
+                {drivers[1].displayName || drivers[1].username || 'Driver'}
               </span>
               <span className="podium-score font-display">
-                {drivers[1].bestScore.toLocaleString()} PTS
+                {fmt(drivers[1].bestScore)} PTS
               </span>
               <div className="podium-sub">
                 <span className="podium-coin-tag">
                   <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
-                  {drivers[1].totalCoins.toLocaleString()}
+                  {fmt(drivers[1].totalCoins)}
                 </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
-                  {drivers[1].totalGdgCoins.toLocaleString()} GDG
+                  {fmt(drivers[1].totalGdgCoins)} GDG
                 </span>
                 <span>•</span>
-                <span>{drivers[1].bestDistance}m</span>
+                <span>{fmt(drivers[1].bestDistance)}m</span>
               </div>
             </div>
           )}
 
           {/* 1st Place (Gold) */}
-          {drivers.length >= 1 && (
+          {drivers.length >= 1 && drivers[0] && (
             <div className="podium-card card gold">
               <div className="podium-rank-badge font-display gold-badge">#1</div>
               <div className="podium-avatar-wrap gold-avatar">
                 <Trophy size={32} />
               </div>
               <h3 className="podium-username" title={`@${drivers[0].username}`}>
-                @{drivers[0].username}
+                @{drivers[0].username || 'driver'}
               </h3>
               <span className="podium-realname">
-                {drivers[0].displayName || drivers[0].username}
+                {drivers[0].displayName || drivers[0].username || 'Driver'}
               </span>
               <span className="podium-score font-display">
-                {drivers[0].bestScore.toLocaleString()} PTS
+                {fmt(drivers[0].bestScore)} PTS
               </span>
               <div className="podium-sub">
                 <span className="podium-coin-tag">
                   <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
-                  {drivers[0].totalCoins.toLocaleString()}
+                  {fmt(drivers[0].totalCoins)}
                 </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
-                  {drivers[0].totalGdgCoins.toLocaleString()} GDG
+                  {fmt(drivers[0].totalGdgCoins)} GDG
                 </span>
                 <span>•</span>
-                <span>{drivers[0].bestDistance}m</span>
+                <span>{fmt(drivers[0].bestDistance)}m</span>
               </div>
             </div>
           )}
 
           {/* 3rd Place (Bronze) */}
-          {drivers.length >= 3 && (
+          {drivers.length >= 3 && drivers[2] && (
             <div className="podium-card card bronze">
               <div className="podium-rank-badge font-display">#3</div>
               <div className="podium-avatar-wrap bronze-avatar">
                 <Medal size={28} />
               </div>
               <h3 className="podium-username" title={`@${drivers[2].username}`}>
-                @{drivers[2].username}
+                @{drivers[2].username || 'driver'}
               </h3>
               <span className="podium-realname">
-                {drivers[2].displayName || drivers[2].username}
+                {drivers[2].displayName || drivers[2].username || 'Driver'}
               </span>
               <span className="podium-score font-display">
-                {drivers[2].bestScore.toLocaleString()} PTS
+                {fmt(drivers[2].bestScore)} PTS
               </span>
               <div className="podium-sub">
                 <span className="podium-coin-tag">
                   <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
-                  {drivers[2].totalCoins.toLocaleString()}
+                  {fmt(drivers[2].totalCoins)}
                 </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
-                  {drivers[2].totalGdgCoins.toLocaleString()} GDG
+                  {fmt(drivers[2].totalGdgCoins)} GDG
                 </span>
                 <span>•</span>
-                <span>{drivers[2].bestDistance}m</span>
+                <span>{fmt(drivers[2].bestDistance)}m</span>
               </div>
             </div>
           )}
@@ -177,7 +183,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       )}
 
       {/* User's Own Standing Highlight Card */}
-      {user && userStanding && (
+      {user && (
         <div className="user-standing-card card animate-fade-in">
           <div className="standing-tag">
             <Sparkles size={14} />
@@ -189,28 +195,32 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             </div>
             <div className="standing-info">
               <div className="standing-name-stack">
-                <span className="standing-username font-display">@{profile?.username || userStanding.username}</span>
-                <span className="standing-realname">{profile?.display_name || userStanding.displayName}</span>
+                <span className="standing-username font-display">
+                  @{profile?.username || userStanding?.username || user?.email?.split('@')[0] || 'driver'}
+                </span>
+                <span className="standing-realname">
+                  {profile?.display_name || userStanding?.displayName || 'Driver'}
+                </span>
               </div>
               <div className="standing-wallet-row">
                 <span className="wallet-stat standard">
                   <Coins size={13} style={{ color: 'var(--g-yellow)' }} />
-                  <span><strong>{(userCoins || userStanding.totalCoins).toLocaleString()}</strong> Coins</span>
+                  <span><strong>{fmt(userCoins ?? userStanding?.totalCoins)}</strong> Coins</span>
                 </span>
                 <span>•</span>
                 <span className="wallet-stat gdg">
                   <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-pill-icon" />
-                  <span><strong>{(userGdgCoins || userStanding.totalGdgCoins).toLocaleString()}</strong> GDG</span>
+                  <span><strong>{fmt(userGdgCoins ?? userStanding?.totalGdgCoins)}</strong> GDG</span>
                 </span>
                 <span>•</span>
                 <span className="wallet-stat games">
                   <Flag size={13} />
-                  <span>{userStanding.totalGames} {userStanding.totalGames === 1 ? 'race' : 'races'}</span>
+                  <span>{userStanding?.totalGames ?? 0} {userStanding?.totalGames === 1 ? 'race' : 'races'}</span>
                 </span>
               </div>
             </div>
             <div className="standing-score font-display">
-              {userStanding.bestScore.toLocaleString()} PTS
+              {fmt(userStanding?.bestScore)} PTS
             </div>
           </div>
         </div>
@@ -273,15 +283,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredDrivers.map((row) => {
-                const isUser =
-                  (user && row.userId === user.id) ||
-                  (profile && row.username?.toLowerCase() === profile.username.toLowerCase());
-                const globalRank = row.rank || (drivers.findIndex((s) => s.userId === row.userId) + 1);
+              {filteredDrivers.map((row, idx) => {
+                const isUser = Boolean(
+                  (user && row.userId && row.userId === user.id) ||
+                  (profile?.username && row.username && row.username.toLowerCase() === profile.username.toLowerCase())
+                );
+                const globalRank = row.rank || (idx + 1);
 
                 return (
                   <tr
-                    key={row.userId || row.username}
+                    key={row.userId || row.username || `row-${idx}`}
                     className={`table-row ${isUser ? 'user-highlight' : ''}`}
                   >
                     <td className="td-rank">
@@ -292,27 +303,27 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                     <td className="td-driver">
                       <div className="driver-cell">
                         <div className="driver-identity-col">
-                          <span className="driver-username font-display">@{row.username}</span>
-                          <span className="driver-realname">{row.displayName || row.username}</span>
+                          <span className="driver-username font-display">@{row.username || 'driver'}</span>
+                          <span className="driver-realname">{row.displayName || row.username || 'Driver'}</span>
                         </div>
                         {isUser && <span className="you-badge">YOU</span>}
                       </div>
                     </td>
-                    <td className="td-score font-display">{row.bestScore.toLocaleString()}</td>
+                    <td className="td-score font-display">{fmt(row.bestScore)}</td>
                     <td className="td-coins font-mono">
                       <span className="table-coin-cell">
                         <Coins size={13} style={{ color: 'var(--g-yellow)', display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                        {row.totalCoins.toLocaleString()}
+                        {fmt(row.totalCoins)}
                       </span>
                     </td>
                     <td className="td-pills">
                       <div className="pill-badge-cell">
                         <img src="/branding/gdg-pill.png" alt="GDG Coin" className="table-pill-icon" />
-                        <span className="font-mono pill-count-text">{row.totalGdgCoins.toLocaleString()}</span>
+                        <span className="font-mono pill-count-text">{fmt(row.totalGdgCoins)}</span>
                       </div>
                     </td>
-                    <td className="td-distance font-mono">{row.bestDistance} m</td>
-                    <td className="td-games font-mono">{row.totalGames}</td>
+                    <td className="td-distance font-mono">{fmt(row.bestDistance)} m</td>
+                    <td className="td-games font-mono">{fmt(row.totalGames)}</td>
                   </tr>
                 );
               })}
