@@ -1,5 +1,4 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Maximize2 } from 'lucide-react';
 
 export interface UnityEmbedHandle {
   triggerFullscreen: () => void;
@@ -41,7 +40,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           return;
         }
       } catch {
-        // cross-origin
+        // cross-origin safety
       }
     }
 
@@ -87,16 +86,6 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
         tabIndex={0}
       />
 
-      {/* Floating button on the canvas with the best experience notice */}
-      <button
-        className="fullscreen-toggle-btn"
-        onClick={triggerFullscreen}
-        title="For the best experience, play in full screen"
-        aria-label="For the best experience, play in full screen"
-      >
-        <Maximize2 size={18} />
-      </button>
-
       <style>{`
         .unity-embed-container {
           position: relative;
@@ -119,34 +108,6 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border: none;
           display: block;
           outline: none;
-        }
-
-        .fullscreen-toggle-btn {
-          position: absolute;
-          top: 14px;
-          right: 14px;
-          z-index: 10;
-          background: rgba(18, 23, 34, 0.85);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          color: var(--text-secondary);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 8px;
-          border-radius: 8px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.18s ease;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-
-        .fullscreen-toggle-btn:hover {
-          color: #FFFFFF;
-          background: rgba(26, 35, 54, 0.95);
-          border-color: var(--google-blue);
-          transform: scale(1.06);
-          box-shadow: 0 6px 18px rgba(66, 133, 244, 0.35);
         }
 
         @media (max-width: 768px) {
