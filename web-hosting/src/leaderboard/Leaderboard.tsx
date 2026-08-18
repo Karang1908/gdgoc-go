@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, RefreshCw, Search, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
-import { ScoreRow, fetchLeaderboard } from '../lib/api';
+import { DriverStats, fetchLeaderboardDrivers } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 interface LeaderboardProps {
@@ -8,8 +8,8 @@ interface LeaderboardProps {
 }
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
-  const { user, profile } = useAuth();
-  const [scores, setScores] = useState<ScoreRow[]>([]);
+  const { user, profile, userCoins, userGdgCoins, userStats } = useAuth();
+  const [drivers, setDrivers] = useState<DriverStats[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -20,8 +20,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
     setError(null);
 
     try {
-      const data = await fetchLeaderboard(100);
-      setScores(data);
+      const data = await fetchLeaderboardDrivers(100);
+      setDrivers(data);
     } catch (err: any) {
       console.error('[Leaderboard] Fetch error:', err);
       setError('Could not load leaderboard data. Please check your network connection.');
@@ -35,21 +35,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
     loadData();
   }, []);
 
-  const filteredScores = scores.filter((row) => {
+  const filteredDrivers = drivers.filter((row) => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return (
-      row.display_name?.toLowerCase().includes(q) ||
+      row.displayName?.toLowerCase().includes(q) ||
       row.username?.toLowerCase().includes(q)
     );
   });
 
-  const userRowIndex = scores.findIndex(
+  const userDriverIndex = drivers.findIndex(
     (r) =>
-      (user && r.user_id === user.id) ||
+      (user && r.userId === user.id) ||
       (profile && r.username.toLowerCase() === profile.username.toLowerCase())
   );
-  const userBestRow = userRowIndex !== -1 ? scores[userRowIndex] : null;
+  const userStanding = userDriverIndex !== -1 ? drivers[userDriverIndex] : userStats;
 
   return (
     <main className="leaderboard-container animate-fade-in">
@@ -71,67 +71,91 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         <h1 className="leaderboard-title">Top Drivers</h1>
         <p className="leaderboard-desc">
-          Official global rankings: 1 standing per driver (all-time personal best). Higher scores require long distances, dense coin chains, and maximum combo multipliers.
+          Official global rankings: 1 standing per driver. Track your high score, cumulative standard coins, and banked GDG tokens.
         </p>
       </div>
 
       {/* Podium Top Cards (adapts for 1, 2, or 3 players) */}
-      {!loading && scores.length > 0 && !searchQuery && (
-        <div className={`podium-grid podium-count-${Math.min(scores.length, 3)}`}>
+      {!loading && drivers.length > 0 && !searchQuery && (
+        <div className={`podium-grid podium-count-${Math.min(drivers.length, 3)}`}>
           {/* 2nd Place (if available) */}
-          {scores.length >= 2 && (
+          {drivers.length >= 2 && (
             <div className="podium-card silver">
               <div className="podium-rank-badge font-display">2</div>
               <div className="podium-avatar">🥈</div>
-              <h3 className="podium-name" title={scores[1].display_name || scores[1].username}>
-                {scores[1].display_name || scores[1].username}
+              <h3 className="podium-username font-mono" title={`@${drivers[1].username}`}>
+                @{drivers[1].username}
               </h3>
+              <span className="podium-realname">
+                {drivers[1].displayName || drivers[1].username}
+              </span>
               <span className="podium-score font-display">
-                {scores[1].score.toLocaleString()} PTS
+                {drivers[1].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span>{scores[1].distance}m</span>
+                <span className="podium-coin-tag">🟡 {drivers[1].totalCoins.toLocaleString()}</span>
                 <span>•</span>
-                <span>{scores[1].coins} coins</span>
+                <span className="podium-pill-tag">
+                  <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
+                  {drivers[1].totalGdgCoins.toLocaleString()} GDG
+                </span>
+                <span>•</span>
+                <span>{drivers[1].bestDistance}m</span>
               </div>
             </div>
           )}
 
           {/* 1st Place (Gold) */}
-          {scores.length >= 1 && (
+          {drivers.length >= 1 && (
             <div className="podium-card gold">
               <div className="crown-icon">👑</div>
               <div className="podium-rank-badge font-display">1</div>
               <div className="podium-avatar">🥇</div>
-              <h3 className="podium-name" title={scores[0].display_name || scores[0].username}>
-                {scores[0].display_name || scores[0].username}
+              <h3 className="podium-username font-mono" title={`@${drivers[0].username}`}>
+                @{drivers[0].username}
               </h3>
+              <span className="podium-realname">
+                {drivers[0].displayName || drivers[0].username}
+              </span>
               <span className="podium-score font-display">
-                {scores[0].score.toLocaleString()} PTS
+                {drivers[0].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span>{scores[0].distance}m</span>
+                <span className="podium-coin-tag">🟡 {drivers[0].totalCoins.toLocaleString()}</span>
                 <span>•</span>
-                <span>{scores[0].coins} coins</span>
+                <span className="podium-pill-tag">
+                  <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
+                  {drivers[0].totalGdgCoins.toLocaleString()} GDG
+                </span>
+                <span>•</span>
+                <span>{drivers[0].bestDistance}m</span>
               </div>
             </div>
           )}
 
           {/* 3rd Place (if available) */}
-          {scores.length >= 3 && (
+          {drivers.length >= 3 && (
             <div className="podium-card bronze">
               <div className="podium-rank-badge font-display">3</div>
               <div className="podium-avatar">🥉</div>
-              <h3 className="podium-name" title={scores[2].display_name || scores[2].username}>
-                {scores[2].display_name || scores[2].username}
+              <h3 className="podium-username font-mono" title={`@${drivers[2].username}`}>
+                @{drivers[2].username}
               </h3>
+              <span className="podium-realname">
+                {drivers[2].displayName || drivers[2].username}
+              </span>
               <span className="podium-score font-display">
-                {scores[2].score.toLocaleString()} PTS
+                {drivers[2].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span>{scores[2].distance}m</span>
+                <span className="podium-coin-tag">🟡 {drivers[2].totalCoins.toLocaleString()}</span>
                 <span>•</span>
-                <span>{scores[2].coins} coins</span>
+                <span className="podium-pill-tag">
+                  <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
+                  {drivers[2].totalGdgCoins.toLocaleString()} GDG
+                </span>
+                <span>•</span>
+                <span>{drivers[2].bestDistance}m</span>
               </div>
             </div>
           )}
@@ -139,22 +163,38 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       )}
 
       {/* User's Own Standing Highlight */}
-      {user && userBestRow && (
+      {user && userStanding && (
         <div className="user-standing-card glass-panel animate-fade-in">
           <div className="standing-tag">
             <Sparkles size={14} />
-            <span>YOUR VERIFIED STANDING</span>
+            <span>YOUR DRIVER PROFILE & WALLET</span>
           </div>
           <div className="standing-row">
-            <div className="standing-rank font-display">#{userRowIndex + 1}</div>
+            <div className="standing-rank font-display">
+              {userDriverIndex !== -1 ? `#${userDriverIndex + 1}` : 'UNRANKED'}
+            </div>
             <div className="standing-info">
-              <span className="standing-name">{userBestRow.display_name}</span>
-              <span className="standing-meta font-mono">
-                {userBestRow.distance}m • {userBestRow.coins} coins
-              </span>
+              <div className="standing-name-stack">
+                <span className="standing-username font-mono">@{profile?.username || userStanding.username}</span>
+                <span className="standing-realname">{profile?.display_name || userStanding.displayName}</span>
+              </div>
+              <div className="standing-wallet-row font-mono">
+                <span className="wallet-stat standard">
+                  🟡 <strong>{(userCoins || userStanding.totalCoins).toLocaleString()}</strong> Coins
+                </span>
+                <span>•</span>
+                <span className="wallet-stat gdg">
+                  <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-pill-icon" />
+                  <strong>{(userGdgCoins || userStanding.totalGdgCoins).toLocaleString()}</strong> GDG Coins
+                </span>
+                <span>•</span>
+                <span className="wallet-stat games">
+                  🏁 {userStanding.totalGames} {userStanding.totalGames === 1 ? 'race' : 'races'}
+                </span>
+              </div>
             </div>
             <div className="standing-score font-display">
-              {userBestRow.score.toLocaleString()} PTS
+              {userStanding.bestScore.toLocaleString()} PTS
             </div>
           </div>
         </div>
@@ -168,7 +208,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             id="leaderboard-search-input"
             type="text"
             className="search-input"
-            placeholder="Search driver by name..."
+            placeholder="Search driver by username or name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -199,7 +239,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
               Retry
             </button>
           </div>
-        ) : filteredScores.length === 0 ? (
+        ) : filteredDrivers.length === 0 ? (
           <div className="table-empty">
             <span>No driver rankings found. Take the wheel to claim rank #1!</span>
           </div>
@@ -209,26 +249,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
               <tr>
                 <th className="th-rank">Rank</th>
                 <th className="th-driver">Driver</th>
-                <th className="th-score">Personal Best</th>
-                <th className="th-distance">Distance</th>
-                <th className="th-coins">Coins</th>
-                <th className="th-date">Date</th>
+                <th className="th-score">High Score</th>
+                <th className="th-coins">Cumulative Coins</th>
+                <th className="th-pills">GDG Coins</th>
+                <th className="th-distance">Best Distance</th>
+                <th className="th-games">Races</th>
               </tr>
             </thead>
             <tbody>
-              {filteredScores.map((row) => {
+              {filteredDrivers.map((row) => {
                 const isUser =
-                  (user && row.user_id === user.id) ||
+                  (user && row.userId === user.id) ||
                   (profile && row.username?.toLowerCase() === profile.username.toLowerCase());
-                const globalRank = scores.findIndex((s) => s.id === row.id) + 1;
-                const dateStr = new Date(row.created_at).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                });
+                const globalRank = row.rank || (drivers.findIndex((s) => s.userId === row.userId) + 1);
 
                 return (
                   <tr
-                    key={row.id}
+                    key={row.userId || row.username}
                     className={`table-row ${isUser ? 'user-highlight' : ''}`}
                   >
                     <td className="td-rank">
@@ -238,14 +275,25 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                     </td>
                     <td className="td-driver">
                       <div className="driver-cell">
-                        <span className="driver-name">{row.display_name || row.username}</span>
+                        <div className="driver-identity-col">
+                          <span className="driver-username font-mono">@{row.username}</span>
+                          <span className="driver-realname">{row.displayName || row.username}</span>
+                        </div>
                         {isUser && <span className="you-badge font-mono">YOU</span>}
                       </div>
                     </td>
-                    <td className="td-score font-display">{row.score.toLocaleString()}</td>
-                    <td className="td-distance font-mono">{row.distance} m</td>
-                    <td className="td-coins font-mono">{row.coins}</td>
-                    <td className="td-date">{dateStr}</td>
+                    <td className="td-score font-display">{row.bestScore.toLocaleString()}</td>
+                    <td className="td-coins font-mono">
+                      <span className="table-coin-cell">🟡 {row.totalCoins.toLocaleString()}</span>
+                    </td>
+                    <td className="td-pills">
+                      <div className="pill-badge-cell">
+                        <img src="/branding/gdg-pill.png" alt="GDG Coin" className="table-pill-icon" />
+                        <span className="font-mono pill-count-text">{row.totalGdgCoins.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="td-distance font-mono">{row.bestDistance} m</td>
+                    <td className="td-games font-mono">{row.totalGames}</td>
                   </tr>
                 );
               })}
@@ -370,14 +418,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           margin-bottom: 8px;
         }
 
-        .podium-name {
-          font-size: 1.15rem;
-          color: var(--text-primary);
+        .podium-username {
+          font-size: 1.18rem;
+          font-weight: 800;
+          color: #FFFFFF;
           max-width: 100%;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
+          letter-spacing: -0.01em;
+        }
+
+        .podium-realname {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          margin-bottom: 6px;
         }
 
         .podium-score {
@@ -430,18 +490,62 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           flex-grow: 1;
           display: flex;
           flex-direction: column;
+          gap: 6px;
         }
 
-        .standing-name {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: var(--text-primary);
+        .standing-name-stack {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
-        .standing-meta {
-          font-size: 0.8rem;
+        .standing-username {
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: #FFFFFF;
+        }
+
+        .standing-realname {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .standing-wallet-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.82rem;
           color: var(--text-muted);
+          flex-wrap: wrap;
         }
+
+        .wallet-stat.standard {
+          color: #FFD54F;
+        }
+
+        .wallet-stat.gdg {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: #90CAF9;
+        }
+
+        .wallet-stat.games {
+          color: var(--text-secondary);
+        }
+
+        .podium-coin-tag {
+          color: #FFD54F;
+          font-weight: 700;
+        }
+
+        .table-coin-cell {
+          color: #FFD54F;
+          font-weight: 700;
+        }
+
+        .th-games { text-align: right; }
 
         .standing-score {
           font-size: 1.5rem;
@@ -516,7 +620,50 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .th-score { text-align: right; }
         .th-distance { text-align: right; }
         .th-coins { text-align: right; }
+        .th-pills { text-align: right; }
         .th-date { text-align: right; }
+
+        .podium-pill-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--google-yellow);
+          font-weight: 700;
+        }
+
+        .inline-pill-icon {
+          width: 14px;
+          height: 14px;
+          object-fit: contain;
+        }
+
+        .standing-pill-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--google-yellow);
+          font-weight: 700;
+        }
+
+        .pill-badge-cell {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          width: 100%;
+        }
+
+        .table-pill-icon {
+          width: 18px;
+          height: 18px;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 4px rgba(251, 188, 5, 0.4));
+        }
+
+        .pill-count-text {
+          font-weight: 700;
+          color: var(--google-yellow);
+        }
 
         .table-row {
           border-bottom: 1px solid var(--border-subtle);
@@ -553,9 +700,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           gap: 8px;
         }
 
-        .driver-name {
-          font-weight: 600;
-          color: var(--text-primary);
+        .driver-identity-col {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .driver-username {
+          font-weight: 800;
+          font-size: 0.92rem;
+          color: #FFFFFF;
+        }
+
+        .driver-realname {
+          font-size: 0.76rem;
+          color: var(--text-muted);
         }
 
         .you-badge {
@@ -574,7 +733,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           color: var(--google-yellow);
         }
 
-        .td-distance, .td-coins, .td-date {
+        .td-distance, .td-coins, .td-pills, .td-date {
           text-align: right;
           font-size: 0.85rem;
         }
