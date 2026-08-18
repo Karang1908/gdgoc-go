@@ -6,6 +6,7 @@ export interface CarOption {
   badgeColor: string;
   accentColor: string;
   image: string;
+  spinImage: string;
   stats: {
     speed: number;      // 0 - 100
     handling: number;   // 0 - 100
@@ -15,10 +16,10 @@ export interface CarOption {
 
 /**
  * 3D Models rendered directly from Unity Kenney CarKit:
- *   - 'sports' (sedan-sports.fbx) -> /branding/cars/car-sports.png
- *   - 'race' (race.fbx)           -> /branding/cars/car-race.png
- *   - 'suv' (suv-luxury.fbx)      -> /branding/cars/car-suv.png
- *   - 'taxi' (taxi.fbx)           -> /branding/cars/car-taxi.png
+ *   - 'sports' (sedan-sports.fbx) -> /branding/cars/car-sports-spin.webp
+ *   - 'race' (race.fbx)           -> /branding/cars/car-race-spin.webp
+ *   - 'suv' (suv-luxury.fbx)      -> /branding/cars/car-suv-spin.webp
+ *   - 'taxi' (taxi.fbx)           -> /branding/cars/car-taxi-spin.webp
  */
 export const CARS: CarOption[] = [
   {
@@ -29,6 +30,7 @@ export const CARS: CarOption[] = [
     badgeColor: '#4285F4',
     accentColor: 'rgba(66, 133, 244, 0.12)',
     image: '/branding/cars/car-sports.png',
+    spinImage: '/branding/cars/car-sports-spin.webp',
     stats: {
       speed: 95,
       handling: 85,
@@ -43,6 +45,7 @@ export const CARS: CarOption[] = [
     badgeColor: '#EA4335',
     accentColor: 'rgba(234, 67, 53, 0.12)',
     image: '/branding/cars/car-race.png',
+    spinImage: '/branding/cars/car-race-spin.webp',
     stats: {
       speed: 98,
       handling: 90,
@@ -57,6 +60,7 @@ export const CARS: CarOption[] = [
     badgeColor: '#34A853',
     accentColor: 'rgba(52, 168, 83, 0.12)',
     image: '/branding/cars/car-suv.png',
+    spinImage: '/branding/cars/car-suv-spin.webp',
     stats: {
       speed: 72,
       handling: 65,
@@ -71,6 +75,7 @@ export const CARS: CarOption[] = [
     badgeColor: '#FBBC04',
     accentColor: 'rgba(251, 188, 4, 0.12)',
     image: '/branding/cars/car-taxi.png',
+    spinImage: '/branding/cars/car-taxi-spin.webp',
     stats: {
       speed: 82,
       handling: 94,
