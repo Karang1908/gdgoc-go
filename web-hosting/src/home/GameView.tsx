@@ -27,29 +27,31 @@ export const GameView: React.FC<GameViewProps> = ({
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
   const handleFullscreen = useCallback(() => {
-    unityEmbedRef.current?.triggerFullscreen();
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if ((elem as any).webkitRequestFullscreen) {
+        (elem as any).webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
   }, []);
 
   const handleExitFullscreen = useCallback(() => {
-    unityEmbedRef.current?.exitFullscreen();
-  }, []);
-
-  // Auto-enter fullscreen on any keypress (Space, WASD, Arrow keys) while playing
-  useEffect(() => {
-    const handleGameplayInput = (e: KeyboardEvent) => {
-      const keys = ['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-      if (keys.includes(e.code) && !gameOverPayload) {
-        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-          handleFullscreen();
-        }
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
       }
-    };
-
-    window.addEventListener('keydown', handleGameplayInput);
-    return () => {
-      window.removeEventListener('keydown', handleGameplayInput);
-    };
-  }, [gameOverPayload, handleFullscreen]);
+    }
+  }, []);
 
   // Start background music on mount / user interaction
   useEffect(() => {
@@ -151,7 +153,14 @@ export const GameView: React.FC<GameViewProps> = ({
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
     // Re-enter fullscreen synchronously on click
-    handleFullscreen();
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if ((elem as any).webkitRequestFullscreen) {
+        (elem as any).webkitRequestFullscreen();
+      }
+    }
   };
 
   const handleToggleMusic = () => {
@@ -188,12 +197,12 @@ export const GameView: React.FC<GameViewProps> = ({
         <div
           className="fullscreen-recommendation-pill"
           onClick={handleFullscreen}
-          title="Click to enter Full Screen"
+          title="Click to toggle Full Screen"
           role="button"
           tabIndex={0}
         >
           <Sparkles size={14} className="sparkle-icon" />
-          <span>Auto-Fullscreen on Play</span>
+          <span>Fullscreen Mode</span>
         </div>
 
         <div className="top-bar-right-controls">
