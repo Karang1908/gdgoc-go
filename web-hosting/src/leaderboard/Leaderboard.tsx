@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, RefreshCw, Search, ArrowLeft, Loader2, Sparkles, Coins, Flag, Medal } from 'lucide-react';
+import { Trophy, RefreshCw, Search, ArrowLeft, Loader2, Coins, Flag, Medal } from 'lucide-react';
 import { DriverStats, fetchLeaderboardDrivers } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -186,7 +186,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       {user && (
         <div className="user-standing-card card animate-fade-in">
           <div className="standing-tag">
-            <Sparkles size={14} />
             <span>YOUR DRIVER PROFILE & WALLET</span>
           </div>
           <div className="standing-row">

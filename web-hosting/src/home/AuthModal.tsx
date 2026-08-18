@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -162,7 +162,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Display Name (Optional)
               </label>
               <div className="input-wrap">
-                <Sparkles size={18} className="input-icon" />
+                <User size={18} className="input-icon" />
                 <input
                   id="auth-display-name"
                   type="text"
