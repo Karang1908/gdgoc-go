@@ -25,6 +25,18 @@ class SubwaySurfersMusicEngine {
   constructor() {
     const saved = localStorage.getItem('gdg_go_bgm_muted');
     if (saved === 'true') this.isMuted = true;
+
+    // Unlock Web Audio API automatically on first mobile touch or click
+    if (typeof window !== 'undefined') {
+      const unlockAudio = () => {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      };
+      window.addEventListener('touchstart', unlockAudio, { passive: true, once: false });
+      window.addEventListener('touchend', unlockAudio, { passive: true, once: false });
+      window.addEventListener('click', unlockAudio, { passive: true, once: false });
+    }
   }
 
   private initContext() {
