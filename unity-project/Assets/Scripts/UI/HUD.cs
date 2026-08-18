@@ -26,6 +26,11 @@ namespace GDGGo.UI
         public float multiplierPopScale = 1.45f;
         public float multiplierPopDecay = 5f;
 
+        [Header("Alerts")]
+        [System.NonSerialized] public TMP_Text alertText;
+        private float _alertTimer;
+        private float _alertScale = 1f;
+
         [Header("Power-up icons")]
         public Image magnetIcon;
         public Image boostIcon;
@@ -79,6 +84,7 @@ namespace GDGGo.UI
             UpdateScore();
             UpdateMultiplier();
             UpdateFuel();
+            UpdateAlert();
 
             if (distanceText != null) distanceText.text = Mathf.RoundToInt(_session.DistanceMeters) + " m";
             if (coinText != null) coinText.text = _session.CoinCount.ToString();
@@ -88,6 +94,54 @@ namespace GDGGo.UI
             SetIcon(twoXIcon, _session.Has2x);
             SetIcon(freezeIcon, _session.PoliceFreezeActive);
             SetIcon(boostIcon, Gameplay.PlayerCar.Current != null && Gameplay.PlayerCar.Current.IsBoosting);
+        }
+
+        public static HUD Instance { get; private set; }
+
+        private void Awake()
+        {
+            Instance = this;
+            if (alertText == null)
+            {
+                var t = transform.Find("AlertText");
+                if (t != null) alertText = t.GetComponent<TMP_Text>();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public void ShowAlert(string text, Color color)
+        {
+            if (alertText == null) return;
+            alertText.text = text;
+            alertText.color = color;
+            _alertTimer = 1.6f;
+            _alertScale = 1.35f;
+            alertText.gameObject.SetActive(true);
+        }
+
+        private void UpdateAlert()
+        {
+            if (alertText == null || _alertTimer <= 0f) return;
+
+            _alertTimer -= Time.deltaTime;
+            _alertScale = Mathf.MoveTowards(_alertScale, 1f, 2.5f * Time.deltaTime);
+            alertText.transform.localScale = Vector3.one * _alertScale;
+
+            if (_alertTimer <= 0.4f)
+            {
+                Color c = alertText.color;
+                c.a = Mathf.Clamp01(_alertTimer / 0.4f);
+                alertText.color = c;
+            }
+
+            if (_alertTimer <= 0f)
+            {
+                alertText.gameObject.SetActive(false);
+            }
         }
 
         private void UpdateScore()
@@ -154,6 +208,7 @@ namespace GDGGo.UI
             }
 
             fuelFillImage.color = c;
+            if (fuelText != null) fuelText.color = c;
         }
 
         private void SetIcon(Image icon, bool active)
