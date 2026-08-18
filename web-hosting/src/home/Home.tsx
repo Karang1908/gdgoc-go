@@ -20,6 +20,18 @@ export const Home: React.FC<HomeProps> = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const handleStartGame = () => {
+    // 1. Immediately request fullscreen on game-fullscreen-root in the synchronous user click event
+    const root = document.getElementById('game-fullscreen-root');
+    if (root) {
+      if (root.requestFullscreen) {
+        root.requestFullscreen().catch((err) => {
+          console.warn('[Home] Fullscreen request warning:', err);
+        });
+      } else if ((root as any).webkitRequestFullscreen) {
+        (root as any).webkitRequestFullscreen();
+      }
+    }
+    // 2. Launch game
     setIsPlaying(true);
   };
 
@@ -186,22 +198,82 @@ export const Home: React.FC<HomeProps> = ({
   // Signed in -> Show Game View only when playing, or Car Picker in garage
   return (
     <main className="home-main-content">
-      {isPlaying ? (
-        <GameView
-          carId={selectedCarId}
-          onBackToGarage={handleBackToGarage}
-          onViewLeaderboard={() => {
-            handleBackToGarage();
-            navigate('leaderboard');
-          }}
-        />
-      ) : (
-        <CarPicker
-          selectedCarId={selectedCarId}
-          onSelectCar={(id) => setSelectedCarId(id)}
-          onStartGame={handleStartGame}
-        />
-      )}
+      <div id="game-fullscreen-root" className={isPlaying ? 'playing' : 'idle'}>
+        {isPlaying ? (
+          <GameView
+            carId={selectedCarId}
+            onBackToGarage={handleBackToGarage}
+            onViewLeaderboard={() => {
+              handleBackToGarage();
+              navigate('leaderboard');
+            }}
+          />
+        ) : (
+          <CarPicker
+            selectedCarId={selectedCarId}
+            onSelectCar={(id) => setSelectedCarId(id)}
+            onStartGame={handleStartGame}
+          />
+        )}
+      </div>
+
+      <style>{`
+        #game-fullscreen-root {
+          width: 100%;
+        }
+
+        #game-fullscreen-root:fullscreen,
+        #game-fullscreen-root:-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #080B12 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: center !important;
+        }
+
+        #game-fullscreen-root:fullscreen .game-view-container,
+        #game-fullscreen-root:-webkit-full-screen .game-view-container {
+          max-width: 100vw !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          gap: 0 !important;
+        }
+
+        #game-fullscreen-root:fullscreen .game-top-bar,
+        #game-fullscreen-root:-webkit-full-screen .game-top-bar {
+          display: none !important;
+        }
+
+        #game-fullscreen-root:fullscreen .game-canvas-wrapper,
+        #game-fullscreen-root:-webkit-full-screen .game-canvas-wrapper {
+          width: 100vw !important;
+          height: 100vh !important;
+          border-radius: 0 !important;
+        }
+
+        #game-fullscreen-root:fullscreen .unity-embed-container,
+        #game-fullscreen-root:-webkit-full-screen .unity-embed-container {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+
+        #game-fullscreen-root:fullscreen .unity-iframe,
+        #game-fullscreen-root:-webkit-full-screen .unity-iframe {
+          width: 100vw !important;
+          height: 100vh !important;
+        }
+      `}</style>
     </main>
   );
 };

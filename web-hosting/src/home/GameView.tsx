@@ -27,11 +27,26 @@ export const GameView: React.FC<GameViewProps> = ({
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
   const handleFullscreen = useCallback(() => {
-    unityEmbedRef.current?.triggerFullscreen();
+    const root = document.getElementById('game-fullscreen-root') || document.documentElement;
+    if (root) {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        if (root.requestFullscreen) {
+          root.requestFullscreen().catch(() => {});
+        } else if ((root as any).webkitRequestFullscreen) {
+          (root as any).webkitRequestFullscreen();
+        }
+      }
+    }
   }, []);
 
   const handleExitFullscreen = useCallback(() => {
-    unityEmbedRef.current?.exitFullscreen();
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
   }, []);
 
   // Start background music on mount / user interaction
