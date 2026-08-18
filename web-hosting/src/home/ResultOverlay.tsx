@@ -191,28 +191,31 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
       <style>{`
         .result-backdrop {
-          position: absolute;
+          position: fixed;
           top: 0;
           left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.85);
+          width: 100vw;
+          height: 100dvh;
+          background: rgba(0, 0, 0, 0.75);
           backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
           z-index: 50;
         }
 
         .result-card {
           width: 100%;
           max-width: 500px;
+          max-height: min(92dvh, 680px);
           border-radius: var(--r-xl);
           background: var(--surface);
           border: 2px solid var(--border);
           box-shadow: var(--shadow-3);
-          overflow: hidden;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           text-align: center;
           padding: 0;
         }

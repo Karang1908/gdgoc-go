@@ -148,11 +148,12 @@ export const Home: React.FC<HomeProps> = ({
         <style>{`
           .hero-landing-container {
             position: relative;
-            min-height: calc(100vh - 160px);
+            min-height: calc(100dvh - 140px);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: clamp(32px, 6vh, 64px) clamp(16px, 4vw, 40px);
+            padding: clamp(24px, 5vh, 64px) clamp(16px, 4vw, 40px);
+            padding-bottom: max(32px, env(safe-area-inset-bottom, 0px) + 20px);
           }
 
           .hero-content {

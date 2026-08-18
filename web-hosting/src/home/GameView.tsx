@@ -369,6 +369,16 @@ export const GameView: React.FC<GameViewProps> = ({
           background: #000000;
         }
 
+        .game-view-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 16px clamp(12px, 3vw, 24px) 40px;
+          padding-bottom: max(40px, env(safe-area-inset-bottom, 0px) + 20px);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
         @media (max-width: 880px) {
           .fullscreen-recommendation-pill {
             display: none;
@@ -376,11 +386,33 @@ export const GameView: React.FC<GameViewProps> = ({
         }
 
         @media (max-width: 640px) {
+          .game-view-container {
+            padding: 8px 10px 24px;
+            gap: 8px;
+          }
+          .game-top-bar {
+            gap: 6px;
+          }
+          .back-btn span {
+            display: none;
+          }
           .fullscreen-label, .restart-label, .music-toggle-label {
             display: none;
           }
-          .game-view-container {
-            padding: 10px 12px 30px;
+          .fullscreen-hud-btn, .music-toggle-btn, .restart-btn, .back-btn {
+            height: 36px;
+            padding: 0 10px;
+            min-width: 36px;
+          }
+          .active-car-pill {
+            height: 36px;
+            padding: 0 10px;
+          }
+          .car-pill-name {
+            font-size: 0.8rem;
+          }
+          .game-canvas-wrapper {
+            border-radius: var(--r-md);
           }
         }
       `}</style>

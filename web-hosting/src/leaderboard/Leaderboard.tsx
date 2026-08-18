@@ -811,15 +811,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         @media (max-width: 768px) {
+          .leaderboard-container {
+            padding: 16px 12px max(40px, env(safe-area-inset-bottom, 0px) + 20px);
+          }
           .podium-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .podium-card.first {
+            order: -1;
           }
           .back-btn {
             position: static;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
           }
-          .th-coins, .td-coins {
+          .th-coins, .td-coins, .th-games, .td-games {
             display: none;
+          }
+          .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
           }
         }
       `}</style>

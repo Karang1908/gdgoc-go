@@ -363,7 +363,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
             display: none;
           }
           .brand img {
-            height: 32px;
+            height: 30px;
           }
           .user-displayname {
             display: none;
@@ -371,17 +371,35 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
         }
 
         @media (max-width: 600px) {
+          .appbar {
+            padding-top: env(safe-area-inset-top, 0px);
+          }
           .appbar-content {
-            padding: 10px 14px;
+            padding: 8px 12px;
+            gap: 8px;
           }
           .brand-title {
-            display: none;
+            font-size: 1rem;
+          }
+          .nav-actions {
+            gap: 6px;
+          }
+          .nav-pill {
+            padding: 0 10px;
+            height: 36px;
           }
           .nav-pill span {
             display: none;
           }
           .wallet-chip.standard {
             display: none;
+          }
+          .user-profile-pill {
+            padding: 0 4px 0 8px;
+            height: 36px;
+          }
+          .user-username {
+            max-width: 60px;
           }
         }
       `}</style>
