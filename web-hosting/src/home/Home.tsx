@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { CarPicker } from './CarPicker';
 import { GameView } from './GameView';
+import { Play, Trophy, Sparkles } from 'lucide-react';
 
 interface HomeProps {
   navigate: (route: 'home' | 'leaderboard') => void;
@@ -61,46 +62,81 @@ export const Home: React.FC<HomeProps> = ({
             gap: 16px;
           }
           .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(66, 133, 244, 0.2);
-            border-top-color: var(--google-blue);
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
             border-radius: 50%;
           }
           .loading-text {
-            color: var(--text-muted);
+            color: var(--text-3);
             font-size: 0.85rem;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
           }
         `}</style>
       </div>
     );
   }
 
-  // Not signed in -> Prompt Auth Modal
+  // Unauthenticated landing page
   if (!session) {
     return (
-      <main className="hero-unauth-container">
-        <div className="hero-glow-effect" />
-        <div className="hero-unauth-content">
+      <main className="hero-landing-container">
+        <div className="hero-content">
           <div className="hero-badge">
-            <span>GOOGLE DEVELOPER GROUPS</span>
+            <Sparkles size={14} className="hero-badge-icon" />
+            <span>GOOGLE DEVELOPER GROUPS ON CAMPUS</span>
           </div>
-          <h1 className="hero-main-title">
-            OUTRUN THE POLICE. <br />
-            <span className="text-gradient">RULE THE LEADERBOARD.</span>
+
+          <h1 className="hero-title">
+            Outrun the police. <br />
+            <span className="accent-word">Rule the leaderboard</span>.
           </h1>
-          <p className="hero-main-desc">
-            Jump in the driver's seat for an endless high-speed 3D police chase. Dodge traffic, collect Google-colored energy coins, and climb the live global ranks.
+
+          <p className="lede hero-lede">
+            Step into the getaway car for an endless high-speed 3D chase. Dodge traffic, collect Google-colored energy tokens, preserve your fuel, and climb the live global ranks.
           </p>
 
-          <button
-            id="hero-start-driving-btn"
-            className="btn btn-primary btn-lg hero-cta-btn"
-            onClick={() => setIsAuthModalOpen(true)}
-          >
-            <span>JOIN THE CHASE</span>
-          </button>
+          <div className="hero-actions">
+            <button
+              id="hero-start-driving-btn"
+              className="btn btn-filled btn-lg hero-cta-btn"
+              onClick={() => setIsAuthModalOpen(true)}
+            >
+              <Play size={20} fill="currentColor" />
+              <span>Join the Chase</span>
+            </button>
+
+            <button
+              id="hero-leaderboard-btn"
+              className="btn btn-outlined btn-lg"
+              onClick={() => navigate('leaderboard')}
+            >
+              <Trophy size={18} />
+              <span>View Leaderboard</span>
+            </button>
+          </div>
+
+          {/* 3 Value Pillars */}
+          <div className="hero-pillars">
+            <div className="pillar-card card">
+              <div className="pillar-dot" style={{ background: 'var(--g-blue)' }} />
+              <h3>Dynamic Pursuit</h3>
+              <p>Police cruiser gap dynamically shrinks if you slow down or crash. Stay at cruising speed to survive.</p>
+            </div>
+
+            <div className="pillar-card card">
+              <div className="pillar-dot" style={{ background: 'var(--g-yellow)' }} />
+              <h3>Distance Fuel</h3>
+              <p>Fuel range is tied to distance traveled. Refuel by grabbing energy canisters along the highway.</p>
+            </div>
+
+            <div className="pillar-card card">
+              <div className="pillar-dot" style={{ background: 'var(--g-green)' }} />
+              <h3>Global Ranks</h3>
+              <p>Compete on a live deduplicated leaderboard with anti-cheat telemetry and cumulative coin wallets.</p>
+            </div>
+          </div>
         </div>
 
         {/* Forced Auth Modal for Unauthenticated Users */}
@@ -111,83 +147,103 @@ export const Home: React.FC<HomeProps> = ({
         />
 
         <style>{`
-          .hero-unauth-container {
+          .hero-landing-container {
             position: relative;
-            min-height: 80vh;
+            min-height: calc(100vh - 160px);
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 40px 24px;
-            overflow: hidden;
+            padding: clamp(32px, 6vh, 64px) clamp(16px, 4vw, 40px);
           }
 
-          .hero-glow-effect {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(66, 133, 244, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
-            pointer-events: none;
-          }
-
-          .hero-unauth-content {
+          .hero-content {
             position: relative;
-            max-width: 780px;
+            max-width: 960px;
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            text-align: center;
           }
 
           .hero-badge {
             display: inline-flex;
-            padding: 6px 16px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid var(--border-medium);
-            border-radius: 20px;
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-radius: var(--pill);
+            font-family: var(--font-display);
+            font-size: 0.8125rem;
             font-weight: 700;
-            color: var(--text-secondary);
+            color: var(--text-2);
             margin-bottom: 24px;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.04em;
           }
 
-          .hero-main-title {
-            font-size: 3.4rem;
-            line-height: 1.15;
+          .hero-badge-icon {
+            color: var(--g-yellow);
+          }
+
+          .hero-title {
             margin-bottom: 20px;
-            color: #FFFFFF;
           }
 
-          .text-gradient {
-            background: linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+          .accent-word {
+            color: var(--accent);
           }
 
-          .hero-main-desc {
-            font-size: 1.15rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
+          .hero-lede {
             margin-bottom: 36px;
-            max-width: 640px;
           }
 
-          .hero-cta-btn {
-            padding: 16px 40px;
-            font-size: 1.15rem;
+          .hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 56px;
+          }
+
+          .hero-pillars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            text-align: left;
+          }
+
+          .pillar-card {
+            padding: 24px;
+            border-radius: var(--r-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .pillar-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-bottom: 4px;
+          }
+
+          .pillar-card h3 {
+            font-size: 1.1rem;
             font-weight: 700;
           }
 
-          @media (max-width: 640px) {
-            .hero-main-title {
-              font-size: 2.2rem;
-            }
-            .hero-main-desc {
-              font-size: 1rem;
+          .pillar-card p {
+            font-size: 0.88rem;
+            color: var(--text-2);
+            line-height: 1.5;
+          }
+
+          @media (max-width: 820px) {
+            .hero-pillars {
+              grid-template-columns: 1fr;
             }
           }
         `}</style>
@@ -195,7 +251,7 @@ export const Home: React.FC<HomeProps> = ({
     );
   }
 
-  // Signed in -> Show Game View only when playing, or Car Picker in garage
+  // Authenticated state
   return (
     <main className="home-main-content">
       <div id="game-fullscreen-root" className={isPlaying ? 'playing' : 'idle'}>
@@ -229,7 +285,7 @@ export const Home: React.FC<HomeProps> = ({
           max-width: none !important;
           margin: 0 !important;
           padding: 0 !important;
-          background: #080B12 !important;
+          background: #000000 !important;
           display: flex !important;
           flex-direction: column !important;
           justify-content: center !important;
