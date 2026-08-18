@@ -53,18 +53,18 @@ namespace GDGGo.Core
 
         // ---------------- Heat / police ----------------
         [Header("Heat (police gap)")]
-        [Tooltip("Speed ratio at which Heat holds steady. Above 1 so plain cruising slowly loses ground.")]
-        public float cruiseThreshold = 1.04f;
+        [Tooltip("Speed ratio at which Heat holds steady. Set so normal cruising comfortably maintains distance.")]
+        public float cruiseThreshold = 0.97f;
         [Tooltip("How strongly speed relative to baseline drives Heat.")]
-        public float heatResponse = 0.14f;
+        public float heatResponse = 0.08f;
         [Tooltip("Extra Heat drain per second once difficulty is maxed.")]
-        public float difficultyDrain = 0.05f;
+        public float difficultyDrain = 0.009f;
         [Tooltip("Heat lost when the player crashes into an obstacle or traffic.")]
-        public float crashHeatPenalty = 0.26f;
+        public float crashHeatPenalty = 0.18f;
         [Tooltip("Heat lost for clipping a pedestrian.")]
-        public float pedestrianHeatPenalty = 0.08f;
+        public float pedestrianHeatPenalty = 0.05f;
         [Tooltip("Heat regained per coin — rewards taking the risky line.")]
-        public float heatPerCoin = 0.006f;
+        public float heatPerCoin = 0.009f;
 
         /// <summary>0 = caught, 1 = maximum safe gap.</summary>
         public float Heat { get; private set; } = 1f;
@@ -73,13 +73,13 @@ namespace GDGGo.Core
         // ---------------- Fuel ----------------
         [Header("Fuel")]
         [Tooltip("Seconds of driving a full tank lasts at cruising speed.")]
-        public float fuelSecondsAtCruise = 42f;
+        public float fuelSecondsAtCruise = 60f;
 
         [Tooltip("Fraction of a tank restored by one fuel pickup.")]
-        [Range(0.05f, 1f)] public float fuelPerCan = 0.28f;
+        [Range(0.05f, 1f)] public float fuelPerCan = 0.45f;
 
-        [Tooltip("Extra drain multiplier while boosting — speed costs fuel.")]
-        public float boostFuelMultiplier = 2.1f;
+        [Tooltip("Extra drain multiplier while boosting.")]
+        public float boostFuelMultiplier = 1.35f;
 
         /// <summary>
         /// 0 = empty, 1 = full tank. Drains with distance rather than wall-clock, so the
@@ -233,7 +233,11 @@ namespace GDGGo.Core
             int awarded = coinValue * Multiplier * (Has2x ? 2 : 1);
             _coinScore += awarded;
             CoinCount++;
-            if (isGDGPill) GDGPillsCollected++;
+            if (isGDGPill)
+            {
+                GDGPillsCollected++;
+                UI.HUD.Instance?.ShowAlert("+25 GDG COIN!", new Color(0.984f, 0.737f, 0.020f));
+            }
 
             Heat = Mathf.Clamp01(Heat + heatPerCoin);
             OnCoin?.Invoke(awarded);
@@ -248,6 +252,7 @@ namespace GDGGo.Core
             if (HasShield)
             {
                 HasShield = false;
+                UI.HUD.Instance?.ShowAlert("SHIELD BROKEN!", new Color(0.26f, 0.52f, 0.96f));
                 OnCrash?.Invoke();
                 return;
             }
@@ -285,28 +290,33 @@ namespace GDGGo.Core
                     HasMagnet = true;
                     CancelInvoke(nameof(DisableMagnet));
                     Invoke(nameof(DisableMagnet), durationSeconds);
+                    UI.HUD.Instance?.ShowAlert("COIN MAGNET!", new Color(0.98f, 0.74f, 0.02f));
                     break;
 
                 case PowerUps.PowerUpType.TwoX:
                     Has2x = true;
                     CancelInvoke(nameof(Disable2x));
                     Invoke(nameof(Disable2x), durationSeconds);
+                    UI.HUD.Instance?.ShowAlert("2X MULTIPLIER!", new Color(0.20f, 0.85f, 0.35f));
                     break;
 
                 case PowerUps.PowerUpType.Shield:
                     HasShield = true;   // no timer: lasts until it absorbs a hit
+                    UI.HUD.Instance?.ShowAlert("SHIELD ACTIVE!", new Color(0.26f, 0.52f, 0.96f));
                     break;
 
                 case PowerUps.PowerUpType.Nitro:
                     HasNitro = true;
                     CancelInvoke(nameof(DisableNitro));
                     Invoke(nameof(DisableNitro), durationSeconds);
+                    UI.HUD.Instance?.ShowAlert("NITRO BOOST!", new Color(0.20f, 0.90f, 1.00f));
                     break;
 
                 case PowerUps.PowerUpType.PoliceFreeze:
                     PoliceFreezeActive = true;
                     CancelInvoke(nameof(DisablePoliceFreeze));
                     Invoke(nameof(DisablePoliceFreeze), durationSeconds);
+                    UI.HUD.Instance?.ShowAlert("POLICE FROZEN!", new Color(0.85f, 0.35f, 0.95f));
                     break;
             }
         }
@@ -324,15 +334,7 @@ namespace GDGGo.Core
         }
         private void UnfreezeHeat() => IsHeatFrozen = false;
 
-        [System.Serializable]
-        private struct GameOverReport
-        {
-            public string type;
-            public int score;
-            public int coins;
-            public int distance;
-            public int duration;
-        }
+
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [System.Runtime.InteropServices.DllImport("__Internal")]
@@ -359,16 +361,28 @@ namespace GDGGo.Core
             Audio.AudioManager.Instance?.PlayGameOver();
             OnGameOver?.Invoke(finalScore, finalCoins, finalMeters);
 
-            ReportGameOver(finalScore, finalCoins, finalMeters, finalDuration);
+            ReportGameOver(finalScore, finalCoins, LastPills, finalMeters, finalDuration);
         }
 
-        private void ReportGameOver(int s, int c, int m, int d)
+        [System.Serializable]
+        private struct GameOverReport
+        {
+            public string type;
+            public int score;
+            public int coins;
+            public int pills;
+            public int distance;
+            public int duration;
+        }
+
+        private void ReportGameOver(int s, int c, int p, int m, int d)
         {
             var report = new GameOverReport
             {
                 type = "gameover",
                 score = s,
                 coins = c,
+                pills = p,
                 distance = m,
                 duration = d
             };
@@ -384,16 +398,6 @@ namespace GDGGo.Core
             catch (System.Exception ex)
             {
                 Debug.LogWarning("[GameSession] ReportGameOverToHost error: " + ex.Message);
-            }
-
-            try
-            {
-                string js = "if(window.parent){window.parent.postMessage(" + json + ",'*');}";
-                Application.ExternalEval(js);
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning("[GameSession] ExternalEval error: " + ex.Message);
             }
 #endif
         }
