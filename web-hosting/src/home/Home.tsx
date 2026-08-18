@@ -20,18 +20,6 @@ export const Home: React.FC<HomeProps> = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const handleStartGame = () => {
-    // 1. Immediately request fullscreen on the game iframe in the synchronous user click event
-    const iframe = document.querySelector('.unity-iframe') as HTMLIFrameElement;
-    if (iframe) {
-      if (iframe.requestFullscreen) {
-        iframe.requestFullscreen().catch((err) => {
-          console.warn('[Home] Fullscreen request warning:', err);
-        });
-      } else if ((iframe as any).webkitRequestFullscreen) {
-        (iframe as any).webkitRequestFullscreen();
-      }
-    }
-    // 2. Set active game state
     setIsPlaying(true);
   };
 
@@ -195,27 +183,10 @@ export const Home: React.FC<HomeProps> = ({
     );
   }
 
-  // Signed in -> Render both CarPicker and GameView cleanly so GameView iframe is ready for click-based fullscreen
+  // Signed in -> Show Game View only when playing, or Car Picker in garage
   return (
     <main className="home-main-content">
-      {!isPlaying && (
-        <CarPicker
-          selectedCarId={selectedCarId}
-          onSelectCar={(id) => setSelectedCarId(id)}
-          onStartGame={handleStartGame}
-        />
-      )}
-
-      <div
-        style={{
-          visibility: isPlaying ? 'visible' : 'hidden',
-          pointerEvents: isPlaying ? 'auto' : 'none',
-          position: isPlaying ? 'relative' : 'fixed',
-          top: isPlaying ? 'auto' : '-9999px',
-          left: 0,
-          width: '100%',
-        }}
-      >
+      {isPlaying ? (
         <GameView
           carId={selectedCarId}
           onBackToGarage={handleBackToGarage}
@@ -224,7 +195,13 @@ export const Home: React.FC<HomeProps> = ({
             navigate('leaderboard');
           }}
         />
-      </div>
+      ) : (
+        <CarPicker
+          selectedCarId={selectedCarId}
+          onSelectCar={(id) => setSelectedCarId(id)}
+          onStartGame={handleStartGame}
+        />
+      )}
     </main>
   );
 };
