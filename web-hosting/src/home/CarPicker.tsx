@@ -815,27 +815,108 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         @media (max-width: 600px) {
           .car-picker-container {
-            padding-inline: 14px;
-            gap: clamp(8px, 1.25vh, 11px);
+            justify-content: center;
+            padding: clamp(10px, 1.8vh, 16px) 12px max(12px, env(safe-area-inset-bottom));
+            gap: clamp(10px, 1.4vh, 14px);
           }
           .picker-header,
           .carousel-wrapper,
           .thumbnails-dock {
-            max-width: 410px;
+            max-width: 420px;
+          }
+          .picker-header {
+            margin-top: 0;
           }
           .picker-title {
-            font-size: clamp(1.22rem, 5.5vw, 1.48rem);
+            font-size: clamp(1.35rem, 6vw, 1.6rem);
           }
           .picker-lede {
-            max-width: 340px;
-            font-size: clamp(0.72rem, 3.1vw, 0.8rem);
+            max-width: 350px;
+            font-size: clamp(0.76rem, 3.2vw, 0.84rem);
+            line-height: 1.3;
             text-wrap: balance;
           }
+          .carousel-wrapper {
+            height: clamp(390px, 58vh, 500px);
+            flex: 0 1 auto;
+          }
+          .showcase-card {
+            height: 100%;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 20px;
+          }
           .showcase-stage {
-            height: clamp(112px, 17vh, 142px);
+            height: 100%;
+            min-height: 0;
+            max-height: none;
+            border-radius: 15px;
+            padding: 8px;
+          }
+          .showcase-static-car {
+            width: min(94%, 360px);
+            height: min(92%, 270px);
+          }
+          .showcase-details {
+            gap: 8px;
+            padding: 2px 3px 1px;
+          }
+          .showcase-car-name {
+            font-size: clamp(1.24rem, 5.8vw, 1.48rem);
+          }
+          .showcase-subtitle {
+            font-size: 0.74rem;
+          }
+          .showcase-type-tag {
+            font-size: 0.58rem;
+          }
+          .showcase-index-pill {
+            padding: 3px 9px;
+            font-size: 0.72rem;
+          }
+          .vehicle-stat-bars {
+            gap: 10px;
+          }
+          .vehicle-stat-label {
+            margin-bottom: 4px;
+            font-size: 0.6rem;
+          }
+          .vehicle-stat-label .font-mono {
+            font-size: 0.62rem;
+          }
+          .vehicle-stat-track {
+            height: 6px;
+          }
+          .launch-showcase-btn {
+            height: 52px;
+            min-height: 52px;
+            font-size: clamp(0.8rem, 3.6vw, 0.92rem);
           }
           .carousel-arrow-btn {
-            top: calc(clamp(56px, 8.5vh, 71px) - 12px);
+            top: 32%;
+            transform: translateY(-50%);
+          }
+          .carousel-arrow-btn:active {
+            transform: translateY(-50%) scale(0.92);
+          }
+          .thumbnails-dock {
+            gap: 6px;
+            margin-bottom: 0;
+          }
+          .thumbnail-chip {
+            height: 54px;
+            min-height: 54px;
+            gap: 2px;
+            padding: 5px 3px;
+            border-radius: 12px;
+          }
+          .thumb-preview-box {
+            width: 27px;
+            height: 20px;
+          }
+          .thumb-name {
+            font-size: clamp(0.56rem, 2.45vw, 0.66rem);
           }
         }
 
@@ -867,11 +948,18 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           .picker-lede {
             display: none;
           }
-          .showcase-stage {
-            height: clamp(96px, 18vh, 122px);
+          .car-picker-container {
+            gap: 7px;
           }
-          .carousel-arrow-btn {
-            top: calc(clamp(48px, 9vh, 61px) - 12px);
+          .carousel-wrapper {
+            height: clamp(330px, 59vh, 390px);
+          }
+          .showcase-stage {
+            height: 100%;
+          }
+          .thumbnail-chip {
+            height: 46px;
+            min-height: 46px;
           }
         }
 
@@ -880,11 +968,95 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           .picker-wallet-group {
             display: none;
           }
+          .picker-title {
+            font-size: 1.18rem;
+          }
+          .carousel-wrapper {
+            height: 310px;
+          }
           .showcase-stage {
-            height: 88px;
+            height: 100%;
+          }
+          .launch-showcase-btn {
+            height: 46px;
+            min-height: 46px;
+          }
+        }
+
+        @media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+          .car-picker-container {
+            justify-content: center;
+            gap: 6px;
+            max-width: 900px;
+            padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+          }
+          .picker-header {
+            display: none;
+          }
+          .carousel-wrapper {
+            display: flex;
+            width: min(100%, 760px);
+            max-width: 760px;
+            height: clamp(190px, calc(100vh - 118px), 230px);
+          }
+          .showcase-card {
+            height: 100%;
+            max-width: 720px;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            grid-template-rows: minmax(0, 1fr);
+            gap: 10px;
+            padding: 7px;
+          }
+          .showcase-stage {
+            height: 100%;
+            min-height: 0;
+            max-height: none;
+          }
+          .showcase-details {
+            justify-content: center;
+            gap: 5px;
+            padding: 0 4px;
+          }
+          .showcase-car-name {
+            font-size: 1.12rem;
+          }
+          .showcase-subtitle {
+            font-size: 0.66rem;
+          }
+          .showcase-type-tag {
+            font-size: 0.52rem;
+          }
+          .vehicle-stat-label {
+            margin-bottom: 2px;
+            font-size: 0.52rem;
+          }
+          .vehicle-stat-label .font-mono {
+            font-size: 0.54rem;
+          }
+          .vehicle-stat-track {
+            height: 4px;
+          }
+          .launch-showcase-btn {
+            height: 42px;
+            min-height: 42px;
+            font-size: 0.74rem;
           }
           .carousel-arrow-btn {
-            top: 27px;
+            top: 50%;
+            transform: translateY(-50%);
+          }
+          .carousel-arrow-btn:active {
+            transform: translateY(-50%) scale(0.92);
+          }
+          .thumbnails-dock {
+            width: min(100%, 720px);
+            max-width: 720px;
+            margin: 0;
+          }
+          .thumbnail-chip {
+            height: 40px;
+            min-height: 40px;
+            padding: 3px;
           }
         }
       `}</style>

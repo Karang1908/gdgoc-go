@@ -425,7 +425,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           touch-action: manipulation;
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 800px), (max-height: 520px) and (pointer: coarse) {
           .logo-desktop {
             display: none !important;
           }
@@ -440,7 +440,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           }
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 600px), (max-height: 520px) and (pointer: coarse) {
           .appbar {
             height: calc(60px + env(safe-area-inset-top, 0px));
             padding-top: env(safe-area-inset-top, 0px);

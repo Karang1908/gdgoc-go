@@ -1166,6 +1166,285 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
         }
 
+        @media (max-width: 600px) {
+          .leaderboard-container {
+            padding: 10px 12px max(24px, env(safe-area-inset-bottom, 0px) + 12px);
+          }
+
+          .leaderboard-header {
+            margin-bottom: 14px;
+          }
+
+          .leaderboard-header-top {
+            margin-bottom: 10px;
+          }
+
+          .back-btn {
+            width: 44px;
+            padding: 0;
+          }
+
+          .back-btn span {
+            display: none;
+          }
+
+          .header-badge {
+            min-height: 32px;
+            padding: 0 10px;
+            font-size: 0.62rem;
+          }
+
+          .leaderboard-title {
+            margin-bottom: 3px;
+            font-size: clamp(1.65rem, 8vw, 2rem);
+          }
+
+          .leaderboard-lede {
+            font-size: 0.8rem;
+          }
+
+          .podium-grid,
+          .podium-count-1,
+          .podium-count-2,
+          .podium-count-3 {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 8px;
+            width: 100%;
+            max-width: none;
+            margin: 0 0 14px;
+          }
+
+          .podium-card {
+            display: grid;
+            grid-template-columns: 28px 34px minmax(0, 1fr) auto;
+            grid-template-rows: auto auto;
+            gap: 1px 9px;
+            min-height: 64px;
+            padding: 9px 11px;
+            border-width: 1px;
+            border-radius: 14px;
+            text-align: left;
+          }
+
+          .podium-card.gold {
+            order: 1;
+            transform: none;
+            background: rgba(251, 188, 4, 0.08);
+            box-shadow: none;
+          }
+
+          .podium-card.silver { order: 2; }
+          .podium-card.bronze { order: 3; }
+
+          .podium-rank-badge {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            align-self: center;
+            width: 28px;
+            height: 28px;
+            margin: 0;
+            font-size: 0.7rem;
+          }
+
+          .podium-avatar-wrap {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            align-self: center;
+            width: 34px;
+            height: 34px;
+            margin: 0;
+          }
+
+          .podium-avatar-wrap svg {
+            width: 19px;
+            height: 19px;
+          }
+
+          .podium-username {
+            grid-column: 3;
+            grid-row: 1;
+            align-self: end;
+            margin: 0;
+            font-size: 0.84rem;
+          }
+
+          .podium-realname {
+            grid-column: 3;
+            grid-row: 2;
+            align-self: start;
+            margin: 0;
+            font-size: 0.66rem;
+          }
+
+          .podium-score {
+            grid-column: 4;
+            grid-row: 1;
+            align-self: end;
+            margin: 0;
+            font-size: 0.88rem;
+            white-space: nowrap;
+          }
+
+          .podium-sub {
+            grid-column: 4;
+            grid-row: 2;
+            align-self: start;
+            justify-content: flex-end;
+            gap: 5px;
+            font-size: 0.58rem;
+            white-space: nowrap;
+          }
+
+          .podium-sub > span:nth-child(2) {
+            display: none;
+          }
+
+          .user-standing-card {
+            margin-bottom: 14px;
+            border-radius: 14px;
+            background: var(--surface);
+          }
+
+          .standing-profile {
+            padding: 10px 12px;
+            background: var(--accent-soft);
+          }
+
+          .standing-rank {
+            width: 40px;
+            height: 40px;
+            flex-basis: 40px;
+            border-radius: 12px;
+            font-size: 0.92rem;
+          }
+
+          .standing-username {
+            font-size: 0.92rem;
+          }
+
+          .standing-realname {
+            font-size: 0.7rem;
+          }
+
+          .standing-stats-grid {
+            background: var(--surface);
+          }
+
+          .standing-stat-item {
+            min-width: 0;
+            padding: 9px 7px 10px;
+          }
+
+          .standing-stat-label {
+            font-size: 0.5rem;
+          }
+
+          .standing-stat-val {
+            font-size: 0.76rem;
+          }
+
+          .leaderboard-controls {
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+
+          .search-input {
+            border-radius: 14px;
+          }
+
+          .refresh-btn {
+            width: 48px;
+            padding: 0;
+            border-radius: 14px;
+          }
+
+          .refresh-btn span {
+            display: none;
+          }
+
+          .leaderboard-table .table-row {
+            grid-template-columns: 38px repeat(4, minmax(0, 1fr));
+            gap: 9px 6px;
+            margin-bottom: 10px;
+            padding: 11px 10px 10px;
+            border-radius: 14px;
+          }
+
+          .rank-pill {
+            width: 32px;
+            height: 32px;
+            font-size: 0.72rem;
+          }
+
+          .leaderboard-table .td-rank {
+            align-self: start;
+          }
+
+          .leaderboard-table .td-driver {
+            grid-column: 2 / 5;
+            align-self: center;
+          }
+
+          .driver-username {
+            font-size: 0.88rem;
+          }
+
+          .driver-realname {
+            font-size: 0.68rem;
+          }
+
+          .leaderboard-table .td-score {
+            grid-column: 5;
+            align-self: center;
+            font-size: 0.88rem;
+            white-space: nowrap;
+          }
+
+          .leaderboard-table .td-score::before {
+            display: none;
+          }
+
+          .leaderboard-table .td-coins,
+          .leaderboard-table .td-pills,
+          .leaderboard-table .td-distance,
+          .leaderboard-table .td-games {
+            min-width: 0;
+            padding: 7px 5px !important;
+            border-radius: 8px;
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 0.67rem;
+            line-height: 1.15;
+            text-align: left;
+            white-space: nowrap;
+          }
+
+          .leaderboard-table .td-coins { grid-column: 2; }
+          .leaderboard-table .td-pills { grid-column: 3; }
+          .leaderboard-table .td-distance { grid-column: 4; }
+          .leaderboard-table .td-games { grid-column: 5; }
+
+          .leaderboard-table td::before {
+            margin-bottom: 4px;
+            font-size: 0.48rem;
+          }
+
+          .table-coin-cell,
+          .table-pill-cell {
+            justify-content: flex-start;
+            gap: 3px;
+          }
+
+          .inline-coin-icon {
+            margin-right: 0;
+          }
+
+          .you-badge {
+            font-size: 0.55rem;
+          }
+        }
+
         @media (max-width: 480px) {
           .leaderboard-controls {
             align-items: stretch;
@@ -1178,6 +1457,71 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           .refresh-btn {
             width: 48px;
             padding: 0;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .leaderboard-container {
+            padding-inline: 8px;
+          }
+
+          .podium-card {
+            grid-template-columns: 26px minmax(0, 1fr) auto;
+            column-gap: 8px;
+          }
+
+          .podium-avatar-wrap {
+            display: none;
+          }
+
+          .podium-username,
+          .podium-realname {
+            grid-column: 2;
+          }
+
+          .podium-score,
+          .podium-sub {
+            grid-column: 3;
+          }
+
+          .leaderboard-table .table-row {
+            grid-template-columns: 38px repeat(2, minmax(0, 1fr));
+            grid-template-rows: auto auto auto;
+          }
+
+          .leaderboard-table .td-rank {
+            grid-column: 1;
+            grid-row: 1 / 4;
+          }
+
+          .leaderboard-table .td-driver {
+            grid-column: 2;
+            grid-row: 1;
+          }
+
+          .leaderboard-table .td-score {
+            grid-column: 3;
+            grid-row: 1;
+          }
+
+          .leaderboard-table .td-coins {
+            grid-column: 2;
+            grid-row: 2;
+          }
+
+          .leaderboard-table .td-pills {
+            grid-column: 3;
+            grid-row: 2;
+          }
+
+          .leaderboard-table .td-distance {
+            grid-column: 2;
+            grid-row: 3;
+          }
+
+          .leaderboard-table .td-games {
+            grid-column: 3;
+            grid-row: 3;
           }
         }
       `}</style>
