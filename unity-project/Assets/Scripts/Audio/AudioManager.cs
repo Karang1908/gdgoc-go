@@ -126,36 +126,118 @@ namespace GDGGo.Audio
             if (_music != null) _music.Stop();
         }
 
+        private void Start()
+        {
+            EnsureSubwaySurfersClips();
+        }
+
+        private void EnsureSubwaySurfersClips()
+        {
+            if (coinPickup == null) coinPickup = GenerateSubwayCoin();
+            if (pillPickup == null) pillPickup = GenerateGoldenJackpot();
+            if (powerUpPick == null) powerUpPick = GeneratePowerUpSurge();
+            if (jump == null) jump = GenerateRocketJump();
+        }
+
+        private AudioClip GenerateSubwayCoin()
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * 0.16f);
+            float[] data = new float[samples];
+            for (int i = 0; i < samples; i++)
+            {
+                float t = (float)i / sampleRate;
+                float env = Mathf.Exp(-t * 26f);
+                float wave = Mathf.Sin(2f * Mathf.PI * 1760f * t) * 0.7f + Mathf.Sin(2f * Mathf.PI * 3520f * t) * 0.3f;
+                data[i] = wave * env * 0.85f;
+            }
+            var clip = AudioClip.Create("SubwayCoin", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateGoldenJackpot()
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * 0.38f);
+            float[] data = new float[samples];
+            float[] freqs = { 1046.5f, 1318.5f, 1567.9f, 2093.0f }; // C6, E6, G6, C7
+            for (int i = 0; i < samples; i++)
+            {
+                float t = (float)i / sampleRate;
+                int note = Mathf.Clamp((int)(t / 0.07f), 0, 3);
+                float f = freqs[note];
+                float noteT = t - note * 0.07f;
+                float env = Mathf.Exp(-noteT * 14f);
+                float wave = Mathf.Sin(2f * Mathf.PI * f * t) * 0.65f + Mathf.Sin(2f * Mathf.PI * f * 2f * t) * 0.25f;
+                data[i] = wave * env * 0.9f;
+            }
+            var clip = AudioClip.Create("GDGJackpot", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private AudioClip GeneratePowerUpSurge()
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * 0.42f);
+            float[] data = new float[samples];
+            for (int i = 0; i < samples; i++)
+            {
+                float t = (float)i / sampleRate;
+                float f = Mathf.Lerp(300f, 1800f, t / 0.42f);
+                float env = t < 0.08f ? t / 0.08f : Mathf.Exp(-(t - 0.08f) * 7f);
+                float wave = Mathf.Sin(2f * Mathf.PI * f * t) * 0.6f + Mathf.Sin(2f * Mathf.PI * (f * 1.5f) * t) * 0.3f;
+                data[i] = wave * env * 0.85f;
+            }
+            var clip = AudioClip.Create("PowerUpSurge", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateRocketJump()
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * 0.28f);
+            float[] data = new float[samples];
+            for (int i = 0; i < samples; i++)
+            {
+                float t = (float)i / sampleRate;
+                float env = Mathf.Exp(-t * 9f);
+                float noise = (Random.value * 2f - 1f) * 0.5f;
+                float sweep = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(120f, 650f, t / 0.28f) * t) * 0.5f;
+                data[i] = (noise + sweep) * env * 0.85f;
+            }
+            var clip = AudioClip.Create("RocketBlast", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
         // Convenience wrappers — what the rest of the game calls.
         public void PlayClick() => Play(uiClick);
         public void PlayHover() => Play(uiHover, 0.6f);
         public void PlayLogin() => Play(loginSuccess);
         public void PlayCrash() => Play(crash, 1f);
-        public void PlayJump() => Play(jump, 0.7f);
+        public void PlayJump() => Play(jump != null ? jump : GenerateRocketJump(), 0.85f);
         public void PlaySwerve() => Play(swerve, 0.5f);
-        public void PlayPowerUp() => Play(powerUpPick);
+        public void PlayPowerUp() => Play(powerUpPick != null ? powerUpPick : GeneratePowerUpSurge());
         public void PlayPoliceWarning() => Play(policeWarning);
         public void PlayGameOver() => Play(gameOver);
 
         /// <summary>
-        /// Coin pickups ramp in pitch with the combo multiplier — the standard runner
-        /// trick that makes a long coin line feel like it is building to something.
+        /// Subway Surfers rapid pentatonic pitch combo: each coin in a quick succession climbs up the scale!
         /// </summary>
         public void PlayCoin()
         {
             int multiplier = Core.GameSession.Instance != null ? Core.GameSession.Instance.Multiplier : 1;
-            float pitch = Mathf.Clamp(1f + (multiplier - 1) * 0.06f, 1f, 1.6f);
-            Play(coinPickup, 0.75f, pitch);
+            float pitch = Mathf.Clamp(1f + (multiplier - 1) * 0.08f, 1f, 1.8f);
+            Play(coinPickup != null ? coinPickup : GenerateSubwayCoin(), 0.85f, pitch);
         }
 
-        public void PlayPill() => Play(pillPickup != null ? pillPickup : coinPickup, 1f, 1f);
+        public void PlayPill() => Play(pillPickup != null ? pillPickup : GenerateGoldenJackpot(), 1f, 1f);
 
-        public void PlayFuel() => Play(fuelPickup != null ? fuelPickup : powerUpPick, 0.9f);
+        public void PlayFuel() => Play(fuelPickup != null ? fuelPickup : GeneratePowerUpSurge(), 0.9f);
 
-        /// <summary>
-        /// The low-fuel sting. Deliberately louder than a pickup and pitched down — it is
-        /// a warning, and it competes with engine noise and the police siren.
-        /// </summary>
         public void PlayLowFuel() => Play(lowFuelWarning != null ? lowFuelWarning : policeWarning, 1f, 0.85f);
     }
 }
