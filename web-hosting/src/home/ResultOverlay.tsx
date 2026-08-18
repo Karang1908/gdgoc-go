@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { RotateCcw, Trophy, ArrowRight, ShieldAlert, Fuel, Award, Clock, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Trophy, RotateCcw, Award, Coins, MapPin, Clock, ArrowRight, Fuel, Siren } from 'lucide-react';
-import { GameOverPayload, ScoreRow, fetchUserBest } from '../lib/api';
+import { GameOverPayload } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 interface ResultOverlayProps {
   payload: GameOverPayload;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
-  onSignOut: () => void;
+  onSignOut?: () => void;
 }
 
 export const ResultOverlay: React.FC<ResultOverlayProps> = ({
@@ -17,105 +17,83 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   onViewLeaderboard,
   onSignOut,
 }) => {
-  const { user, userCoins, userGdgCoins, refreshCoins } = useAuth();
-  const [personalBest, setPersonalBest] = useState<ScoreRow | null>(null);
-  const [isNewRecord, setIsNewRecord] = useState(false);
-  const [loadingRecord, setLoadingRecord] = useState(true);
-
-  const isFuelLoss = payload.reason === 'fuel';
-  const title = isFuelLoss ? 'Out of fuel' : 'Police caught up';
-  const subtitle = isFuelLoss
-    ? 'Your tank ran dry on the highway — telemetry and coins saved.'
-    : 'Heat level peaked & patrol intercepted — telemetry and coins saved.';
-  const badgeText = isFuelLoss ? 'TANK EMPTY' : 'INTERCEPTED';
-  const badgeIcon = isFuelLoss ? <Fuel size={14} /> : <Siren size={14} />;
+  const { userStats, userCoins, userGdgCoins } = useAuth();
+  const isBusted = payload.reason === 'police';
+  const isHighscore = userStats?.bestScore ? payload.score > userStats.bestScore : false;
 
   useEffect(() => {
-    // Fire celebratory confetti in Google brand colors!
-    try {
-      confetti({
-        particleCount: 75,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#4285F4', '#EA4335', '#FBBC04', '#34A853'],
-      });
-    } catch {
-      // Confetti fallback
+    if (isHighscore || payload.score >= 1000) {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#4285F4', '#EA4335', '#FBBC04', '#34A853'],
+        });
+      } catch (err) {}
     }
+  }, [isHighscore, payload.score]);
 
-    refreshCoins();
-
-    if (user) {
-      fetchUserBest(user.id)
-        .then((best) => {
-          setPersonalBest(best);
-          if (!best || payload.score >= best.score) {
-            setIsNewRecord(true);
-          }
-        })
-        .finally(() => setLoadingRecord(false));
-    } else {
-      setLoadingRecord(false);
-    }
-  }, [payload.score, user, refreshCoins]);
-
-  const displayTotalCoins = userCoins > 0 ? userCoins : payload.coins;
-  const displayTotalGdg = userGdgCoins > 0 ? userGdgCoins : Math.max(1, Math.floor(payload.coins / 15));
+  const displayTotalCoins = (userCoins || 0) + payload.coins;
+  const displayTotalGdg = (userGdgCoins || 0) + Math.max(1, Math.floor(payload.coins / 15));
 
   return (
-    <div className="result-backdrop">
-      <div className="result-card card animate-fade-in">
+    <div className="result-backdrop animate-fade-in">
+      <div className="result-card card animate-slide-up">
+        {/* Header */}
         <div className="result-header">
-          {isNewRecord && !loadingRecord ? (
-            <div className="record-chip chip chip-accent">
-              <Award size={15} />
-              <span>NEW PERSONAL BEST</span>
+          {isHighscore ? (
+            <div className="chip record-chip badge-gold">
+              <Award size={14} />
+              <span>NEW PERSONAL RECORD</span>
             </div>
           ) : (
-            <div className={`status-chip chip ${isFuelLoss ? 'fuel-chip' : 'police-chip'}`}>
-              {badgeIcon}
-              <span>{badgeText}</span>
+            <div className={`chip status-chip ${isBusted ? 'police-chip' : 'fuel-chip'}`}>
+              {isBusted ? <ShieldAlert size={14} /> : <Fuel size={14} />}
+              <span>{isBusted ? 'BUSTED BY POLICE' : 'FUEL EXHAUSTED'}</span>
             </div>
           )}
 
-          <h2 className="result-title">{title}</h2>
-          <p className="result-subtitle">{subtitle}</p>
+          <h1 className="result-title">Run Complete</h1>
+          <p className="result-subtitle">
+            {isBusted
+              ? 'The police cruiser intercepted your vehicle.'
+              : 'Your engine ran dry on the highway.'}
+          </p>
         </div>
 
-        {/* Main Score Hero */}
+        {/* Hero Score Box */}
         <div className="score-hero-box">
           <span className="score-label">FINAL SCORE</span>
           <div className="score-number-row">
-            <span className="score-number font-display">
-              {payload.score.toLocaleString()}
-            </span>
-            <span className="score-pts font-display">PTS</span>
+            <span className="score-number font-mono">{payload.score.toLocaleString()}</span>
+            <span className="score-pts">PTS</span>
           </div>
-          {personalBest && !isNewRecord && (
+          {userStats?.bestScore && (
             <span className="previous-best">
-              Personal Best: {personalBest.score.toLocaleString()} pts
+              Personal Best: {Math.max(userStats.bestScore, payload.score).toLocaleString()}
             </span>
           )}
         </div>
 
-        {/* Breakdown Stats */}
+        {/* Stats Grid */}
         <div className="stats-breakdown-grid">
           <div className="stat-card">
             <div className="stat-icon-wrap" style={{ color: 'var(--g-blue)' }}>
-              <MapPin size={18} />
+              <Trophy size={16} />
             </div>
             <div className="stat-card-details">
               <span className="stat-name">Distance</span>
-              <span className="stat-value font-display">{payload.distance} m</span>
+              <span className="stat-value font-display">{payload.distance}m</span>
             </div>
           </div>
 
           <div className="stat-card">
             <div className="stat-icon-wrap" style={{ color: 'var(--g-yellow)' }}>
-              <Coins size={18} />
+              <Coins size={16} />
             </div>
             <div className="stat-card-details">
-              <span className="stat-name">Coins Earned</span>
+              <span className="stat-name">Coins</span>
               <span className="stat-value font-display">+{payload.coins}</span>
             </div>
           </div>
@@ -125,7 +103,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
               <img src="/branding/gdg-pill.png" alt="GDG Coin" className="gdg-pill-stat-img" />
             </div>
             <div className="stat-card-details">
-              <span className="stat-name">GDG Coins Earned</span>
+              <span className="stat-name">GDG Coins</span>
               <span className="stat-value font-display gdg-pill-stat-val">
                 +{Math.max(1, Math.floor(payload.coins / 15))}
               </span>
@@ -134,22 +112,22 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
           <div className="stat-card">
             <div className="stat-icon-wrap" style={{ color: 'var(--g-green)' }}>
-              <Clock size={18} />
+              <Clock size={16} />
             </div>
             <div className="stat-card-details">
-              <span className="stat-name">Duration</span>
+              <span className="stat-name">Time</span>
               <span className="stat-value font-display">{payload.duration}s</span>
             </div>
           </div>
         </div>
 
-        {/* Cumulative Bank Wallet Banner */}
+        {/* Banked Wallet Banner */}
         <div className="banked-wallet-banner">
-          <span className="banked-label">YOUR TOTAL BANK:</span>
+          <span className="banked-label">TOTAL BANK:</span>
           <div className="banked-chips">
             <span className="banked-chip">
-              <Coins size={13} style={{ color: 'var(--g-yellow)' }} />
-              <span>{displayTotalCoins.toLocaleString()} coins</span>
+              <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
+              <span>{displayTotalCoins.toLocaleString()}</span>
             </span>
             <span className="banked-chip gdg">
               <img src="/branding/gdg-pill.png" alt="GDG" className="banked-mini-pill" />
@@ -165,7 +143,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             className="btn btn-filled btn-lg action-btn"
             onClick={onPlayAgain}
           >
-            <RotateCcw size={18} />
+            <RotateCcw size={16} />
             <span>PLAY AGAIN</span>
           </button>
 
@@ -174,19 +152,21 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             className="btn btn-outlined btn-lg action-btn"
             onClick={onViewLeaderboard}
           >
-            <Trophy size={18} />
+            <Trophy size={16} />
             <span>LEADERBOARD</span>
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </button>
         </div>
 
-        <button
-          type="button"
-          className="signout-link btn-text"
-          onClick={onSignOut}
-        >
-          Sign Out
-        </button>
+        {onSignOut && (
+          <button
+            type="button"
+            className="signout-link btn-text"
+            onClick={onSignOut}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
 
       <style>{`
@@ -197,41 +177,36 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           width: 100vw;
           height: 100dvh;
           background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+          padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
           z-index: 50;
         }
 
         .result-card {
           width: 100%;
-          max-width: 500px;
-          max-height: min(92dvh, 680px);
+          max-width: 420px;
           border-radius: var(--r-xl);
           background: var(--surface);
           border: 2px solid var(--border);
           box-shadow: var(--shadow-3);
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
+          overflow: hidden;
           text-align: center;
           padding: 0;
         }
 
         .result-header {
-          padding: 28px 24px 16px;
+          padding: 14px 16px 6px;
         }
 
-        .record-chip {
-          margin-bottom: 12px;
-          height: 28px;
-        }
-
+        .record-chip,
         .status-chip {
-          margin-bottom: 12px;
-          height: 28px;
+          margin-bottom: 6px;
+          height: 24px;
+          font-size: 0.72rem;
         }
 
         .status-chip.police-chip {
@@ -250,23 +225,25 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .result-title {
-          font-size: 1.85rem;
-          margin-bottom: 4px;
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 2px;
+          line-height: 1.2;
         }
 
         .result-subtitle {
-          font-size: 0.875rem;
+          font-size: 0.78rem;
           color: var(--text-2);
-          max-width: 380px;
+          max-width: 320px;
           margin: 0 auto;
         }
 
         .score-hero-box {
-          margin: 0 24px 16px;
-          padding: 18px;
+          margin: 0 16px 8px;
+          padding: 10px;
           background: var(--surface-2);
           border: 1px solid var(--border);
-          border-radius: var(--r-lg);
+          border-radius: var(--r-md);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -274,7 +251,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         .score-label {
           font-family: var(--font-display);
-          font-size: 0.75rem;
+          font-size: 0.68rem;
           font-weight: 700;
           color: var(--text-3);
           letter-spacing: 0.08em;
@@ -283,42 +260,43 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         .score-number-row {
           display: flex;
           align-items: baseline;
-          gap: 8px;
-          margin: 4px 0;
+          gap: 6px;
+          margin: 2px 0;
         }
 
         .score-number {
-          font-size: 3rem;
+          font-size: 2.2rem;
           font-weight: 700;
           color: var(--text);
+          line-height: 1.1;
         }
 
         .score-pts {
-          font-size: 1.1rem;
+          font-size: 0.95rem;
           font-weight: 700;
           color: var(--accent);
         }
 
         .previous-best {
-          font-size: 0.8rem;
+          font-size: 0.72rem;
           color: var(--text-3);
         }
 
         .stats-breakdown-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
-          margin: 0 24px 16px;
+          gap: 6px;
+          margin: 0 16px 8px;
         }
 
         .stat-card {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 14px;
+          gap: 8px;
+          padding: 6px 10px;
           background: var(--surface-2);
           border: 1px solid var(--border);
-          border-radius: var(--r-md);
+          border-radius: var(--r-sm);
           text-align: left;
         }
 
@@ -328,19 +306,13 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .gdg-pill-stat-img {
-          width: 24px;
-          height: 24px;
+          width: 18px;
+          height: 18px;
           object-fit: contain;
         }
 
         .gdg-pill-stat-val {
           color: var(--accent) !important;
-        }
-
-        .stat-icon-wrap {
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
         .stat-card-details {
@@ -349,14 +321,12 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .stat-name {
-          font-size: 0.7rem;
+          font-size: 0.65rem;
           color: var(--text-3);
-          text-transform: uppercase;
-          font-weight: 500;
         }
 
         .stat-value {
-          font-size: 1rem;
+          font-size: 0.85rem;
           font-weight: 700;
           color: var(--text);
         }
@@ -365,20 +335,16 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin: 0 24px 16px;
-          padding: 10px 16px;
+          margin: 0 16px 10px;
+          padding: 6px 12px;
           background: var(--surface-3);
-          border: 1px dashed var(--border-strong);
-          border-radius: var(--r-md);
-          font-size: 0.85rem;
-          flex-wrap: wrap;
-          gap: 8px;
+          border: 1px solid var(--border);
+          border-radius: var(--pill);
         }
 
         .banked-label {
-          font-family: var(--font-display);
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.65rem;
+          font-weight: 800;
           color: var(--text-3);
           letter-spacing: 0.05em;
         }
@@ -393,12 +359,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          padding: 2px 8px;
-          border-radius: var(--pill);
+          font-size: 0.75rem;
           font-weight: 700;
-          font-size: 0.8rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
           color: var(--text);
         }
 
@@ -407,35 +369,41 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .banked-mini-pill {
-          width: 13px;
-          height: 13px;
+          width: 12px;
+          height: 12px;
           object-fit: contain;
         }
 
         .result-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          padding: 0 24px 12px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          padding: 0 16px 12px;
         }
 
         .action-btn {
-          width: 100%;
+          height: 42px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          padding: 0 12px;
+          touch-action: manipulation;
         }
 
         .signout-link {
-          margin: 0 auto 16px;
-          font-size: 0.82rem;
-          display: inline-block;
+          display: block;
+          width: 100%;
+          text-align: center;
+          padding: 4px;
+          margin-top: -6px;
+          margin-bottom: 8px;
+          font-size: 0.75rem;
+          color: var(--text-3);
+          cursor: pointer;
         }
 
-        @media (max-width: 560px) {
-          .stats-breakdown-grid {
-            grid-template-columns: 1fr;
-          }
-          .score-number {
-            font-size: 2.4rem;
-          }
+        .signout-link:hover {
+          color: var(--danger);
         }
       `}</style>
     </div>

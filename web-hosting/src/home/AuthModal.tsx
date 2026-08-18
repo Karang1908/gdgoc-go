@@ -4,18 +4,18 @@ import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
-  onClose?: () => void;
+  onClose: () => void;
   canDismiss?: boolean;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  canDismiss = false,
+  canDismiss = true,
 }) => {
   const { signIn, signUp, error, clearError } = useAuth();
 
-  const [tab, setTab] = useState<'login' | 'signup'>('signup');
+  const [tab, setTab] = useState<'signup' | 'login'>('signup');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
@@ -25,58 +25,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleTabSwitch = (newTab: 'login' | 'signup') => {
-    setTab(newTab);
+  const handleTabSwitch = (nextTab: 'signup' | 'login') => {
+    setTab(nextTab);
     clearError();
     setLocalError(null);
   };
 
-  const validate = (): boolean => {
-    setLocalError(null);
-    const cleanUser = username.trim();
-
-    if (!cleanUser) {
-      setLocalError('Please enter a username.');
+  const validate = () => {
+    if (!username.trim()) {
+      setLocalError('Please enter a username');
       return false;
     }
-
-    if (cleanUser.length < 3 || cleanUser.length > 24) {
-      setLocalError('Username must be between 3 and 24 characters.');
+    if (username.length < 3) {
+      setLocalError('Username must be at least 3 characters');
       return false;
     }
-
-    if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUser)) {
-      setLocalError('Username can only contain letters, numbers, dashes, underscores, and dots.');
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      setLocalError('Username can only contain letters, numbers, _, -');
       return false;
     }
-
+    if (!password) {
+      setLocalError('Please enter a password');
+      return false;
+    }
     if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters.');
+      setLocalError('Password must be at least 6 characters');
       return false;
     }
-
-    if (tab === 'signup' && displayName.trim().length > 24) {
-      setLocalError('Display name must be 24 characters or less.');
-      return false;
-    }
-
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
-
-    setIsSubmitting(true);
     setLocalError(null);
     clearError();
 
+    if (!validate()) return;
+
+    setIsSubmitting(true);
     try {
       if (tab === 'signup') {
-        const finalDisplayName = displayName.trim() || username.trim();
-        await signUp(username, password, finalDisplayName);
+        await signUp(username.trim(), password, displayName.trim() || '');
       } else {
-        await signIn(username, password);
+        await signIn(username.trim(), password);
       }
       if (onClose) onClose();
     } catch (err: any) {
@@ -136,7 +127,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Error Alert */}
         {activeError && (
           <div className="error-banner">
-            <AlertCircle size={18} className="error-icon" />
+            <AlertCircle size={16} className="error-icon" />
             <span>{activeError}</span>
           </div>
         )}
@@ -148,7 +139,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Username
             </label>
             <div className="input-wrap">
-              <User size={18} className="input-icon" />
+              <User size={16} className="input-icon" />
               <input
                 id="auth-username"
                 type="text"
@@ -160,7 +151,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
               />
             </div>
-            <span className="input-hint">3–24 characters (letters, numbers, _, -)</span>
+            <span className="input-hint">3–24 chars (letters, numbers, _, -)</span>
           </div>
 
           {tab === 'signup' && (
@@ -169,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Display Name (Optional)
               </label>
               <div className="input-wrap">
-                <User size={18} className="input-icon" />
+                <User size={16} className="input-icon" />
                 <input
                   id="auth-display-name"
                   type="text"
@@ -180,7 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   maxLength={24}
                 />
               </div>
-              <span className="input-hint">Shown publicly on the leaderboard</span>
+              <span className="input-hint">Shown publicly on leaderboard</span>
             </div>
           )}
 
@@ -189,7 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Password
             </label>
             <div className="input-wrap">
-              <Lock size={18} className="input-icon" />
+              <Lock size={16} className="input-icon" />
               <input
                 id="auth-password"
                 type={showPassword ? 'text' : 'password'}
@@ -202,11 +193,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               />
               <button
                 type="button"
-                className="password-toggle-btn"
+                className="password-toggle-btn icon-btn"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <span className="input-hint">Minimum 6 characters</span>
@@ -220,16 +212,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
-                <span>{tab === 'signup' ? 'Creating...' : 'Signing In...'}</span>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Processing...</span>
               </>
             ) : (
-              <span>{tab === 'signup' ? 'Start Racing' : 'Enter Garage'}</span>
+              <span>{tab === 'signup' ? 'Start Racing' : 'Sign In'}</span>
             )}
           </button>
         </form>
 
-        {canDismiss && onClose && (
+        {canDismiss && (
           <button
             type="button"
             className="dismiss-btn btn-text"
@@ -253,56 +245,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+          padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
           z-index: 1000;
         }
 
         .modal-card {
           width: 100%;
-          max-width: 440px;
-          max-height: min(92dvh, 640px);
+          max-width: 390px;
           border-radius: var(--r-xl);
           background: var(--surface);
           border: 2px solid var(--border);
           box-shadow: var(--shadow-3);
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
+          overflow: hidden;
           padding: 0;
         }
 
         .modal-header {
-          padding: 28px 24px 16px;
+          padding: 16px 20px 8px;
           text-align: center;
         }
 
         .modal-brand-hub {
-          width: 48px;
-          height: 48px;
+          width: 36px;
+          height: 36px;
           border-radius: var(--pill);
           background: var(--surface-2);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 14px;
+          margin: 0 auto 8px;
         }
 
         .modal-gdg-mark {
-          width: 28px;
-          height: 28px;
+          width: 20px;
+          height: 20px;
           object-fit: contain;
         }
 
         .modal-title {
-          font-size: 1.5rem;
-          margin-bottom: 6px;
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 2px;
+          line-height: 1.2;
         }
 
         .modal-subtitle {
-          font-size: 0.88rem;
+          font-size: 0.78rem;
           color: var(--text-2);
-          line-height: 1.45;
-          max-width: 360px;
+          line-height: 1.35;
+          max-width: 320px;
           margin: 0 auto;
         }
 
@@ -311,24 +303,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           grid-template-columns: 1fr 1fr;
           gap: 4px;
           background: var(--surface-3);
-          padding: 4px;
-          margin: 0 24px 16px;
+          padding: 3px;
+          margin: 0 20px 8px;
           border-radius: var(--pill);
           border: 1px solid var(--border);
         }
 
         .tab-btn {
-          padding: 8px 14px;
+          padding: 6px 12px;
           border-radius: var(--pill);
           background: transparent;
           border: none;
           color: var(--text-2);
           font-family: var(--font-display);
           font-weight: 500;
-          font-size: 0.88rem;
+          font-size: 0.82rem;
           cursor: pointer;
           transition: all 0.15s var(--ease);
           user-select: none;
+          touch-action: manipulation;
         }
 
         .tab-btn.active {
@@ -341,15 +334,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .error-banner {
           display: flex;
           align-items: flex-start;
-          gap: 10px;
-          margin: 0 24px 16px;
-          padding: 10px 14px;
+          gap: 8px;
+          margin: 0 20px 8px;
+          padding: 8px 12px;
           background: var(--danger-soft);
           border: 1px solid var(--danger);
           border-radius: var(--r-md);
           color: var(--danger);
-          font-size: 0.85rem;
-          line-height: 1.4;
+          font-size: 0.8rem;
+          line-height: 1.35;
         }
 
         .error-icon {
@@ -358,10 +351,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .auth-form {
-          padding: 0 24px 24px;
+          padding: 0 20px 14px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 8px;
+        }
+
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .field-label {
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: var(--text-2);
         }
 
         .input-wrap {
@@ -372,28 +377,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         .input-icon {
           position: absolute;
-          left: 14px;
+          left: 12px;
           color: var(--text-3);
           pointer-events: none;
         }
 
+        .input-field {
+          height: 38px;
+          font-size: 0.85rem;
+          border-radius: var(--r-md);
+        }
+
         .input-field.with-icon {
-          padding-left: 42px;
+          padding-left: 36px;
         }
 
         .input-field.with-suffix {
-          padding-right: 42px;
+          padding-right: 36px;
+        }
+
+        .input-hint {
+          font-size: 0.68rem;
+          color: var(--text-3);
+          margin-top: 1px;
         }
 
         .password-toggle-btn {
           position: absolute;
-          right: 12px;
+          right: 8px;
+          width: 28px;
+          height: 28px;
           color: var(--text-3);
-          padding: 4px;
+          padding: 2px;
           display: flex;
           align-items: center;
           justify-content: center;
           transition: color 0.15s ease;
+          border-radius: 50%;
         }
 
         .password-toggle-btn:hover {
@@ -401,18 +421,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .submit-btn {
-          margin-top: 6px;
+          margin-top: 4px;
           width: 100%;
+          height: 44px;
+          font-size: 0.88rem;
+          font-weight: 700;
+          touch-action: manipulation;
         }
 
         .dismiss-btn {
           display: block;
           width: 100%;
           text-align: center;
-          padding: 10px;
-          margin-top: -12px;
-          margin-bottom: 12px;
-          font-size: 0.85rem;
+          padding: 6px;
+          margin-top: -6px;
+          margin-bottom: 8px;
+          font-size: 0.78rem;
+          color: var(--text-3);
+          cursor: pointer;
+        }
+
+        .dismiss-btn:hover {
+          color: var(--text);
         }
       `}</style>
     </div>
