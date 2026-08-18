@@ -177,7 +177,7 @@ namespace GDGGo.Core
                 OnLowFuel?.Invoke();
             }
 
-            if (Fuel <= 0f) EndGame();
+            if (Fuel <= 0f) EndGame("fuel");
         }
 
         /// <summary>Refills the tank by <see cref="fuelPerCan"/>. Called by a fuel pickup.</summary>
@@ -214,7 +214,7 @@ namespace GDGGo.Core
             rate -= difficultyDrain * _world.Difficulty01;
 
             Heat = Mathf.Clamp01(Heat + rate * Time.deltaTime);
-            if (Heat <= 0f) EndGame();
+            if (Heat <= 0f) EndGame("police");
         }
 
         // ============================================================
@@ -264,7 +264,7 @@ namespace GDGGo.Core
             Heat = Mathf.Clamp01(Heat - crashHeatPenalty);
             OnCrash?.Invoke();
 
-            if (Heat <= 0f) EndGame();
+            if (Heat <= 0f) EndGame("police");
         }
 
         /// <summary>Clipping a pedestrian: costs ground but is never an instant loss.</summary>
@@ -273,7 +273,7 @@ namespace GDGGo.Core
             if (!IsRunning) return;
             Heat = Mathf.Clamp01(Heat - pedestrianHeatPenalty);
             OnCrash?.Invoke();
-            if (Heat <= 0f) EndGame();
+            if (Heat <= 0f) EndGame("police");
         }
 
         // ============================================================
@@ -342,7 +342,7 @@ namespace GDGGo.Core
 #endif
 
         /// <summary>Ends the run and reports the final telemetry to the hosting website.</summary>
-        public void EndGame()
+        public void EndGame(string reason = "police")
         {
             if (!IsRunning) return;
             IsRunning = false;
@@ -361,7 +361,7 @@ namespace GDGGo.Core
             Audio.AudioManager.Instance?.PlayGameOver();
             OnGameOver?.Invoke(finalScore, finalCoins, finalMeters);
 
-            ReportGameOver(finalScore, finalCoins, LastPills, finalMeters, finalDuration);
+            ReportGameOver(finalScore, finalCoins, LastPills, finalMeters, finalDuration, reason);
         }
 
         [System.Serializable]
@@ -375,19 +375,16 @@ namespace GDGGo.Core
             public int duration;
         }
 
-        private void ReportGameOver(int s, int c, int p, int m, int d)
+        private void ReportGameOver(int s, int c, int p, int m, int d, string reason)
         {
-            var report = new GameOverReport
-            {
-                type = "gameover",
-                score = s,
-                coins = c,
-                pills = p,
-                distance = m,
-                duration = d
-            };
+            // Build verified JSON payload with reason
+            string json = "{\"type\":\"gameover\",\"score\":" + s +
+                          ",\"coins\":" + c +
+                          ",\"pills\":" + p +
+                          ",\"distance\":" + m +
+                          ",\"duration\":" + d +
+                          ",\"reason\":\"" + (string.IsNullOrEmpty(reason) ? "police" : reason) + "\"}";
 
-            string json = JsonUtility.ToJson(report);
             Debug.Log("[GameSession] Reporting game over to parent window: " + json);
 
 #if UNITY_WEBGL && !UNITY_EDITOR

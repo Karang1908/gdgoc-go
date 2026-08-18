@@ -80,6 +80,7 @@ export const GameView: React.FC<GameViewProps> = ({
         pills: Number(data.pills) || 0,
         distance: Number(data.distance) || 0,
         duration: Number(data.duration) || 0,
+        reason: (data.reason === 'fuel' ? 'fuel' : 'police'),
       };
 
       try {

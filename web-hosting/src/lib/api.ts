@@ -7,6 +7,7 @@ export interface GameOverPayload {
   pills?: number;
   distance: number;
   duration: number;
+  reason?: 'police' | 'fuel' | string;
 }
 
 export interface ScoreRow {

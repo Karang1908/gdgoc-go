@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, RotateCcw, Award, Coins, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { Trophy, RotateCcw, Award, Coins, MapPin, Clock, ArrowRight, Fuel, Siren } from 'lucide-react';
 import { GameOverPayload, ScoreRow, fetchUserBest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,6 +21,14 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   const [personalBest, setPersonalBest] = useState<ScoreRow | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [loadingRecord, setLoadingRecord] = useState(true);
+
+  const isFuelLoss = payload.reason === 'fuel';
+  const title = isFuelLoss ? 'OUT OF FUEL!' : 'POLICE CAUGHT UP!';
+  const subtitle = isFuelLoss
+    ? 'Your tank ran dry on the highway — Score & Coins Banked'
+    : 'Heat level peaked & patrol intercepted — Score & Coins Banked';
+  const badgeText = isFuelLoss ? 'TANK EMPTY' : 'INTERCEPTED';
+  const badgeIcon = isFuelLoss ? <Fuel size={14} /> : <Siren size={14} />;
 
   useEffect(() => {
     // Fire celebratory confetti!
@@ -61,14 +69,19 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         <div className="google-strip" />
 
         <div className="result-header">
-          {isNewRecord && !loadingRecord && (
+          {isNewRecord && !loadingRecord ? (
             <div className="record-badge animate-fade-in">
               <Award size={16} />
               <span>NEW PERSONAL BEST!</span>
             </div>
+          ) : (
+            <div className={`status-pill ${isFuelLoss ? 'fuel-status' : 'police-status'} animate-fade-in`}>
+              {badgeIcon}
+              <span>{badgeText}</span>
+            </div>
           )}
-          <h2 className="result-title">POLICE CAUGHT UP!</h2>
-          <p className="result-subtitle">Run Complete — Score & Coins Banked</p>
+          <h2 className={`result-title ${isFuelLoss ? 'fuel-title' : 'police-title'}`}>{title}</h2>
+          <p className="result-subtitle">{subtitle}</p>
         </div>
 
         {/* Main Score Readout */}
@@ -219,10 +232,44 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           margin-bottom: 12px;
         }
 
+        .status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-family: var(--font-mono);
+          font-size: 0.76rem;
+          font-weight: 800;
+          margin-bottom: 12px;
+          letter-spacing: 0.05em;
+        }
+
+        .status-pill.police-status {
+          background: linear-gradient(135deg, rgba(234, 67, 53, 0.2), rgba(66, 133, 244, 0.2));
+          border: 1px solid rgba(234, 67, 53, 0.4);
+          color: #FF8A80;
+        }
+
+        .status-pill.fuel-status {
+          background: linear-gradient(135deg, rgba(251, 188, 5, 0.2), rgba(245, 124, 0, 0.2));
+          border: 1px solid rgba(251, 188, 5, 0.45);
+          color: #FFD54F;
+        }
+
         .result-title {
           font-size: 2rem;
-          color: var(--text-primary);
           margin-bottom: 4px;
+        }
+
+        .fuel-title {
+          color: #FFD54F;
+          text-shadow: 0 0 20px rgba(251, 188, 5, 0.4);
+        }
+
+        .police-title {
+          color: var(--text-primary);
+          text-shadow: 0 0 20px rgba(234, 67, 53, 0.4);
         }
 
         .result-subtitle {
