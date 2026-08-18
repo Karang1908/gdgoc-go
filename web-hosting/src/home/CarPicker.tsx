@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Gauge, Shield, Zap, Sparkles } from 'lucide-react';
 import { CARS, CarOption } from '../data/cars';
+import { useAuth } from '../context/AuthContext';
 
 interface CarPickerProps {
   selectedCarId: string;
@@ -13,15 +14,34 @@ export const CarPicker: React.FC<CarPickerProps> = ({
   onSelectCar,
   onStartGame,
 }) => {
+  const { session, userCoins, userGdgCoins } = useAuth();
   const selectedCar = CARS.find((c) => c.id === selectedCarId) || CARS[0];
 
   return (
     <div className="car-picker-container animate-fade-in">
       <div className="picker-header">
-        <div className="garage-tag">
-          <Sparkles size={16} />
-          <span>VEHICLE SELECTOR</span>
+        <div className="picker-header-top">
+          <div className="garage-tag">
+            <Sparkles size={16} />
+            <span>VEHICLE SELECTOR</span>
+          </div>
+
+          {session && (
+            <div className="driver-wallet-badge animate-fade-in">
+              <div className="wallet-chip standard">
+                <span className="wallet-icon">🟡</span>
+                <span className="wallet-val font-mono">{userCoins.toLocaleString()}</span>
+                <span className="wallet-lbl">COINS</span>
+              </div>
+              <div className="wallet-chip gdg">
+                <img src="/branding/gdg-pill.png" alt="GDG Coin" className="wallet-gdg-icon" />
+                <span className="wallet-val font-mono">{userGdgCoins.toLocaleString()}</span>
+                <span className="wallet-lbl gdg-lbl">GDG COINS</span>
+              </div>
+            </div>
+          )}
         </div>
+
         <h1 className="picker-title">Choose Your Getaway Car</h1>
         <p className="picker-desc">
           Select a vehicle from your garage tuned for high-speed police evasion. Each chassis features distinct handling, top speed, and durability.
@@ -178,6 +198,15 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           margin-bottom: 30px;
         }
 
+        .picker-header-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
         .garage-tag {
           display: inline-flex;
           align-items: center;
@@ -190,7 +219,62 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           font-size: 0.76rem;
           font-weight: 700;
           color: var(--google-blue);
-          margin-bottom: 12px;
+        }
+
+        .driver-wallet-badge {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .wallet-chip {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border-medium);
+        }
+
+        .wallet-chip.standard {
+          border-color: rgba(251, 188, 5, 0.35);
+          background: rgba(251, 188, 5, 0.1);
+          color: #FFD54F;
+        }
+
+        .wallet-chip.gdg {
+          border-color: rgba(66, 133, 244, 0.4);
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.12), rgba(52, 168, 83, 0.12));
+          color: #90CAF9;
+        }
+
+        .wallet-icon {
+          font-size: 14px;
+        }
+
+        .wallet-gdg-icon {
+          width: 16px;
+          height: 16px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 4px rgba(66, 133, 244, 0.5));
+        }
+
+        .wallet-val {
+          font-weight: 800;
+        }
+
+        .wallet-lbl {
+          font-size: 0.65rem;
+          opacity: 0.8;
+          letter-spacing: 0.05em;
+        }
+
+        .wallet-lbl.gdg-lbl {
+          color: #81D4FA;
+          font-weight: 800;
         }
 
         .picker-title {
