@@ -2,6 +2,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 export interface UnityEmbedHandle {
   triggerFullscreen: () => void;
+  exitFullscreen: () => void;
 }
 
 interface UnityEmbedProps {
@@ -48,14 +49,33 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
     if (containerRef.current) {
       if (!document.fullscreenElement) {
         containerRef.current.requestFullscreen().catch(() => {});
-      } else {
-        document.exitFullscreen().catch(() => {});
       }
+    }
+  };
+
+  const exitFullscreen = () => {
+    // 1. Post message to iframe for Unity instance SetFullscreen(0)
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
+          win.unityInstance.SetFullscreen(0);
+        }
+      } catch {
+        // cross-origin safety
+      }
+    }
+
+    // 2. Exit document fullscreen if active
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
     }
   };
 
   useImperativeHandle(ref, () => ({
     triggerFullscreen,
+    exitFullscreen,
   }));
 
   // Automatically focus the iframe on mount so keyboard controls (WASD, Arrows, Space) work immediately

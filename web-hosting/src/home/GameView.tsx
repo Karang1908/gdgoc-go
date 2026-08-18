@@ -26,6 +26,21 @@ export const GameView: React.FC<GameViewProps> = ({
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
+  // Auto-fullscreen on first gameplay key press / interaction
+  useEffect(() => {
+    const handleGameplayInput = (e: KeyboardEvent) => {
+      const keys = ['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      if (keys.includes(e.code) && !gameOverPayload) {
+        unityEmbedRef.current?.triggerFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleGameplayInput);
+    return () => {
+      window.removeEventListener('keydown', handleGameplayInput);
+    };
+  }, [gameOverPayload]);
+
   // Start background music on mount / user interaction
   useEffect(() => {
     const handleFirstInteraction = () => {
@@ -57,6 +72,16 @@ export const GameView: React.FC<GameViewProps> = ({
 
       console.log('[GameView] Processing verified gameover event from Unity:', data);
       bgmEngine.stop();
+
+      // Automatically exit fullscreen when player dies
+      try {
+        unityEmbedRef.current?.exitFullscreen();
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch (err) {
+        console.warn('[GameView] Auto exit fullscreen error:', err);
+      }
 
       const payload: GameOverPayload = {
         type: 'gameover',
@@ -118,6 +143,10 @@ export const GameView: React.FC<GameViewProps> = ({
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
+    // Auto-enter fullscreen when starting new run
+    setTimeout(() => {
+      unityEmbedRef.current?.triggerFullscreen();
+    }, 150);
   };
 
   const handleToggleMusic = () => {
@@ -139,6 +168,7 @@ export const GameView: React.FC<GameViewProps> = ({
             className="btn btn-secondary back-btn"
             onClick={() => {
               bgmEngine.stop();
+              unityEmbedRef.current?.exitFullscreen();
               onBackToGarage();
             }}
             title="Back to Car Selection"
@@ -162,7 +192,7 @@ export const GameView: React.FC<GameViewProps> = ({
           tabIndex={0}
         >
           <Sparkles size={14} className="sparkle-icon" />
-          <span>For best experience, play in full screen</span>
+          <span>Auto-Fullscreen on Play</span>
         </div>
 
         <div className="top-bar-right-controls">
@@ -170,7 +200,7 @@ export const GameView: React.FC<GameViewProps> = ({
             id="fullscreen-hud-btn"
             className="btn btn-secondary fullscreen-hud-btn"
             onClick={handleFullscreen}
-            title="For best experience, play in full screen"
+            title="Toggle Full Screen"
           >
             <Maximize2 size={16} />
             <span className="fullscreen-label">Full Screen</span>
@@ -214,8 +244,14 @@ export const GameView: React.FC<GameViewProps> = ({
           <ResultOverlay
             payload={gameOverPayload}
             onPlayAgain={handlePlayAgain}
-            onViewLeaderboard={onViewLeaderboard}
-            onSignOut={() => signOut()}
+            onViewLeaderboard={() => {
+              unityEmbedRef.current?.exitFullscreen();
+              onViewLeaderboard();
+            }}
+            onSignOut={() => {
+              unityEmbedRef.current?.exitFullscreen();
+              signOut();
+            }}
           />
         )}
       </div>
