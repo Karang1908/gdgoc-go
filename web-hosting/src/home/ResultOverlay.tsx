@@ -149,10 +149,13 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         <div className="banked-wallet-banner">
           <span className="banked-label">YOUR TOTAL BANK:</span>
           <div className="banked-chips">
-            <span className="banked-chip">🟡 {displayTotalCoins.toLocaleString()} coins</span>
+            <span className="banked-chip">
+              <Coins size={13} style={{ color: 'var(--g-yellow)' }} />
+              <span>{displayTotalCoins.toLocaleString()} coins</span>
+            </span>
             <span className="banked-chip gdg">
               <img src="/branding/gdg-pill.png" alt="GDG" className="banked-mini-pill" />
-              {displayTotalGdg.toLocaleString()} GDG
+              <span>{displayTotalGdg.toLocaleString()} GDG</span>
             </span>
           </div>
         </div>

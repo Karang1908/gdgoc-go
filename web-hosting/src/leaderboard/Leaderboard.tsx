@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, RefreshCw, Search, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { Trophy, RefreshCw, Search, ArrowLeft, Loader2, Sparkles, Coins, Flag, Medal } from 'lucide-react';
 import { DriverStats, fetchLeaderboardDrivers } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -78,11 +78,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       {/* Podium Top Cards (adapts for 1, 2, or 3 players) */}
       {!loading && drivers.length > 0 && !searchQuery && (
         <div className={`podium-grid podium-count-${Math.min(drivers.length, 3)}`}>
-          {/* 2nd Place */}
+          {/* 2nd Place (Silver) */}
           {drivers.length >= 2 && (
             <div className="podium-card card silver">
-              <div className="podium-rank-badge font-display">2</div>
-              <div className="podium-avatar">🥈</div>
+              <div className="podium-rank-badge font-display">#2</div>
+              <div className="podium-avatar-wrap silver-avatar">
+                <Medal size={28} />
+              </div>
               <h3 className="podium-username" title={`@${drivers[1].username}`}>
                 @{drivers[1].username}
               </h3>
@@ -93,7 +95,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                 {drivers[1].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span className="podium-coin-tag">🟡 {drivers[1].totalCoins.toLocaleString()}</span>
+                <span className="podium-coin-tag">
+                  <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
+                  {drivers[1].totalCoins.toLocaleString()}
+                </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
@@ -108,9 +113,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           {/* 1st Place (Gold) */}
           {drivers.length >= 1 && (
             <div className="podium-card card gold">
-              <div className="crown-icon">👑</div>
-              <div className="podium-rank-badge font-display">1</div>
-              <div className="podium-avatar">🥇</div>
+              <div className="podium-rank-badge font-display gold-badge">#1</div>
+              <div className="podium-avatar-wrap gold-avatar">
+                <Trophy size={32} />
+              </div>
               <h3 className="podium-username" title={`@${drivers[0].username}`}>
                 @{drivers[0].username}
               </h3>
@@ -121,7 +127,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                 {drivers[0].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span className="podium-coin-tag">🟡 {drivers[0].totalCoins.toLocaleString()}</span>
+                <span className="podium-coin-tag">
+                  <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
+                  {drivers[0].totalCoins.toLocaleString()}
+                </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
@@ -133,11 +142,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             </div>
           )}
 
-          {/* 3rd Place */}
+          {/* 3rd Place (Bronze) */}
           {drivers.length >= 3 && (
             <div className="podium-card card bronze">
-              <div className="podium-rank-badge font-display">3</div>
-              <div className="podium-avatar">🥉</div>
+              <div className="podium-rank-badge font-display">#3</div>
+              <div className="podium-avatar-wrap bronze-avatar">
+                <Medal size={28} />
+              </div>
               <h3 className="podium-username" title={`@${drivers[2].username}`}>
                 @{drivers[2].username}
               </h3>
@@ -148,7 +159,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                 {drivers[2].bestScore.toLocaleString()} PTS
               </span>
               <div className="podium-sub">
-                <span className="podium-coin-tag">🟡 {drivers[2].totalCoins.toLocaleString()}</span>
+                <span className="podium-coin-tag">
+                  <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
+                  {drivers[2].totalCoins.toLocaleString()}
+                </span>
                 <span>•</span>
                 <span className="podium-pill-tag">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
@@ -180,16 +194,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
               </div>
               <div className="standing-wallet-row">
                 <span className="wallet-stat standard">
-                  🟡 <strong>{(userCoins || userStanding.totalCoins).toLocaleString()}</strong> Coins
+                  <Coins size={13} style={{ color: 'var(--g-yellow)' }} />
+                  <span><strong>{(userCoins || userStanding.totalCoins).toLocaleString()}</strong> Coins</span>
                 </span>
                 <span>•</span>
                 <span className="wallet-stat gdg">
                   <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-pill-icon" />
-                  <strong>{(userGdgCoins || userStanding.totalGdgCoins).toLocaleString()}</strong> GDG Coins
+                  <span><strong>{(userGdgCoins || userStanding.totalGdgCoins).toLocaleString()}</strong> GDG</span>
                 </span>
                 <span>•</span>
                 <span className="wallet-stat games">
-                  🏁 {userStanding.totalGames} {userStanding.totalGames === 1 ? 'race' : 'races'}
+                  <Flag size={13} />
+                  <span>{userStanding.totalGames} {userStanding.totalGames === 1 ? 'race' : 'races'}</span>
                 </span>
               </div>
             </div>
@@ -269,8 +285,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                     className={`table-row ${isUser ? 'user-highlight' : ''}`}
                   >
                     <td className="td-rank">
-                      <span className={`rank-chip font-display rank-${globalRank}`}>
-                        {globalRank === 1 ? '🥇 1' : globalRank === 2 ? '🥈 2' : globalRank === 3 ? '🥉 3' : `#${globalRank}`}
+                      <span className={`rank-chip font-display rank-${globalRank <= 3 ? globalRank : 'other'}`}>
+                        #{globalRank}
                       </span>
                     </td>
                     <td className="td-driver">
@@ -284,7 +300,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                     </td>
                     <td className="td-score font-display">{row.bestScore.toLocaleString()}</td>
                     <td className="td-coins font-mono">
-                      <span className="table-coin-cell">🟡 {row.totalCoins.toLocaleString()}</span>
+                      <span className="table-coin-cell">
+                        <Coins size={13} style={{ color: 'var(--g-yellow)', display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                        {row.totalCoins.toLocaleString()}
+                      </span>
                     </td>
                     <td className="td-pills">
                       <div className="pill-badge-cell">
@@ -389,20 +408,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .podium-card.gold {
-          border-color: rgba(251, 188, 4, 0.5);
+          border-color: rgba(251, 188, 4, 0.6);
           box-shadow: var(--shadow-2);
           transform: translateY(-8px);
         }
 
-        .crown-icon {
-          position: absolute;
-          top: -22px;
-          font-size: 22px;
-        }
-
         .podium-rank-badge {
-          width: 28px;
-          height: 28px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           background: var(--surface-3);
           display: flex;
@@ -410,13 +423,45 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           justify-content: center;
           font-size: 0.88rem;
           font-weight: 700;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
           color: var(--text);
         }
 
-        .podium-avatar {
-          font-size: 34px;
-          margin-bottom: 6px;
+        .podium-rank-badge.gold-badge {
+          background: rgba(251, 188, 4, 0.2);
+          color: #B26A00;
+        }
+
+        :root[data-theme='dark'] .podium-rank-badge.gold-badge {
+          color: #FFD54F;
+          background: rgba(251, 188, 4, 0.2);
+        }
+
+        .podium-avatar-wrap {
+          width: 52px;
+          height: 52px;
+          border-radius: var(--pill);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 10px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+        }
+
+        .gold-avatar {
+          color: var(--g-yellow);
+          background: rgba(251, 188, 4, 0.12);
+          border-color: rgba(251, 188, 4, 0.35);
+        }
+
+        .silver-avatar {
+          color: var(--text-2);
+        }
+
+        .bronze-avatar {
+          color: #E37400;
+          background: rgba(227, 116, 0, 0.1);
         }
 
         .podium-username {
@@ -459,6 +504,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         .podium-coin-tag {
           font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .podium-pill-tag {
@@ -542,10 +590,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           flex-wrap: wrap;
         }
 
-        .wallet-stat.gdg {
+        .wallet-stat {
           display: inline-flex;
           align-items: center;
           gap: 4px;
+        }
+
+        .wallet-stat.gdg {
           color: var(--accent);
         }
 
@@ -657,9 +708,37 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .rank-chip {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2px 10px;
+          border-radius: var(--pill);
           font-weight: 700;
-          font-size: 0.92rem;
+          font-size: 0.85rem;
+          background: var(--surface-3);
           color: var(--text-2);
+        }
+
+        .rank-1 {
+          background: rgba(251, 188, 4, 0.18);
+          color: #B26A00;
+          border: 1px solid rgba(251, 188, 4, 0.4);
+        }
+
+        :root[data-theme='dark'] .rank-1 {
+          color: #FFD54F;
+        }
+
+        .rank-2 {
+          background: var(--surface-3);
+          color: var(--text);
+          border: 1px solid var(--border-strong);
+        }
+
+        .rank-3 {
+          background: rgba(227, 116, 0, 0.12);
+          color: #E37400;
+          border: 1px solid rgba(227, 116, 0, 0.3);
         }
 
         .driver-cell {
