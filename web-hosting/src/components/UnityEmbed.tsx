@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react';
-import { Maximize2 } from 'lucide-react';
 
 interface UnityEmbedProps {
   token: string;
@@ -43,20 +42,6 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
     };
   }, []);
 
-  const handleFullscreen = () => {
-    if (containerRef.current) {
-      if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch((err) => {
-          console.warn('[UnityEmbed] Fullscreen request error:', err);
-        });
-      } else {
-        document.exitFullscreen().catch((err) => {
-          console.warn('[UnityEmbed] Exit fullscreen error:', err);
-        });
-      }
-    }
-  };
-
   return (
     <div className="unity-embed-container" ref={containerRef}>
       <iframe
@@ -68,26 +53,14 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
         tabIndex={0}
       />
 
-      <button
-        className="fullscreen-toggle-btn"
-        onClick={handleFullscreen}
-        title="Toggle Fullscreen"
-        aria-label="Toggle Fullscreen"
-      >
-        <Maximize2 size={18} />
-      </button>
-
       <style>{`
         .unity-embed-container {
-          position: relative;
+          position: absolute;
+          inset: 0;
           width: 100%;
-          aspect-ratio: 16 / 9;
-          min-height: 480px;
-          max-height: calc(100vh - 140px);
+          height: 100%;
           background: #080B12;
-          border-radius: var(--radius-lg);
           overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
         }
 
         .unity-iframe {
@@ -100,40 +73,8 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
           display: block;
           outline: none;
         }
-
-        .fullscreen-toggle-btn {
-          position: absolute;
-          top: 14px;
-          right: 14px;
-          z-index: 10;
-          background: rgba(18, 23, 34, 0.8);
-          backdrop-filter: blur(8px);
-          color: var(--text-secondary);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 8px;
-          border-radius: 8px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.18s ease;
-        }
-
-        .fullscreen-toggle-btn:hover {
-          color: #FFFFFF;
-          background: rgba(18, 23, 34, 0.95);
-          border-color: var(--google-blue);
-          transform: scale(1.05);
-        }
-
-        @media (max-width: 768px) {
-          .unity-embed-container {
-            aspect-ratio: 16 / 9;
-            min-height: 380px;
-            border-radius: var(--radius-md);
-          }
-        }
       `}</style>
     </div>
   );
 };
+
