@@ -28,16 +28,16 @@ namespace GDGGo.Obstacles
 
         [Header("Density")]
         [Tooltip("Metres between clusters at the start of a run.")]
-        public float intervalAtStart = 34f;
+        public float intervalAtStart = 115f;
 
         [Tooltip("Metres between clusters once difficulty is maxed.")]
-        public float intervalAtMaxDifficulty = 15f;
+        public float intervalAtMaxDifficulty = 85f;
 
         [Tooltip("Difficulty above which clusters may block two lanes instead of one.")]
-        [Range(0f, 1f)] public float twoLaneBlockThreshold = 0.35f;
+        [Range(0f, 1f)] public float twoLaneBlockThreshold = 0.90f;
 
         [Tooltip("Chance of a two-lane cluster once past the threshold.")]
-        [Range(0f, 1f)] public float twoLaneBlockChance = 0.4f;
+        [Range(0f, 1f)] public float twoLaneBlockChance = 0.0f;
 
         private readonly int[] _laneBuffer = new int[LaneModel.LaneCount];
         private float[] _weights;
