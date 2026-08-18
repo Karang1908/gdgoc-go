@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>GDG Go — Google Developer Group</title>
+    <meta name="title" content="GDG Go — Google Developer Group" />
+    <meta name="description" content="Outrun the police, dodge city traffic, collect Google-colored coins, and climb the live global leaderboard in GDG Go!" />
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="GDG Go — Google Developer Group" />
+    <meta property="og:description" content="Outrun the police, dodge traffic, collect coins, and compete on the global leaderboard!" />
+    
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/GoogleSans.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/GoogleSansText-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/GoogleSansText-500.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/GoogleSansText-700.woff2" crossorigin />
+
+    <script>
+      // Runs before first paint so the correct theme is never flashed.
+      (function () {
+        try {
+          var s = localStorage.getItem('gdg-theme') === 'dark' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', s);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
