@@ -89,7 +89,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const activeError = localError || error;
 
   return (
-    <div className="modal-backdrop">
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && canDismiss && onClose) {
+          onClose();
+        }
+      }}
+    >
       <div className="modal-card card animate-fade-in">
         <div className="modal-header">
           <div className="modal-brand-hub">
@@ -302,8 +309,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .tab-switcher {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 6px;
-          background: var(--surface-2);
+          gap: 4px;
+          background: var(--surface-3);
           padding: 4px;
           margin: 0 24px 16px;
           border-radius: var(--pill);
@@ -321,13 +328,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           font-size: 0.88rem;
           cursor: pointer;
           transition: all 0.15s var(--ease);
+          user-select: none;
         }
 
         .tab-btn.active {
-          background: var(--surface);
-          color: var(--text);
+          background: var(--accent-soft);
+          color: var(--accent);
           font-weight: 700;
-          box-shadow: var(--shadow-1);
+          box-shadow: none;
         }
 
         .error-banner {
