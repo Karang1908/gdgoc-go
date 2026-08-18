@@ -56,7 +56,7 @@ export function App() {
           <footer className="footer">
             <div className="footer-content">
               <span>
-                <span className="footer-long">Google Developer Group · </span>
+                <span className="footer-long">Google Developer Groups on Campus · </span>
                 BITS Pilani Dubai Campus
               </span>
               <span className="footer-dots">
@@ -68,27 +68,40 @@ export function App() {
 
         <style>{`
           .app-root {
-            min-height: 100vh;
+            height: 100dvh;
+            max-height: 100dvh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
             background: var(--bg);
             color: var(--text);
+            overflow: hidden;
+            box-sizing: border-box;
             transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
           }
 
           .app-main-view {
-            flex: 1 0 auto;
+            flex: 1 1 auto;
+            min-height: 0;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
 
           .footer {
-            flex: none;
-            margin-top: auto;
-            border-top: 2px solid var(--border);
-            padding: 18px clamp(16px, 4vw, 40px) calc(18px + env(safe-area-inset-bottom, 0px));
+            flex: 0 0 auto;
+            height: 42px;
+            border-top: 1px solid var(--border);
+            padding: 0 clamp(16px, 4vw, 40px);
+            padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
             background: var(--bg);
             color: var(--text-2);
-            font-size: 0.875rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            z-index: 10;
             transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
           }
 
@@ -99,18 +112,18 @@ export function App() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
+            gap: 12px;
           }
 
           .footer span:first-child {
             font-weight: 500;
           }
 
-          @media (max-width: 560px) {
+          @media (max-width: 600px) {
             .footer {
-              padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
-              font-size: 0.8125rem;
+              height: 38px;
+              padding: 0 16px;
+              font-size: 0.75rem;
             }
 
             .footer-long {
