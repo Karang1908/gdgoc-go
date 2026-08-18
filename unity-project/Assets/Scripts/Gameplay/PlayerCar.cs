@@ -30,18 +30,18 @@ namespace GDGGo.Gameplay
 
         [Header("Lane motion")]
         [Tooltip("Seconds to complete one lane change.")]
-        public float laneChangeTime = 0.16f;
+        public float laneChangeTime = 0.12f;
 
         [Tooltip("Degrees the mesh banks into a lane change.")]
-        public float bankAngle = 16f;
+        public float bankAngle = 20f;
 
-        [Header("Jump")]
-        public float jumpHeight = 2.6f;
-        public float jumpDuration = 0.66f;
+        [Header("Jump & Fast Drop")]
+        public float jumpHeight = 2.8f;
+        public float jumpDuration = 0.60f;
 
         [Header("Input")]
         [Tooltip("Minimum screen-pixel travel before a drag counts as a swipe.")]
-        public float swipeThresholdPixels = 45f;
+        public float swipeThresholdPixels = 40f;
 
         /// <summary>The active player car. Cached so per-coin magnet logic does not have
         /// to run a scene-wide search on every coin, every frame.</summary>
@@ -118,6 +118,23 @@ namespace GDGGo.Gameplay
             Audio.AudioManager.Instance?.PlayJump();
         }
 
+        /// <summary>
+        /// Subway-Surfers signature mechanic: swiping down mid-air immediately cancels the jump
+        /// and slams the vehicle back onto the asphalt to dodge upcoming obstacles.
+        /// </summary>
+        public void FastFall()
+        {
+            if (!IsJumping)
+            {
+                BrakeTap();
+                return;
+            }
+
+            // Rapidly speed up jump descent to slam the vehicle down
+            _jumpTimer = Mathf.Max(_jumpTimer, jumpDuration * 0.72f);
+            Audio.AudioManager.Instance?.PlaySwerve();
+        }
+
         public void BrakeStart() => IsBraking = true;
         public void BrakeStop() => IsBraking = false;
         public void BoostStart() => _boostHeld = true;
@@ -132,15 +149,14 @@ namespace GDGGo.Gameplay
             if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) MoveLeft();
             if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) MoveRight();
             if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Space)) Jump();
+            if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) FastFall();
 
             IsBraking = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
             _boostHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         }
 
         /// <summary>
-        /// Swipe handling for phones. One gesture per touch: the first axis to clear the
-        /// threshold wins and the touch is then consumed, so a sloppy diagonal cannot
-        /// fire both a lane change and a jump.
+        /// Swipe handling for phones & mouse gestures.
         /// </summary>
         private void ReadTouch()
         {
@@ -194,17 +210,17 @@ namespace GDGGo.Gameplay
             }
             else
             {
-                if (dy > 0f) Jump(); else BrakeTap();
+                if (dy > 0f) Jump(); else FastFall();
             }
-            _touchActive = false;   // consume: one gesture per touch
+            _touchActive = false;
         }
 
-        /// <summary>Swipe-down brakes briefly; there is no "hold" on a discrete gesture.</summary>
+        /// <summary>Swipe-down brakes briefly when on the ground.</summary>
         private void BrakeTap()
         {
             IsBraking = true;
             CancelInvoke(nameof(BrakeStop));
-            Invoke(nameof(BrakeStop), 0.45f);
+            Invoke(nameof(BrakeStop), 0.35f);
         }
 
         // ============================================================
@@ -214,7 +230,7 @@ namespace GDGGo.Gameplay
         private void ChangeLane(int direction)
         {
             int target = LaneModel.Clamp(CurrentLane + direction);
-            if (target == CurrentLane) return;   // already at the edge
+            if (target == CurrentLane) return;
 
             _fromLane = CurrentLane;
             CurrentLane = target;
@@ -227,7 +243,7 @@ namespace GDGGo.Gameplay
             if (_laneChangeT < 1f)
                 _laneChangeT = Mathf.Clamp01(_laneChangeT + Time.deltaTime / Mathf.Max(0.01f, laneChangeTime));
 
-            // Smoothstep gives the lane change a little ease-out; a linear slide reads robotic.
+            // Smooth cubic ease out
             float t = _laneChangeT * _laneChangeT * (3f - 2f * _laneChangeT);
             float x = Mathf.Lerp(LaneModel.LaneX(_fromLane), LaneModel.LaneX(CurrentLane), t);
 
@@ -237,10 +253,19 @@ namespace GDGGo.Gameplay
 
             if (meshRoot != null)
             {
-                // Bank into the turn, strongest mid-change, level by the time it settles.
+                // Dynamic banking roll into the lane change + pitch when jumping + road vibe
                 float bankAmount = Mathf.Sin(_laneChangeT * Mathf.PI) * bankAngle;
                 float direction = Mathf.Sign(LaneModel.LaneX(CurrentLane) - LaneModel.LaneX(_fromLane));
-                meshRoot.localRotation = Quaternion.Euler(0f, 0f, -bankAmount * direction);
+                float roadVibe = Mathf.Sin(Time.time * 28f) * 0.4f;
+
+                float jumpPitch = 0f;
+                if (IsJumping)
+                {
+                    float jumpT = _jumpTimer / Mathf.Max(0.01f, jumpDuration);
+                    jumpPitch = jumpT < 0.45f ? -9f : +11f; // Nose up on rocket launch, nose down on descent
+                }
+
+                meshRoot.localRotation = Quaternion.Euler(roadVibe + jumpPitch, 0f, -bankAmount * direction);
             }
         }
 
@@ -256,11 +281,13 @@ namespace GDGGo.Gameplay
             {
                 IsJumping = false;
                 p.y = _groundY;
+                if (jumpDustFX != null) jumpDustFX.Play();
             }
             else
             {
-                // Symmetric parabola: 0 at both ends, peaks at jumpHeight.
-                p.y = _groundY + 4f * jumpHeight * t * (1f - t);
+                // High-launch rocket trajectory with arcade hangtime
+                float heightFactor = Mathf.Sin(t * Mathf.PI);
+                p.y = _groundY + jumpHeight * heightFactor;
             }
             transform.position = p;
         }
