@@ -1,4 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+
+export interface UnityEmbedHandle {
+  triggerFullscreen: () => void;
+}
 
 interface UnityEmbedProps {
   token: string;
@@ -7,12 +11,12 @@ interface UnityEmbedProps {
   carId: string;
 }
 
-export const UnityEmbed: React.FC<UnityEmbedProps> = ({
+export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   token,
   username,
   displayName,
   carId,
-}) => {
+}, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -24,6 +28,37 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
   });
 
   const src = `/Build/index.html?${queryParams.toString()}`;
+
+  const triggerFullscreen = () => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      // 1. Send postMessage to trigger Unity's SetFullscreen(1)
+      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
+
+      // 2. Direct call to unityInstance if available
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
+          win.unityInstance.SetFullscreen(1);
+          return;
+        }
+      } catch {
+        // Cross-origin catch
+      }
+
+      // 3. Fallback to iframe element native requestFullscreen
+      try {
+        if (iframeRef.current.requestFullscreen) {
+          iframeRef.current.requestFullscreen();
+        }
+      } catch {
+        // Fullscreen fallback
+      }
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    triggerFullscreen,
+  }));
 
   // Automatically focus the iframe on mount so keyboard controls (WASD, Arrows, Space) work immediately
   useEffect(() => {
@@ -76,5 +111,4 @@ export const UnityEmbed: React.FC<UnityEmbedProps> = ({
       `}</style>
     </div>
   );
-};
-
+});

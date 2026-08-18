@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, VolumeX } from 'lucide-react';
-import { UnityEmbed } from '../components/UnityEmbed';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowLeft, RefreshCw, Volume2, VolumeX, Maximize2, Sparkles } from 'lucide-react';
+import { UnityEmbed, UnityEmbedHandle } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
 import { GameOverPayload, submitScore } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ export const GameView: React.FC<GameViewProps> = ({
   const [runKey, setRunKey] = useState<number>(1);
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(bgmEngine.getMuted());
+  const unityEmbedRef = useRef<UnityEmbedHandle>(null);
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
@@ -124,29 +125,57 @@ export const GameView: React.FC<GameViewProps> = ({
     setIsMuted(muted);
   };
 
+  const handleFullscreen = () => {
+    unityEmbedRef.current?.triggerFullscreen();
+  };
+
   return (
     <div className="game-view-container animate-fade-in">
       {/* Top HUD Control Bar */}
       <div className="game-top-bar">
-        <button
-          id="back-to-garage-btn"
-          className="btn btn-secondary back-btn"
-          onClick={() => {
-            bgmEngine.stop();
-            onBackToGarage();
-          }}
-          title="Back to Car Selection"
-        >
-          <ArrowLeft size={18} />
-          <span>Change Car</span>
-        </button>
+        <div className="top-bar-left-group">
+          <button
+            id="back-to-garage-btn"
+            className="btn btn-secondary back-btn"
+            onClick={() => {
+              bgmEngine.stop();
+              onBackToGarage();
+            }}
+            title="Back to Car Selection"
+          >
+            <ArrowLeft size={18} />
+            <span>Change Car</span>
+          </button>
 
-        <div className="active-car-pill">
-          <span className="car-pill-icon">{selectedCar.icon}</span>
-          <span className="car-pill-name">{selectedCar.name}</span>
+          <div className="active-car-pill">
+            <span className="car-pill-icon">{selectedCar.icon}</span>
+            <span className="car-pill-name">{selectedCar.name}</span>
+          </div>
+        </div>
+
+        {/* Fullscreen Recommendation Banner */}
+        <div
+          className="fullscreen-recommendation-pill"
+          onClick={handleFullscreen}
+          title="Click to enter Full Screen"
+          role="button"
+          tabIndex={0}
+        >
+          <Sparkles size={14} className="sparkle-icon" />
+          <span>For the best experience, play in full screen</span>
         </div>
 
         <div className="top-bar-right-controls">
+          <button
+            id="unity-fullscreen-btn"
+            className="btn btn-primary fullscreen-btn"
+            onClick={handleFullscreen}
+            title="Enter Full Screen Mode"
+          >
+            <Maximize2 size={16} />
+            <span className="fullscreen-label">Full Screen</span>
+          </button>
+
           <button
             id="toggle-music-btn"
             className="btn btn-secondary music-toggle-btn"
@@ -172,6 +201,7 @@ export const GameView: React.FC<GameViewProps> = ({
       {/* Unity Canvas Container */}
       <div className="game-canvas-wrapper">
         <UnityEmbed
+          ref={unityEmbedRef}
           key={runKey}
           token={session?.access_token || ''}
           username={profile?.username || ''}
@@ -206,6 +236,14 @@ export const GameView: React.FC<GameViewProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 4px 2px;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .top-bar-left-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .back-btn {
@@ -247,10 +285,53 @@ export const GameView: React.FC<GameViewProps> = ({
           letter-spacing: 0.04em;
         }
 
+        .fullscreen-recommendation-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 16px;
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.12) 100%);
+          border: 1px solid rgba(66, 133, 244, 0.3);
+          border-radius: 20px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #90CAF9;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          user-select: none;
+        }
+
+        .fullscreen-recommendation-pill:hover {
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.22) 0%, rgba(52, 168, 83, 0.22) 100%);
+          border-color: var(--google-blue);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(66, 133, 244, 0.25);
+          transform: scale(1.02);
+        }
+
+        .sparkle-icon {
+          color: var(--google-yellow);
+          animation: pulse 2s infinite;
+        }
+
         .top-bar-right-controls {
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+
+        .fullscreen-btn {
+          padding: 8px 16px;
+          font-size: 0.88rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #4285F4, #3367D6);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 4px 14px rgba(66, 133, 244, 0.35);
+        }
+
+        .fullscreen-btn:hover {
+          box-shadow: 0 6px 20px rgba(66, 133, 244, 0.5);
+          transform: translateY(-1px);
         }
 
         .music-toggle-btn {
@@ -295,6 +376,12 @@ export const GameView: React.FC<GameViewProps> = ({
           box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
 
+        @media (max-width: 900px) {
+          .fullscreen-recommendation-pill {
+            display: none;
+          }
+        }
+
         @media (max-width: 640px) {
           .game-view-container {
             padding: 8px 8px 20px;
@@ -307,7 +394,7 @@ export const GameView: React.FC<GameViewProps> = ({
           .active-car-pill {
             display: none;
           }
-          .restart-label, .music-toggle-label {
+          .fullscreen-label, .restart-label, .music-toggle-label {
             display: none;
           }
         }
