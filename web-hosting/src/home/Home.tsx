@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { CarPicker } from './CarPicker';
 import { GameView } from './GameView';
-import { Play, Trophy, Sparkles } from 'lucide-react';
+import { Play, Trophy } from 'lucide-react';
 
 interface HomeProps {
   navigate: (route: 'home' | 'leaderboard') => void;
@@ -84,7 +84,6 @@ export const Home: React.FC<HomeProps> = ({
       <main className="hero-landing-container">
         <div className="hero-content">
           <div className="hero-badge">
-            <Sparkles size={14} className="hero-badge-icon" />
             <span>GOOGLE DEVELOPER GROUPS ON CAMPUS</span>
           </div>
 

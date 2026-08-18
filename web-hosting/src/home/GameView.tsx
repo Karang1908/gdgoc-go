@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, VolumeX, Maximize2, Sparkles } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { UnityEmbed, UnityEmbedHandle } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
 import { GameOverPayload, submitScore } from '../lib/api';
@@ -192,7 +192,7 @@ export const GameView: React.FC<GameViewProps> = ({
           role="button"
           tabIndex={0}
         >
-          <Sparkles size={14} className="sparkle-icon" />
+          <Maximize2 size={13} className="sparkle-icon" />
           <span>For the best experience, play in full screen</span>
         </div>
 
