@@ -73,13 +73,13 @@ namespace GDGGo.Core
         // ---------------- Fuel ----------------
         [Header("Fuel")]
         [Tooltip("Seconds of driving a full tank lasts at cruising speed.")]
-        public float fuelSecondsAtCruise = 60f;
+        public float fuelSecondsAtCruise = 45f;
 
         [Tooltip("Fraction of a tank restored by one fuel pickup.")]
-        [Range(0.05f, 1f)] public float fuelPerCan = 0.45f;
+        [Range(0.05f, 1f)] public float fuelPerCan = 0.35f;
 
         [Tooltip("Extra drain multiplier while boosting.")]
-        public float boostFuelMultiplier = 1.35f;
+        public float boostFuelMultiplier = 1.45f;
 
         /// <summary>
         /// 0 = empty, 1 = full tank. Drains with distance rather than wall-clock, so the

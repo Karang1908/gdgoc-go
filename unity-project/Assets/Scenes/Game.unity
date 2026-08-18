@@ -1798,8 +1798,8 @@ MonoBehaviour:
   hoverHeight: 0.9
   archPeakHeight: 2.2
   patternInterval: 30
-  fuelIntervalMetres: 75
-  fuelIntervalWhenLow: 35
+  fuelIntervalMetres: 85
+  fuelIntervalWhenLow: 45
   pillMilestoneInterval: 100
 --- !u!1 &1126484185
 GameObject:
@@ -2472,9 +2472,9 @@ MonoBehaviour:
   crashHeatPenalty: 0.28
   pedestrianHeatPenalty: 0.08
   heatPerCoin: 0.012
-  fuelSecondsAtCruise: 60
-  fuelPerCan: 0.45
-  boostFuelMultiplier: 1.35
+  fuelSecondsAtCruise: 45
+  fuelPerCan: 0.35
+  boostFuelMultiplier: 1.45
 --- !u!4 &1223871100
 Transform:
   m_ObjectHideFlags: 0

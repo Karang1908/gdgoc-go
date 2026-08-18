@@ -77,11 +77,11 @@ namespace GDGGo.Coins
 
         [Header("Fuel")]
         [Tooltip("Metres between fuel cans when the tank is comfortably full.")]
-        public float fuelIntervalMetres = 75f;
+        public float fuelIntervalMetres = 85f;
 
         [Tooltip("Metres between fuel cans once the tank is low. Cans arrive more often " +
                  "as the player runs dry so a run ends from bad driving, not bad luck.")]
-        public float fuelIntervalWhenLow = 35f;
+        public float fuelIntervalWhenLow = 45f;
 
         /// <summary>Track distance at which the next fuel can is due.</summary>
         private float _nextFuelTrack = 35f;
