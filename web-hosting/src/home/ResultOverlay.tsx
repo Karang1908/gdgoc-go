@@ -32,8 +32,9 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
     }
   }, [isHighscore, payload.score]);
 
+  const runGdgCoins = Number(payload.pills) || 0;
   const displayTotalCoins = (userCoins || 0) + payload.coins;
-  const displayTotalGdg = (userGdgCoins || 0) + Math.max(1, Math.floor(payload.coins / 15));
+  const displayTotalGdg = (userGdgCoins || 0) + runGdgCoins;
 
   return (
     <div className="result-backdrop animate-fade-in">
@@ -103,7 +104,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             <div className="stat-card-details">
               <span className="stat-name">GDG Coins</span>
               <span className="stat-value font-display gdg-pill-stat-val">
-                +{Math.max(1, Math.floor(payload.coins / 15))}
+                +{runGdgCoins}
               </span>
             </div>
           </div>

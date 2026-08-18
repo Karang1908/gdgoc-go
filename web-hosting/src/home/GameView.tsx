@@ -75,6 +75,7 @@ export const GameView: React.FC<GameViewProps> = ({
           type: 'gameover',
           score: Number(data.score) || 0,
           coins: Number(data.coins) || 0,
+          pills: Number(data.pills) || 0,
           distance: Number(data.distance) || 0,
           duration: Number(data.duration) || 0,
           reason: String(data.reason || 'police'),

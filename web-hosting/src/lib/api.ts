@@ -63,7 +63,8 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
   // 2. Sanitize and bound parameters to satisfy PostgreSQL check constraints
   const distance = Math.max(0, Math.round(payload.distance));
   const coins = Math.max(0, Math.round(payload.coins));
-  const minScore = distance * 2 + coins;
+  const pills = Math.max(0, Math.round(payload.pills || 0));
+  const minScore = distance * 2 + coins + pills * 25;
   const score = Math.max(minScore, Math.round(payload.score));
   
   // Ensure duration_seconds satisfies: duration_seconds = 0 or distance <= duration_seconds * 70
@@ -77,11 +78,12 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
     display_name: displayName,
     score,
     coins,
+    pills,
     distance,
     duration_seconds,
   };
 
-  console.log('[API] Committing verified score:', scorePayload);
+  console.log('[API] Committing verified score with GDG coins:', scorePayload);
 
   // 3. First attempt: Use official Supabase client
   try {
@@ -95,7 +97,16 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
       return;
     }
     if (error) {
-      console.warn('[API] Supabase client insert returned error, attempting REST fallback:', error.message);
+      console.warn('[API] Supabase client insert returned error, attempting fallback without pills or with REST:', error.message);
+      // If pills column doesn't exist yet, retry insert without pills field
+      if (error.message?.includes('column "pills"') || error.message?.includes('pills')) {
+        const { pills: _, ...payloadWithoutPills } = scorePayload;
+        const retryRes = await supabase.from('scores').insert([payloadWithoutPills]).select();
+        if (!retryRes.error) {
+          console.log('[API] Score committed successfully via retry without pills column:', retryRes.data);
+          return;
+        }
+      }
     }
   } catch (clientErr) {
     console.warn('[API] Supabase client insert threw exception, attempting REST fallback:', clientErr);
@@ -303,8 +314,10 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
     driver.totalGames += 1;
     driver.totalCoins += (Number(row.coins) || 0);
 
-    // Cumulative GDG Coins computed from total coins & runs
-    const gdgEarned = Math.max(1, Math.floor((Number(row.coins) || 0) / 15));
+    // Cumulative GDG Coins computed from collected pills / coins
+    const gdgEarned = (row as any).pills !== undefined && (row as any).pills !== null
+      ? Number((row as any).pills)
+      : Math.max(0, Math.floor((Number(row.coins) || 0) / 15));
     driver.totalGdgCoins += gdgEarned;
 
     if (row.score > driver.bestScore) {
@@ -370,7 +383,7 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
     // 2. Fallback to scores table
     const query = supabase
       .from('scores')
-      .select('id, user_id, username, display_name, score, coins, distance, created_at');
+      .select('id, user_id, username, display_name, score, coins, pills, distance, created_at');
 
     if (userId) query.eq('user_id', userId);
     else if (username) query.eq('username', username);
@@ -380,7 +393,9 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
       for (const row of data) {
         totalGames += 1;
         totalCoins += (Number(row.coins) || 0);
-        const gdgEarned = Math.max(1, Math.floor((Number(row.coins) || 0) / 15));
+        const gdgEarned = (row as any).pills !== undefined && (row as any).pills !== null
+          ? Number((row as any).pills)
+          : Math.max(0, Math.floor((Number(row.coins) || 0) / 15));
         totalGdgCoins += gdgEarned;
         if (Number(row.score) > bestScore) bestScore = Number(row.score);
         if (Number(row.distance) > bestDistance) bestDistance = Number(row.distance);
