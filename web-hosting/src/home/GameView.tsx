@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, VolumeX, Maximize2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import { UnityEmbed, UnityEmbedHandle } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
 import { GameOverPayload, submitScore } from '../lib/api';
@@ -25,19 +25,6 @@ export const GameView: React.FC<GameViewProps> = ({
   const unityEmbedRef = useRef<UnityEmbedHandle>(null);
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
-
-  const handleFullscreen = useCallback(() => {
-    const root = document.getElementById('game-fullscreen-root') || document.documentElement;
-    if (root) {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-        if (root.requestFullscreen) {
-          root.requestFullscreen().catch(() => {});
-        } else if ((root as any).webkitRequestFullscreen) {
-          (root as any).webkitRequestFullscreen();
-        }
-      }
-    }
-  }, []);
 
   const handleExitFullscreen = useCallback(() => {
     if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
@@ -77,18 +64,20 @@ export const GameView: React.FC<GameViewProps> = ({
       const data = event.data;
       if (!data || typeof data !== 'object') return;
 
-      if (data.type === 'gameStart') {
+      const type = String(data.type || '').toLowerCase();
+
+      if (type === 'gamestart' || type === 'start') {
         setGameOverPayload(null);
       }
 
-      if (data.type === 'gameOver') {
+      if (type === 'gameover') {
         const payload: GameOverPayload = {
           type: 'gameover',
           score: Number(data.score) || 0,
           coins: Number(data.coins) || 0,
           distance: Number(data.distance) || 0,
           duration: Number(data.duration) || 0,
-          reason: data.reason || 'police',
+          reason: String(data.reason || 'police'),
         };
 
         setGameOverPayload(payload);
@@ -112,7 +101,6 @@ export const GameView: React.FC<GameViewProps> = ({
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
-    handleFullscreen();
   };
 
   const handleToggleMusic = () => {
@@ -121,64 +109,52 @@ export const GameView: React.FC<GameViewProps> = ({
   };
 
   return (
-    <div className="game-view-container animate-fade-in">
-      {/* Top HUD Bar */}
-      <div className="game-top-bar">
-        <div className="top-bar-left">
+    <div className="game-view-container">
+      {/* Floating HUD Controls */}
+      <div className="floating-game-hud">
+        <div className="floating-hud-left">
           <button
             id="back-to-garage-btn"
-            className="btn btn-secondary back-btn"
+            className="floating-hud-btn back-garage-btn"
             onClick={() => {
               bgmEngine.stop();
               handleExitFullscreen();
               onBackToGarage();
             }}
-            title="Back to Car Selection"
+            title="Back to Garage"
           >
             <ArrowLeft size={16} />
-            <span>Change Car</span>
+            <span>Garage</span>
           </button>
 
-          <div className="active-car-pill">
-            <img src={selectedCar.image} alt="" className="car-pill-img" />
-            <span className="car-pill-name">{selectedCar.name}</span>
+          <div className="floating-car-indicator">
+            <img src={selectedCar.image} alt="" className="floating-car-img" />
+            <span className="floating-car-name">{selectedCar.name}</span>
           </div>
         </div>
 
-        <div className="top-bar-right-controls">
-          <button
-            id="fullscreen-hud-btn"
-            className="btn btn-tonal fullscreen-hud-btn"
-            onClick={handleFullscreen}
-            title="Full Screen Mode"
-          >
-            <Maximize2 size={16} />
-            <span className="fullscreen-label">Full Screen</span>
-          </button>
-
+        <div className="floating-hud-right">
           <button
             id="toggle-music-btn"
-            className="btn btn-secondary music-toggle-btn"
+            className="floating-hud-btn"
             onClick={handleToggleMusic}
             title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            <span className="music-toggle-label">{isMuted ? 'Music OFF' : 'Music ON'}</span>
           </button>
 
           <button
             id="restart-run-btn"
-            className="btn btn-secondary restart-btn"
+            className="floating-hud-btn"
             onClick={handlePlayAgain}
             title="Restart Run"
           >
             <RefreshCw size={16} />
-            <span className="restart-label">Restart</span>
           </button>
         </div>
       </div>
 
-      {/* Unity Canvas Container */}
+      {/* 100% Full-bleed Unity Canvas Container */}
       <div className="game-canvas-wrapper">
         <UnityEmbed
           ref={unityEmbedRef}
@@ -209,113 +185,122 @@ export const GameView: React.FC<GameViewProps> = ({
 
       <style>{`
         .game-view-container {
+          position: fixed;
+          top: 0;
+          left: 0;
           width: 100vw;
           height: 100dvh;
-          max-width: 100vw;
           margin: 0;
-          padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+          padding: 0;
           background: #000000;
-          box-sizing: border-box;
           overflow: hidden;
-        }
-
-        .game-top-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 2px 0;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-
-        .top-bar-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .back-btn {
-          height: 36px;
-          padding: 0 14px;
-          font-size: 0.85rem;
-          touch-action: manipulation;
-        }
-
-        .active-car-pill {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          height: 36px;
-          padding: 0 12px;
-          background: var(--surface-2);
-          border: 1px solid var(--border);
-          border-radius: var(--pill);
-        }
-
-        .car-pill-img {
-          width: 28px;
-          height: 20px;
-          object-fit: contain;
-        }
-
-        .car-pill-name {
-          font-family: var(--font-display);
-          font-size: 0.84rem;
-          font-weight: 700;
-          color: var(--text);
-        }
-
-        .top-bar-right-controls {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .fullscreen-hud-btn,
-        .music-toggle-btn,
-        .restart-btn {
-          height: 36px;
-          padding: 0 12px;
-          font-size: 0.84rem;
-          touch-action: manipulation;
+          z-index: 9999;
         }
 
         .game-canvas-wrapper {
-          flex: 1;
-          position: relative;
+          position: absolute;
+          top: 0;
+          left: 0;
           width: 100%;
           height: 100%;
-          min-height: 0;
-          border-radius: var(--r-md);
-          overflow: hidden;
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-2);
           background: #000000;
+          overflow: hidden;
         }
 
-        @media (max-width: 640px) {
-          .game-view-container {
-            padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
-            gap: 6px;
+        .floating-game-hud {
+          position: absolute;
+          top: max(10px, env(safe-area-inset-top));
+          left: max(10px, env(safe-area-inset-left));
+          right: max(10px, env(safe-area-inset-right));
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          z-index: 20;
+          pointer-events: none;
+        }
+
+        .floating-hud-left,
+        .floating-hud-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          pointer-events: auto;
+        }
+
+        .floating-hud-btn {
+          height: 38px;
+          padding: 0 12px;
+          border-radius: var(--pill);
+          background: rgba(20, 20, 20, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-family: var(--font-display);
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s var(--ease);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          touch-action: manipulation;
+        }
+
+        .floating-hud-btn:hover {
+          background: rgba(40, 40, 40, 0.9);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-1px);
+        }
+
+        .floating-hud-btn:active {
+          transform: scale(0.95);
+        }
+
+        .floating-car-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          height: 38px;
+          padding: 0 12px;
+          border-radius: var(--pill);
+          background: rgba(20, 20, 20, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .floating-car-img {
+          width: 24px;
+          height: 16px;
+          object-fit: contain;
+        }
+
+        .floating-car-name {
+          font-family: var(--font-display);
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        @media (max-width: 600px) {
+          .floating-game-hud {
+            top: max(6px, env(safe-area-inset-top));
+            left: max(6px, env(safe-area-inset-left));
+            right: max(6px, env(safe-area-inset-right));
           }
-          .back-btn span {
+          .floating-hud-btn {
+            height: 34px;
+            padding: 0 8px;
+            min-width: 34px;
+          }
+          .back-garage-btn span {
             display: none;
           }
-          .fullscreen-label, .restart-label, .music-toggle-label {
+          .floating-car-indicator {
             display: none;
-          }
-          .fullscreen-hud-btn, .music-toggle-btn, .restart-btn, .back-btn {
-            padding: 0 8px;
-            min-width: 36px;
-          }
-          .active-car-pill {
-            padding: 0 8px;
-          }
-          .car-pill-name {
-            font-size: 0.78rem;
           }
         }
       `}</style>
