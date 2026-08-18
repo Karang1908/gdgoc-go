@@ -32,10 +32,13 @@ namespace GDGGo.Gameplay
         [Range(0f, 1f)] public float verticalFollow = 0.35f;
 
         [Header("Speed feel")]
-        public float baseFieldOfView = 62f;
+        public float baseFieldOfView = 64f;
         [Tooltip("Extra FOV at full boost — the speed rush.")]
-        public float boostFieldOfViewBonus = 10f;
-        public float fovLerp = 4f;
+        public float boostFieldOfViewBonus = 14f;
+        public float fovLerp = 5f;
+
+        [Header("Arcade Banking")]
+        [System.NonSerialized] public float maxCameraBankRoll = 3.5f;
 
         [Header("Shake")]
         public float crashShakeAmplitude = 0.55f;
@@ -47,6 +50,7 @@ namespace GDGGo.Gameplay
         private float _shakeAmplitude;
         private float _currentX;
         private float _currentY;
+        private float _currentRoll;
         private Core.GameSession _session;
 
         private void Awake()
@@ -75,7 +79,6 @@ namespace GDGGo.Gameplay
 
         private void LateUpdate()
         {
-            // GameSession may not have existed yet on our Start (scene load order).
             if (_session == null) Subscribe();
             if (target == null && PlayerCar.Current != null) target = PlayerCar.Current.transform;
 
@@ -85,9 +88,17 @@ namespace GDGGo.Gameplay
             {
                 float targetX = target.position.x * lateralFollow;
                 float targetY = offset.y + Mathf.Max(0f, target.position.y) * verticalFollow;
+
+                float prevX = _currentX;
                 _currentX = Mathf.Lerp(_currentX, targetX, 1f - Mathf.Exp(-lateralLerp * Time.deltaTime));
                 _currentY = Mathf.Lerp(_currentY, targetY, 1f - Mathf.Exp(-lateralLerp * Time.deltaTime));
                 basePosition = new Vector3(_currentX, _currentY, offset.z);
+
+                // Arcade camera roll in direction of swerve
+                float lateralVelocity = (targetX - prevX) / Mathf.Max(0.001f, Time.deltaTime);
+                float targetRoll = Mathf.Clamp(-lateralVelocity * 0.45f, -maxCameraBankRoll, maxCameraBankRoll);
+                _currentRoll = Mathf.Lerp(_currentRoll, targetRoll, 1f - Mathf.Exp(-10f * Time.deltaTime));
+                transform.rotation = Quaternion.Euler(pitchDegrees, 0f, _currentRoll);
             }
 
             transform.position = basePosition + CurrentShakeOffset();
@@ -102,7 +113,6 @@ namespace GDGGo.Gameplay
             float falloff = Mathf.Clamp01(_shakeTimeLeft / Mathf.Max(0.01f, crashShakeDuration));
             float amount = _shakeAmplitude * falloff * falloff;
 
-            // Two different frequencies so the shake does not read as a clean sine wave.
             return new Vector3(
                 Mathf.Sin(Time.time * shakeFrequency) * amount,
                 Mathf.Sin(Time.time * shakeFrequency * 1.37f) * amount,
@@ -118,7 +128,10 @@ namespace GDGGo.Gameplay
             if (world != null && world.BaseSpeed > 0.01f)
                 speedExcess = Mathf.Clamp01((world.Speed / world.BaseSpeed) - 1f);
 
-            float targetFov = baseFieldOfView + boostFieldOfViewBonus * speedExcess;
+            bool isBoosting = PlayerCar.Current != null && PlayerCar.Current.IsBoosting;
+            float boostFactor = isBoosting ? 1.4f : 1.0f;
+
+            float targetFov = baseFieldOfView + (boostFieldOfViewBonus * speedExcess * boostFactor);
             _camera.fieldOfView = Mathf.Lerp(_camera.fieldOfView, targetFov, 1f - Mathf.Exp(-fovLerp * Time.deltaTime));
         }
 
