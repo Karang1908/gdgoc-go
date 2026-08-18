@@ -47,15 +47,20 @@ and the final run telemetry.
 
 The following pieces must be deployed together:
 
-1. The current Unity WebGL build generated from `unity-project/`.
+1. The current Unity WebGL build in `web-hosting/public/Build/` (tracked in git for Netlify CI).
 2. The current React host in `web-hosting/`.
 3. Supabase migrations through
-   [`0005_authoritative_score_submission.sql`](supabase/migrations/0005_authoritative_score_submission.sql).
+   [`0005_authoritative_score_submission.sql`](supabase/migrations/0005_authoritative_score_submission.sql) and
+   [`0006_users_email.sql`](supabase/migrations/0006_users_email.sql).
 
 Migration `0005` is mandatory for the current frontend. It adds the per-run UUID and
 `bonus_score`, makes run submission idempotent, prevents direct browser writes to score and
 leaderboard rows, and exposes the authenticated `submit_game_score` RPC. If the frontend is
 deployed before this migration, completed runs will be queued locally but cannot be banked.
+
+Migration `0006` adds the `email` column and index to `public.users` so the Supabase project
+administrator can view player email addresses directly in the Table Editor, with automated
+backfilling from `auth.users`.
 
 Important current UI behavior:
 
@@ -63,10 +68,14 @@ Important current UI behavior:
 - The header contains Play, Leaderboard, How to Play, wallet, theme, and account controls on
   desktop. On narrow phones, the layout compresses to the GDG mark, How to Play, wallet,
   theme, and account controls.
+- The desktop navbar logo is rendered at **44 px** height with balanced brand lockup and
+  a 32 px compact mark on mobile.
+- In the registration modal (`AuthModal.tsx`), **nothing is optional**: username, display name,
+  validated email address, and password are all mandatory.
 - There is intentionally **no persistent bottom Play/Leaderboard navigation**.
 - Entering the game hides both the application header and footer and mounts a fixed,
   edge-to-edge game surface.
-- The desktop header is 64 px. The phone header is 60 px plus the top safe-area inset.
+- The desktop header is 68 px. The phone header is 60 px plus the top safe-area inset.
 - The desktop footer is 52 px and is hidden on phones and while a run is active.
 - The leaderboard table becomes a compact card layout below 900 px instead of forcing a
   desktop-width table into the phone viewport.
@@ -86,10 +95,10 @@ changes that are unrelated to the current task.
 |---|---|
 | [`web-hosting/`](web-hosting/) | React 18, TypeScript, Vite, Supabase client, PWA shell, and Netlify deployment root. |
 | [`unity-project/`](unity-project/) | Unity 6 project and the single `Game` scene used by the WebGL build. |
-| [`supabase/migrations/`](supabase/migrations/) | Ordered database schema, integrity rules, leaderboard aggregation, and score RPC. |
+| [`supabase/migrations/`](supabase/migrations/) | Ordered database schema, integrity rules, leaderboard aggregation, score RPC, and email visibility. |
 | [`web-hosting/public/branding/`](web-hosting/public/branding/) | Existing web-facing GDG, vehicle, and game artwork. |
-| [`web-hosting/public/Build/`](web-hosting/public/Build/) | Generated copy of the Unity WebGL build. It is gitignored and must not be treated as source. |
-| [`unity-project/Build/`](unity-project/Build/) | Generated Unity WebGL output. It is also gitignored. |
+| [`web-hosting/public/Build/`](web-hosting/public/Build/) | Generated copy of the Unity WebGL build, tracked in Git for autonomous Netlify CI deployment. |
+| [`unity-project/Build/`](unity-project/Build/) | Generated Unity WebGL output. It is gitignored. |
 | [`web-hosting/dist/`](web-hosting/dist/) | Generated production site. Never edit it manually. |
 | [`web-hosting/scripts/copy-unity.js`](web-hosting/scripts/copy-unity.js) | Copies Unity output into the Vite public tree and replaces Unity's stock page with the full-bleed host template. |
 | [`HANDOFF.md`](HANDOFF.md) | Current cross-system handoff and deployment contract. |
@@ -100,16 +109,17 @@ changes that are unrelated to the current task.
 |---|---|
 | [`web-hosting/src/App.tsx`](web-hosting/src/App.tsx) | Providers, route selection, dynamic viewport height, header/footer shell, and game-active global layout. |
 | [`web-hosting/src/lib/routes.ts`](web-hosting/src/lib/routes.ts) | Mapping between browser paths and the three application routes. |
-| [`web-hosting/src/components/Navbar.tsx`](web-hosting/src/components/Navbar.tsx) | Responsive header, route controls, wallet, theme, profile, and sign-out. |
+| [`web-hosting/src/components/Navbar.tsx`](web-hosting/src/components/Navbar.tsx) | Responsive header, 44 px logo branding, route controls, wallet, theme, profile, and sign-out. |
 | [`web-hosting/src/home/Home.tsx`](web-hosting/src/home/Home.tsx) | Guest landing page, authenticated garage, game launch, and game exit. |
 | [`web-hosting/src/home/CarPicker.tsx`](web-hosting/src/home/CarPicker.tsx) | Vehicle carousel, stat bars, swipe/arrow selection, and start button. |
 | [`web-hosting/src/components/CarShowcase3D.tsx`](web-hosting/src/components/CarShowcase3D.tsx) | Lazy Three.js vehicle preview for capable desktop devices. |
 | [`web-hosting/src/home/GameView.tsx`](web-hosting/src/home/GameView.tsx) | Full-screen game shell, run IDs, trusted Unity messages, score submission, retry state, audio, and result overlay. |
 | [`web-hosting/src/components/UnityEmbed.tsx`](web-hosting/src/components/UnityEmbed.tsx) | Same-origin Unity iframe, query parameters, focus, and fullscreen messages. |
 | [`web-hosting/src/home/ResultOverlay.tsx`](web-hosting/src/home/ResultOverlay.tsx) | Final run metrics, banked totals, save state, replay, and leaderboard action. |
+| [`web-hosting/src/home/AuthModal.tsx`](web-hosting/src/home/AuthModal.tsx) | Registration and sign-in modal with validated email address, required display name, and password toggle. |
 | [`web-hosting/src/leaderboard/Leaderboard.tsx`](web-hosting/src/leaderboard/Leaderboard.tsx) | Podium, current-driver card, search, refresh, desktop table, and mobile cards. |
 | [`web-hosting/src/controls/Controls.tsx`](web-hosting/src/controls/Controls.tsx) | `/controls` instructions for gestures, keyboard controls, HUD, pickups, power-ups, and survival tips. |
-| [`web-hosting/src/context/AuthContext.tsx`](web-hosting/src/context/AuthContext.tsx) | Supabase session, synthetic-email username authentication, public profile, and wallet refresh. |
+| [`web-hosting/src/context/AuthContext.tsx`](web-hosting/src/context/AuthContext.tsx) | Supabase session, validated email registration, public profile persistence, and wallet refresh. |
 | [`web-hosting/src/lib/api.ts`](web-hosting/src/lib/api.ts) | Score payload validation, offline queue, RPC call, leaderboard queries, and fallback aggregation. |
 | [`web-hosting/src/components/ScoreQueueSync.tsx`](web-hosting/src/components/ScoreQueueSync.tsx) | Background flush of queued runs after sign-in or reconnect. |
 | [`web-hosting/src/lib/gameDisplay.ts`](web-hosting/src/lib/gameDisplay.ts) | Standalone-mode detection, Fullscreen API wrappers, and best-effort landscape lock. |
@@ -144,7 +154,7 @@ The browser runtime is deliberately split at the iframe boundary:
 
 ```text
 React SPA
-  ├─ Supabase Auth session and public profile
+  ├─ Supabase Auth session and public profile (with email)
   ├─ garage, /controls, /leaderboard, result overlay
   ├─ creates one UUID for each run
   ├─ embeds /Build/index.html?run=...&u=...&dn=...&car=...
@@ -174,29 +184,33 @@ deployment headers.
 
 ## 4. Authentication and player identity
 
-The UI presents username/password authentication, while Supabase Auth receives a synthetic
-email generated as:
+Player registration collects:
 
-```text
-<lowercase username>@gdg-go.local
-```
+- **Username**: 3–24 characters (letters, numbers, `_`, `-`), unique across drivers.
+- **Display Name**: 2–24 characters (mandatory), shown publicly on the leaderboard.
+- **Email Address**: Validated email address format (`name@example.com`), stored in `auth.users`
+  and persisted in `public.users.email` for administrator visibility and account recovery.
+- **Password**: At least 6 characters.
 
 The public identity is stored in `public.users`:
 
-- `id`: the matching `auth.users.id` UUID.
-- `username`: unique login/display handle.
+- `id`: matching `auth.users.id` UUID.
+- `username`: unique login handle.
 - `display_name`: public name shown on the leaderboard.
+- `email`: player's verified email address (added in Migration `0006`).
+
+Sign In supports either **Username** (with backward compatibility for synthetic `@gdg-go.local`
+accounts) or the registered **Email Address**.
 
 `AuthContext` restores the Supabase session on load, fetches the public profile, creates a
 fallback profile when necessary, and refreshes wallet/driver totals from the leaderboard
-aggregate. New account validation currently requires a 3+ character username containing
-letters, numbers, `_`, or `-`, plus a password of at least 6 characters.
+aggregate.
 
-Supabase email confirmation should be disabled for this username-only event flow. The
-synthetic domain cannot receive confirmation email. If confirmation is enabled, `signUp`
-can create the auth user but fail to establish the immediate session expected by the UI.
+Supabase email confirmation should remain disabled in the Supabase Dashboard for this instant
+event sign-up flow so that `signUp` immediately establishes an active session without
+requiring email verification delays.
 
-Authentication remains in the parent React application. Never add the Supabase access
+Authentication remains strictly in the parent React application. Never add the Supabase access
 token, refresh token, anon secret beyond the normal public anon key, or service-role key to
 the Unity iframe query string or Unity StreamingAssets.
 
@@ -443,8 +457,11 @@ Run migrations in numeric order on a fresh project:
 5. [`0005_authoritative_score_submission.sql`](supabase/migrations/0005_authoritative_score_submission.sql):
    run UUID, bonus, immutable client policies, authenticated RPC, deterministic ranks, and
    repaired aggregates.
+6. [`0006_users_email.sql`](supabase/migrations/0006_users_email.sql):
+   adds `email` column and index to `public.users` for Table Editor admin visibility and backfills
+   from `auth.users`.
 
-For an existing environment already on `0004`, apply only `0005` once. The migrations use
+For an existing environment already on `0004`, apply `0005` and `0006` in order. The migrations use
 `if not exists`, policy drops, and function replacement where practical, but they are still
 schema migrations—not scripts to run on every deploy.
 
@@ -544,9 +561,11 @@ special attention during releases.
 
 ### Header and footer
 
-- Desktop header: 64 px.
+- Desktop header: 68 px.
+- Desktop logo: **44 px** height (`object-fit: contain`) with `1.22rem` title and 24 px divider.
 - Mobile header: 60 px plus `env(safe-area-inset-top)`.
-- Desktop footer: 52 px.
+- Mobile mark: **32 px** width/height.
+- Desktop footer: 52 px with 4-color Google brand dots (`#4285F4`, `#EA4335`, `#FBBC04`, `#34A853`).
 - Footer hidden at 600 px and below, on short coarse-pointer landscapes, and during game mode.
 - The dark desktop wordmark rule is scoped to `.logo-desktop.logo-dark`; do not use an
   unscoped `.logo-dark { display: block; }` rule because it can make both brand assets render
@@ -589,7 +608,7 @@ instructions stay truthful.
 1. Install Node.js compatible with the committed lockfile (Node 20 LTS is the safest choice).
 2. Install Unity **6000.0.81f1** with WebGL Build Support.
 3. Create `web-hosting/.env.local` from `.env.example` and set the Supabase URL/anon key.
-4. Apply Supabase migrations `0001` through `0005` in order.
+4. Apply Supabase migrations `0001` through `0006` in order.
 5. Install web dependencies:
 
 ```bash
@@ -642,10 +661,10 @@ The full build performs:
 2. TypeScript compilation
 3. Vite production build
 
-`unity:copy` deletes and recreates `web-hosting/public/Build` from
-`unity-project/Build`, writes the custom edge-to-edge Unity `index.html`, and patches the
-Unity template CSS. Any manual changes inside either generated build directory will be
-lost on the next build.
+`unity:copy` copies `unity-project/Build` to `web-hosting/public/Build` if present, writes the
+custom edge-to-edge Unity `index.html`, and patches the Unity template CSS. Because
+`web-hosting/public/Build` is tracked in git, remote CI environments (like Netlify) build
+autonomously without requiring Unity in the cloud runner.
 
 ### Netlify
 
@@ -658,11 +677,7 @@ defines:
 - content-encoding and immutable caching for compressed Unity artifacts;
 - no-cache behavior for the root `index.html`.
 
-The build machine must receive `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Because the
-full Netlify command expects a local `unity-project/Build`, ensure the deployment context
-actually contains the generated Unity output or provide that artifact in the build pipeline.
-Both Unity build directories are gitignored in the current repository, so a clean Git clone
-does not obtain them automatically.
+The build machine must receive `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ---
 
@@ -684,7 +699,8 @@ is not.
 ### Desktop browser
 
 - `/`, `/leaderboard`, and `/controls` work by direct URL and browser back/forward.
-- Sign-up, sign-in, sign-out, and theme persistence work.
+- Sign-up (with mandatory username, display name, validated email, password), sign-in,
+  sign-out, and theme persistence work.
 - Garage arrows, thumbnails, stat bars, and launch button work.
 - Unity receives keyboard focus and all keyboard controls work.
 - Game mode hides the application header/footer.
@@ -710,12 +726,17 @@ Test at minimum a 390 × 844 viewport plus one short landscape viewport:
 
 ### Supabase checks
 
-After a real test run, inspect both tables:
+After a real test run, inspect tables:
 
 ```sql
 select run_id, score, coins, pills, gdg_coins, bonus_score,
        distance, duration_seconds, created_at
 from public.scores
+order by created_at desc
+limit 10;
+
+select id, username, display_name, email, created_at
+from public.users
 order by created_at desc
 limit 10;
 
@@ -830,12 +851,12 @@ Equivalent rewrite rules are required on any other host.
 ## 16. Recommended release sequence
 
 1. Review `git status` and the diff.
-2. Apply pending Supabase migrations in staging.
+2. Apply pending Supabase migrations in staging (`0005`, `0006`).
 3. Validate/rebuild the Unity Game scene only when Unity source changed.
 4. Build Unity WebGL into `unity-project/Build`.
-5. Run the full web build so `copy-unity.js` refreshes the embedded build.
+5. Run the full web build so `copy-unity.js` refreshes the embedded build in `web-hosting/public/Build`.
 6. Run desktop and phone browser QA.
-7. Run an authenticated test race and verify its raw score row and aggregate row.
+7. Run an authenticated test race and verify its raw score row, user email in `public.users`, and aggregate row.
 8. Retry the same run identity to confirm idempotency.
 9. Test installed PWA launch and service-worker update behavior.
 10. Deploy the matching database, Unity, and React versions.
