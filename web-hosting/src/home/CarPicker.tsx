@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Play, Gauge, Shield, Zap, Check, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CARS, CarOption } from '../data/cars';
 import { useAuth } from '../context/AuthContext';
+import { CarShowcase3D } from '../components/CarShowcase3D';
 
 interface CarPickerProps {
   selectedCarId: string;
@@ -108,13 +109,10 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         {/* Focused Hero Vehicle Card */}
         <div className="showcase-card card">
           <div className="showcase-stage" onContextMenu={(e) => e.preventDefault()}>
-            <img
+            <CarShowcase3D
               key={activeCar.id}
-              src={activeCar.spinImage || activeCar.image}
-              alt={activeCar.name}
-              className="showcase-car-img"
-              draggable={false}
-              loading="eager"
+              carId={activeCar.id}
+              fallbackImage={activeCar.image}
             />
           </div>
 
