@@ -70,6 +70,21 @@ namespace GDGGo.EditorTools
 
             var player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             player.transform.position = Vector3.zero;
+
+            if (player.GetComponent<Gameplay.PlayerCarVFX>() == null)
+                player.AddComponent<Gameplay.PlayerCarVFX>();
+
+            if (player.GetComponentInChildren<Gameplay.NearMissDetector>() == null)
+            {
+                var nearMissGo = new GameObject("NearMissDetector");
+                nearMissGo.transform.SetParent(player.transform, false);
+                var nearMissCol = nearMissGo.AddComponent<BoxCollider>();
+                nearMissCol.isTrigger = true;
+                nearMissCol.size = new Vector3(3.4f, 1.2f, 3.6f);
+                nearMissCol.center = new Vector3(0f, 0.55f, 0f);
+                nearMissGo.AddComponent<Gameplay.NearMissDetector>();
+            }
+
             return player;
         }
 
@@ -188,7 +203,11 @@ namespace GDGGo.EditorTools
             session.AddComponent<Core.GameSession>();
 
             var audio = new GameObject("AudioManager");
-            audio.AddComponent<Audio.AudioManager>();
+            var audioMgr = audio.AddComponent<Audio.AudioManager>();
+            AudioSetup.Assign(audioMgr);
+
+            var env = new GameObject("EnvironmentDirector");
+            env.AddComponent<Scenery.EnvironmentDirector>();
         }
 
         private static void BuildPolice()
@@ -306,12 +325,13 @@ namespace GDGGo.EditorTools
             // Back row — skyscrapers + thin low-detail towers, large scale, sparser schedule.
             // Sits at backRowOffset ≈ 24 so it fills the horizon behind the front row without
             // fronting it (back spawn is every 2nd slot — see backRowEveryNth in the spawner).
+            // Back row — skyscrapers + thin low-detail towers, large scale, continuous backdrop.
             scenery.backRowPrefabs = LoadAll(
-                $"{Prefabs}/Scenery/Scenery_skyscraper-skyscraper-a.prefab",
-                $"{Prefabs}/Scenery/Scenery_skyscraper-skyscraper-b.prefab",
-                $"{Prefabs}/Scenery/Scenery_skyscraper-skyscraper-c.prefab",
-                $"{Prefabs}/Scenery/Scenery_skyscraper-skyscraper-d.prefab",
-                $"{Prefabs}/Scenery/Scenery_skyscraper-skyscraper-e.prefab",
+                $"{Prefabs}/Scenery/Scenery_building-skyscraper-a.prefab",
+                $"{Prefabs}/Scenery/Scenery_building-skyscraper-b.prefab",
+                $"{Prefabs}/Scenery/Scenery_building-skyscraper-c.prefab",
+                $"{Prefabs}/Scenery/Scenery_building-skyscraper-d.prefab",
+                $"{Prefabs}/Scenery/Scenery_building-skyscraper-e.prefab",
                 $"{Prefabs}/Scenery/Scenery_low-detail-building-a.prefab",
                 $"{Prefabs}/Scenery/Scenery_low-detail-building-b.prefab",
                 $"{Prefabs}/Scenery/Scenery_low-detail-building-c.prefab",
@@ -320,16 +340,10 @@ namespace GDGGo.EditorTools
                 $"{Prefabs}/Scenery/Scenery_low-detail-building-f.prefab",
                 $"{Prefabs}/Scenery/Scenery_ind-chimney-large.prefab",
                 $"{Prefabs}/Scenery/Scenery_ind-chimney-medium.prefab");
-            scenery.backRowOffset = 22f;
-            scenery.backRowOffsetJitter = 5f;
-            scenery.backRowScale = 7f;
-            scenery.backRowScaleJitter = 3f;
-            // Was 2: back row spawned only every other slot, which from inside the car
-            // read as gaps in the horizon. Now every slot emits a back-row building on
-            // both sides, so the skyline forms a continuous wall behind the front row
-            // and the sky stops bleeding through the upper third of the frame on long
-            // straights. Front-row density (slotInterval 11) is unchanged, so the front
-            // still sells the speed cue and the back just hides the spawn boundary.
+            scenery.backRowOffset = 26f;
+            scenery.backRowOffsetJitter = 3f;
+            scenery.backRowScale = 7.0f;
+            scenery.backRowScaleJitter = 2.5f;
             scenery.backRowEveryNth = 1;
 
             scenery.kerbPropPrefabs = LoadAll(
@@ -337,48 +351,26 @@ namespace GDGGo.EditorTools
                 $"{Prefabs}/Scenery/Prop_Tree.prefab",
                 $"{Prefabs}/Scenery/Prop_Bush.prefab");
 
-            // Greenery for the grass verge — bushes and trees only, no streetlights:
-            // a lamp post in the middle of a lawn reads as a mistake.
             scenery.vergePrefabs = LoadAll(
                 $"{Prefabs}/Scenery/Prop_Bush.prefab",
                 $"{Prefabs}/Scenery/Prop_Tree.prefab");
-            scenery.vergeInnerX = 6.5f;
-            scenery.vergeChance = 0.75f;
+            scenery.vergeInnerX = 7.2f;
+            scenery.vergeChance = 0.8f;
 
-            // Extended from 240 -> 320 so the city reads further ahead and the streaming
-            // boundary isn't visible from the start line. Combined with the denser back
-            // row above, the horizon is now well populated rather than popping in late.
             scenery.startTrackDistance = -40f;
             scenery.spawnAheadDistance = 320f;
             scenery.despawnBehindZ = -60f;
 
-            // Road geometry: drivable lanes span x +-4.5, pavements run 4.5..6.
-            // Kerb props sit on the pavement; buildings start beyond the tile edge.
-            scenery.kerbOffset = 5.3f;
-            // Front-row offset reduced from 9.5 -> 8.5 so the front row reads denser
-            // without crowding the pavement edge. The buildings sit closer to the kerb
-            // — so each slot appears bigger against the same lane width, which is the
-            // "expand the city" cue without extra draw calls or new prefabs.
-            scenery.sideOffset = 8.5f;
-            scenery.sideOffsetJitter = 3.0f;
+            scenery.kerbOffset = 6.8f;
+            scenery.sideOffset = 14.5f;
+            scenery.sideOffsetJitter = 1.5f;
             scenery.groundY = PrefabsBuilder.PavementHeight;
 
-            // Front-row scale bumped 4 -> 4.4 so each block reads as 10% larger, which
-            // against the now-tighter sideOffset reads as a denser city wall rather
-            // than the same wall slightly closer — pushing buildings apart visually
-            // because each one is bigger. The jitter (3.5 -> 3.0) compensates so they
-            // don't clip.
-            scenery.buildingScale = 4.4f;
-            scenery.buildingScaleJitter = 1.2f;
-
-            // Prop prefabs are already built at their correct size (see the Quaternius
-            // scale constants in PrefabsBuilder), so the spawner must not rescale them.
+            scenery.buildingScale = 3.6f;
+            scenery.buildingScaleJitter = 0.8f;
+            scenery.slotInterval = 11.0f;
             scenery.propScale = 1f;
-
-            // Denser than the old 16m: at 40+ m/s a 16m gap still reads as sparse, and
-            // roadside geometry rushing past is the main thing selling speed.
-            scenery.slotInterval = 11f;
-            scenery.kerbPropChance = 0.8f;
+            scenery.kerbPropChance = 0.75f;
         }
 
         private static void BuildTraffic(Transform parent)
@@ -397,7 +389,7 @@ namespace GDGGo.EditorTools
             AddTraffic(entries, "Traffic_Firetruck", 0.25f, 7f);
             traffic.trafficPrefabs = entries.ToArray();
 
-            traffic.startTrackDistance = 120f;   // let the player settle before traffic starts
+            traffic.startTrackDistance = 50f;   // traffic starts quickly after start line
         }
 
         private static void AddTraffic(List<Traffic.TrafficSpawner.TrafficEntry> into, string name, float weight, float speed)
@@ -421,7 +413,7 @@ namespace GDGGo.EditorTools
             AddObstacle(entries, "Obstacle_TrafficLight", 0.4f);
             obstacles.obstaclePrefabs = entries.ToArray();
 
-            obstacles.startTrackDistance = 80f;
+            obstacles.startTrackDistance = 40f;
         }
 
         private static void AddObstacle(List<Obstacles.ObstacleSpawner.ObstacleEntry> into, string name, float weight)
@@ -437,18 +429,15 @@ namespace GDGGo.EditorTools
             var coins = go.AddComponent<Coins.CoinSpawner>();
 
             coins.coinPrefab = Load<Coins.CoinPickup>($"{Prefabs}/Coin.prefab");
-
-            // Dedicated fuel canister prefab (Quaternius RPG Potion6_Filled.fbx).
-            // Falls back to the legacy Coin + orange-material path if the prefab is
-            // missing (e.g. BuildFuelPrefab hasn't been run yet).
             coins.fuelPrefabOverride = Load<Coins.CoinPickup>($"{Prefabs}/PowerUps/Fuel.prefab");
+            coins.pillPrefabOverride = Load<Coins.CoinPickup>($"{Prefabs}/Coin_GDGPill.prefab");
 
             string folder = MaterialLibrary.CoinsFolder;
             coins.redMaterial = Load<Material>($"{folder}/CoinRed.mat");
             coins.blueMaterial = Load<Material>($"{folder}/CoinBlue.mat");
             coins.yellowMaterial = Load<Material>($"{folder}/CoinYellow.mat");
-            coins.greenMaterial = Load<Material>($"{folder}/CoinGreen.mat");
-            coins.gdgPillMaterial = Load<Material>($"{folder}/CoinGDGPill.mat");
+            coins.gdgPillMaterial = Load<Material>($"{folder}/Coin_GDGPill_Mat.mat");
+            if (coins.gdgPillMaterial == null) coins.gdgPillMaterial = Load<Material>($"{folder}/CoinGDGPill.mat");
             coins.fuelMaterial = Load<Material>($"{folder}/CoinFuel.mat");
 
             coins.startTrackDistance = 40f;   // coins start early: they teach the controls
@@ -557,15 +546,16 @@ namespace GDGGo.EditorTools
             hud.multiplierText = MakeLabel(canvasGo.transform, "MultiplierText", font, "x2",
                 new Vector2(1f, 1f), new Vector2(-28f, -88f), 44f, TextAlignmentOptions.TopRight);
 
-            // HUD text sits over a bright sky and dark asphalt in the same frame, so a
-            // flat white glyph loses its edge against one or the other. An outline is the
-            // cheapest fix that works against both.
+            hud.alertText = MakeLabel(canvasGo.transform, "AlertText", font, "",
+                new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), 42f, TextAlignmentOptions.Center);
+            hud.alertText.gameObject.SetActive(false);
+
             AddTextOutline(hud.scoreText);
             AddTextOutline(hud.distanceText);
             AddTextOutline(hud.coinText);
             AddTextOutline(hud.multiplierText);
+            AddTextOutline(hud.alertText);
 
-            // Secondary readouts are dimmer so the score reads first.
             hud.distanceText.color = new Color(1f, 1f, 1f, 0.72f);
             hud.multiplierText.color = new Color(0.984f, 0.737f, 0.020f);   // Google yellow
 
@@ -587,41 +577,84 @@ namespace GDGGo.EditorTools
             barRect.anchorMin = new Vector2(0.5f, 1f);
             barRect.anchorMax = new Vector2(0.5f, 1f);
             barRect.pivot = new Vector2(0.5f, 1f);
-            barRect.anchoredPosition = new Vector2(0f, -26f);
-            barRect.sizeDelta = new Vector2(300f, 26f);
+            barRect.anchoredPosition = new Vector2(0f, -14f);
+            barRect.sizeDelta = new Vector2(250f, 42f);
 
-            MakeImage(barGo.transform, "Background",
-                "Assets/UI/KenneyUI/bar_square_large.png", new Color(0f, 0f, 0f, 0.55f))
-                .type = Image.Type.Sliced;
+            // Sleek glass panel capsule background
+            var panel = MakeImage(barGo.transform, "Background",
+                "Assets/UI/KenneyUI/panel_glass.png", new Color(0.04f, 0.07f, 0.14f, 0.88f));
+            panel.type = Image.Type.Sliced;
 
-            var fill = MakeImage(barGo.transform, "Fill",
-                "Assets/UI/KenneyUI/bar_square_large_m.png", new Color(0.204f, 0.659f, 0.325f));
+            // Row 1 (Top Left): "FUEL" label
+            var captionGo = new GameObject("Caption", typeof(RectTransform));
+            captionGo.transform.SetParent(barGo.transform, false);
+            var captionRect = (RectTransform)captionGo.transform;
+            captionRect.anchorMin = new Vector2(0f, 1f);
+            captionRect.anchorMax = new Vector2(0f, 1f);
+            captionRect.pivot = new Vector2(0f, 1f);
+            captionRect.anchoredPosition = new Vector2(14f, -7f);
+            captionRect.sizeDelta = new Vector2(80f, 18f);
+            var caption = captionGo.AddComponent<TextMeshProUGUI>();
+            caption.text = "FUEL";
+            caption.fontSize = 13f;
+            caption.alignment = TextAlignmentOptions.Left;
+            caption.font = font;
+            caption.color = new Color(0.984f, 0.737f, 0.020f);
+            AddTextOutline(caption);
+
+            // Row 1 (Top Right): Percentage "100%" label
+            var pctGo = new GameObject("FuelText", typeof(RectTransform));
+            pctGo.transform.SetParent(barGo.transform, false);
+            var pctRect = (RectTransform)pctGo.transform;
+            pctRect.anchorMin = new Vector2(1f, 1f);
+            pctRect.anchorMax = new Vector2(1f, 1f);
+            pctRect.pivot = new Vector2(1f, 1f);
+            pctRect.anchoredPosition = new Vector2(-14f, -7f);
+            pctRect.sizeDelta = new Vector2(80f, 18f);
+            var pct = pctGo.AddComponent<TextMeshProUGUI>();
+            pct.text = "100%";
+            pct.fontSize = 13f;
+            pct.alignment = TextAlignmentOptions.Right;
+            pct.font = font;
+            pct.color = new Color(0.204f, 0.659f, 0.325f);
+            AddTextOutline(pct);
+            hud.fuelText = pct;
+
+            // Row 2 (Bottom): Full-Width Inner Trough
+            var troughGo = new GameObject("Trough", typeof(RectTransform));
+            troughGo.transform.SetParent(barGo.transform, false);
+            var troughRect = (RectTransform)troughGo.transform;
+            troughRect.anchorMin = new Vector2(0f, 0f);
+            troughRect.anchorMax = new Vector2(1f, 0f);
+            troughRect.pivot = new Vector2(0.5f, 0f);
+            troughRect.anchoredPosition = new Vector2(0f, 8f);
+            troughRect.sizeDelta = new Vector2(-28f, 10f);
+            var troughImg = troughGo.AddComponent<Image>();
+            troughImg.sprite = LoadSprite("Assets/UI/KenneyUI/button_rectangle.png");
+            troughImg.type = Image.Type.Sliced;
+            troughImg.color = new Color(0.02f, 0.03f, 0.06f, 0.95f);
+
+            // Row 2: Inner Fill
+            var fillGo = new GameObject("Fill", typeof(RectTransform));
+            fillGo.transform.SetParent(troughGo.transform, false);
+            var fillRect = (RectTransform)fillGo.transform;
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fill = fillGo.AddComponent<Image>();
+            fill.sprite = LoadSprite("Assets/UI/KenneyUI/button_rectangle.png");
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillAmount = 1f;
+            fill.color = new Color(0.204f, 0.659f, 0.325f);
             hud.fuelFillImage = fill;
-
-            var caption = MakeLabel(barGo.transform, "Caption", font, "FUEL",
-                new Vector2(0f, 1f), new Vector2(6f, 20f), 17f, TextAlignmentOptions.Left);
-            caption.color = new Color(1f, 1f, 1f, 0.7f);
-            caption.characterSpacing = 8f;
-            AddTextOutline(caption);
-
-            var pct = MakeLabel(barGo.transform, "FuelText", font, "100%",
-                new Vector2(1f, 1f), new Vector2(-6f, 20f), 17f, TextAlignmentOptions.Right);
-            pct.color = new Color(1f, 1f, 1f, 0.7f);
-            AddTextOutline(pct);
-            hud.fuelText = pct;
         }
 
-        /// <summary>
-        /// Adds a dark outline to a TMP label. Written through the shared material's
-        /// properties, so it costs no extra draw call.
-        /// </summary>
         private static void AddTextOutline(TMP_Text label)
         {
             if (label == null) return;
-            label.outlineWidth = 0.22f;
+            label.outlineWidth = 0.12f;
             label.outlineColor = new Color32(0, 0, 0, 190);
         }
 
@@ -634,33 +667,62 @@ namespace GDGGo.EditorTools
             barRect.anchorMin = new Vector2(0.5f, 0f);
             barRect.anchorMax = new Vector2(0.5f, 0f);
             barRect.pivot = new Vector2(0.5f, 0f);
-            barRect.anchoredPosition = new Vector2(0f, 26f);
-            barRect.sizeDelta = new Vector2(420f, 34f);
+            barRect.anchoredPosition = new Vector2(0f, 14f);
+            barRect.sizeDelta = new Vector2(220f, 30f);
 
-            // Label the bar. An unlabelled coloured strip tells a new player nothing, and
-            // Heat is the one number that decides when the run ends.
-            var caption = MakeLabel(barGo.transform, "Caption", FontSetup.Display(), "HEAT",
-                new Vector2(0.5f, 1f), new Vector2(0f, 20f), 18f, TextAlignmentOptions.Center);
-            caption.color = new Color(1f, 1f, 1f, 0.6f);
-            caption.characterSpacing = 8f;
+            var panel = MakeImage(barGo.transform, "Background",
+                "Assets/UI/KenneyUI/panel_glass.png", new Color(0.04f, 0.07f, 0.14f, 0.88f));
+            panel.type = Image.Type.Sliced;
 
-            // "_square" variants are the straight mid-sections of Kenney's bar sprites,
-            // meant to be tiled or nine-sliced. The rounded "_l"/"_r" caps are separate
-            // files — stretching a round-capped sprite across 420px is what turned the
-            // heat bar into an orange ellipse.
-            var background = MakeImage(barGo.transform, "Background",
-                "Assets/UI/KenneyUI/bar_square_large.png", new Color(0f, 0f, 0f, 0.55f));
-            background.type = Image.Type.Sliced;
+            // Row 1 (Top): Caption label "POLICE PURSUIT"
+            var captionGo = new GameObject("Caption", typeof(RectTransform));
+            captionGo.transform.SetParent(barGo.transform, false);
+            var captionRect = (RectTransform)captionGo.transform;
+            captionRect.anchorMin = new Vector2(0.5f, 1f);
+            captionRect.anchorMax = new Vector2(0.5f, 1f);
+            captionRect.pivot = new Vector2(0.5f, 1f);
+            captionRect.anchoredPosition = new Vector2(0f, -5f);
+            captionRect.sizeDelta = new Vector2(200f, 14f);
+            var caption = captionGo.AddComponent<TextMeshProUGUI>();
+            caption.text = "POLICE PURSUIT";
+            caption.fontSize = 11f;
+            caption.alignment = TextAlignmentOptions.Center;
+            caption.font = FontSetup.Display();
+            caption.color = new Color(1f, 0.85f, 0.85f);
+            AddTextOutline(caption);
 
-            var fill = MakeImage(barGo.transform, "Fill",
-                "Assets/UI/KenneyUI/bar_square_large_m.png", Color.green);
+            // Row 2 (Bottom): Inner Trough
+            var troughGo = new GameObject("Trough", typeof(RectTransform));
+            troughGo.transform.SetParent(barGo.transform, false);
+            var troughRect = (RectTransform)troughGo.transform;
+            troughRect.anchorMin = new Vector2(0f, 0f);
+            troughRect.anchorMax = new Vector2(1f, 0f);
+            troughRect.pivot = new Vector2(0.5f, 0f);
+            troughRect.anchoredPosition = new Vector2(0f, 6f);
+            troughRect.sizeDelta = new Vector2(-22f, 7f);
+            var troughImg = troughGo.AddComponent<Image>();
+            troughImg.sprite = LoadSprite("Assets/UI/KenneyUI/button_rectangle.png");
+            troughImg.type = Image.Type.Sliced;
+            troughImg.color = new Color(0.02f, 0.03f, 0.06f, 0.95f);
+
+            // Row 2: Inner Fill
+            var fillGo = new GameObject("Fill", typeof(RectTransform));
+            fillGo.transform.SetParent(troughGo.transform, false);
+            var fillRect = (RectTransform)fillGo.transform;
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fill = fillGo.AddComponent<Image>();
+            fill.sprite = LoadSprite("Assets/UI/KenneyUI/button_rectangle.png");
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillAmount = 1f;
+            fill.color = Color.green;
 
             var heat = barGo.AddComponent<Police.HeatBar>();
             heat.fillImage = fill;
-            heat.backgroundImage = background;
+            heat.backgroundImage = panel;
         }
 
         private static Image MakeImage(Transform parent, string name, string spritePath, Color color)

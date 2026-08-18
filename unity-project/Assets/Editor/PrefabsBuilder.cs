@@ -156,6 +156,7 @@ namespace GDGGo.EditorTools
             int built = 0;
 
             built += BuildCoin() ? 1 : 0;
+            built += BuildGDGPill() ? 1 : 0;
             // Per-type power-ups: 5 prefabs (was 1). See PowerUpVariants.
             // Fuel: distinct RPG bottle prefab so it doesn't reuse the coin disc.
             MaterialLibrary.EnsureFolder($"{Root}/PowerUps");
@@ -237,6 +238,79 @@ namespace GDGGo.EditorTools
             return Save(root, path);
         }
 
+        public static bool BuildGDGPill()
+        {
+            string path = $"{Root}/Coin_GDGPill.prefab";
+            if (Exists(path)) return false;
+
+            GameObject root = NewRoot("Coin_GDGPill");
+
+            string brandingTexPath = "Assets/Branding/GDGPill.png";
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(brandingTexPath);
+            if (texture != null)
+            {
+                var importer = AssetImporter.GetAtPath(brandingTexPath) as TextureImporter;
+                if (importer != null && (!importer.alphaIsTransparency || importer.wrapMode != TextureWrapMode.Clamp))
+                {
+                    importer.alphaIsTransparency = true;
+                    importer.wrapMode = TextureWrapMode.Clamp;
+                    importer.SaveAndReimport();
+                }
+            }
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+
+            Material pillMat = new Material(shader) { name = "Coin_GDGPill_Mat" };
+            if (texture != null)
+            {
+                if (pillMat.HasProperty("_BaseMap")) pillMat.SetTexture("_BaseMap", texture);
+                if (pillMat.HasProperty("_MainTex")) pillMat.SetTexture("_MainTex", texture);
+            }
+            if (pillMat.HasProperty("_BaseColor")) pillMat.SetColor("_BaseColor", Color.white);
+            if (pillMat.HasProperty("_Smoothness")) pillMat.SetFloat("_Smoothness", 0.85f);
+            if (pillMat.HasProperty("_Metallic")) pillMat.SetFloat("_Metallic", 0.4f);
+            MaterialLibrary.SetEmission(pillMat, new Color(0.98f, 0.75f, 0.1f) * 1.5f);
+
+            string matPath = $"{MaterialLibrary.CoinsFolder}/Coin_GDGPill_Mat.mat";
+            MaterialLibrary.EnsureFolder(MaterialLibrary.CoinsFolder);
+            AssetDatabase.CreateAsset(pillMat, matPath);
+
+            var meshGo = new GameObject("Mesh");
+            meshGo.transform.SetParent(root.transform, false);
+            meshGo.transform.localPosition = Vector3.zero;
+            meshGo.transform.localScale = new Vector3(1.6f, 0.8f, 1f);
+
+            var filter = meshGo.AddComponent<MeshFilter>();
+            filter.sharedMesh = BuildQuadMesh("GDGPillQuad");
+            var mr = meshGo.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = pillMat;
+
+            var backMeshGo = new GameObject("MeshBack");
+            backMeshGo.transform.SetParent(meshGo.transform, false);
+            backMeshGo.transform.localPosition = Vector3.zero;
+            backMeshGo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            backMeshGo.transform.localScale = Vector3.one;
+            var backFilter = backMeshGo.AddComponent<MeshFilter>();
+            backFilter.sharedMesh = filter.sharedMesh;
+            var backMr = backMeshGo.AddComponent<MeshRenderer>();
+            backMr.sharedMaterial = pillMat;
+
+            var collider = root.AddComponent<BoxCollider>();
+            collider.isTrigger = true;
+            collider.size = new Vector3(2.2f, 2.2f, 2.2f);
+
+            var pickup = root.AddComponent<Coins.CoinPickup>();
+            pickup.coinMeshRenderer = mr;
+            pickup.coinType = Coins.CoinType.GDGPill;
+            pickup.coinValue = 25;
+
+            AddGlowHalo(root, "GDGPill", new Color(0.98f, 0.75f, 0.1f), meshGo);
+            MakeMovingTrigger(root);
+
+            return Save(root, path);
+        }
+
         /// <summary>
         /// One imported-pack mesh per power-up type. Replaces the earlier
         /// procedurally-authored icons (see <c>PowerUpMeshBuilder</c>, now
@@ -280,54 +354,25 @@ namespace GDGGo.EditorTools
                                  float ImportScale, bool Upright)[] PowerUpVariants =
         {
             (PowerUps.PowerUpType.CoinMagnet,    "Magnet",  new Color(0.98f, 0.74f, 0.02f), true,
-                                             $"{Kenney}/FactoryKit/crane-magnet.fbx", 1.11f, false),
-            (PowerUps.PowerUpType.TwoX,         "TwoX",    new Color(0.20f, 0.85f, 0.35f), false,
-                                             $"{Kenney}/PlatformerKit/star.fbx", 2.75f, false),
-            (PowerUps.PowerUpType.Shield,       "Shield",  new Color(0.26f, 0.52f, 0.96f), true,
-                                             $"{Kenney}/MiniDungeon/shield-round.fbx", 2.63f, false),
-            (PowerUps.PowerUpType.Nitro,        "Nitro",   new Color(0.20f, 0.90f, 1.00f), false,
-                                             $"{Quaternius}/Survival/PropaneTank.blend", 0.0069f, true),
-            (PowerUps.PowerUpType.PoliceFreeze, "Freeze",  new Color(0.85f, 0.35f, 0.95f), false,
-                                             $"{Kenney}/HolidayKit/snowflake-a.fbx", 2.50f, false),
+                                             $"{Kenney}/FactoryKit/crane-magnet.fbx", 1.65f, false),
+            (PowerUps.PowerUpType.TwoX,         "TwoX",    new Color(0.98f, 0.85f, 0.15f), false,
+                                             $"{Kenney}/PlatformerKit/star.fbx", 3.80f, false),
+            (PowerUps.PowerUpType.Shield,       "Shield",  new Color(0.20f, 0.65f, 1.00f), true,
+                                             $"{Kenney}/MiniDungeon/shield-round.fbx", 3.65f, false),
+            (PowerUps.PowerUpType.Nitro,        "Nitro",   new Color(0.15f, 0.90f, 1.00f), false,
+                                             $"{Quaternius}/Survival/PropaneTank.blend", 0.0110f, true),
+            (PowerUps.PowerUpType.PoliceFreeze, "Freeze",  new Color(0.35f, 0.80f, 1.00f), false,
+                                             $"{Kenney}/HolidayKit/snowflake-a.fbx", 3.50f, false),
         };
 
-        /// <summary>
-        /// Builds one prefab per power-up type, each loading its own imported
-        /// mesh from a Kenney or Quaternius pack (see <see cref="PowerUpVariants"/>).
-        /// The silhouette — not just the colour — tells the player what they are
-        /// grabbing: a crane magnet for CoinMagnet, a star for TwoX, a warrior
-        /// shield for Shield, a propane cylinder for Nitro, a snowflake for PoliceFreeze.
-        ///
-        /// Each imported mesh arrives with whatever material slots the pack
-        /// bundled; we override the per-renderer shared materials with our
-        /// tint + secondary (for two-slot icons) so every pickup reads at
-        /// game-speed as the identity colour the player has been trained to
-        /// expect — magnet gold + red poles, shield blue + silver stripe, etc.
-        ///
-        /// Each prefab carries the same collider + components the old one did —
-        /// only the mesh differs — so <see cref="PowerUps.PowerUpEffect"/> and
-        /// <see cref="PowerUps.PowerUpSpawner"/> plug in unchanged. Idempotent:
-        /// existing prefabs are left alone, so this stays safe under "Run Full
-        /// Project Setup" re-runs.
-        /// </summary>
         private static int BuildPowerUps(ref int built)
         {
             foreach (var (type, name, hue, hasSecondary, fbxPath, importScale, upright) in PowerUpVariants)
             {
                 string path = $"{Root}/PowerUps/PowerUp_{name}.prefab";
-                if (Exists(path)) { continue; }
 
                 GameObject rootObj = NewRoot($"PowerUp_{name}");
 
-                // Imported silhouette from a real pack mesh. Kenney FBXs ship
-                // Y-up 1:1 (no node transform); Quaternius .blend files are
-                // Z-up centimetre-scale and the existing ModelAxisFixer ×100
-                // pre-scale brings them to metre world units at import.
-                // Per-entry ImportScale then normalises each picked mesh to
-                // exactly 1 world unit tall (verified via Renderer.bounds).
-                // Upright applies the -90 X rotation only for Z-up Quaternius
-                // sources — Kenney is already Y-up, so passing it would tip
-                // those meshes onto their sides.
                 GameObject meshGo = AttachMesh(rootObj, fbxPath, importScale, upright);
                 if (meshGo == null)
                 {
@@ -336,31 +381,16 @@ namespace GDGGo.EditorTools
                     continue;
                 }
 
-                // Primary tint material — the icon body. Pumped emission (×2.2)
-                // reads as self-lit even in shadow under Built-in (no Bloom).
-                // Combined with the halo below, a power-up now reads as *glowing*
-                // rather than just bright-tinted.
                 Material tintMat = MaterialLibrary.GetOrCreate(
-                    $"{MaterialLibrary.WorldFolder}/PowerUp_{name}.mat", hue, 0.85f, 0.4f);
-                MaterialLibrary.SetEmission(tintMat, hue * 2.2f);
+                    $"{MaterialLibrary.WorldFolder}/PowerUp_{name}.mat", hue, 0.75f, 0.2f);
+                MaterialLibrary.SetEmission(tintMat, hue * 0.6f);
 
-                // Secondary material — used by the two-material icons (magnet red
-                // poles, shield silver stripe). Single-material icons (star,
-                // cylinder, snowflake) skip the secondary assignment.
                 Material secondaryMat = null;
                 if (hasSecondary)
                 {
                     secondaryMat = SecondaryPowerUpMaterial(type, name, hue);
                 }
 
-                // Override the imported pack-bundled materials with our tint +
-                // secondary. The proc-gen builder used "_A"/"_B" child-naming to
-                // distinguish slots; imported FBXs don't follow that convention,
-                // so for two-slot icons we treat the first renderer found as the
-                // primary body and the second as the secondary detail. A single
-                // renderer always gets the tint. Order is the natural
-                // GetComponentsInChildren order, which matches the FBX's child
-                // export order — the same order the pack's own colours use.
                 var renderers = meshGo.GetComponentsInChildren<MeshRenderer>(true);
                 for (int i = 0; i < renderers.Length; i++)
                 {
@@ -370,21 +400,43 @@ namespace GDGGo.EditorTools
                         renderers[i].sharedMaterial = tintMat;
                 }
 
-                // Additive glow halo — a two-layer billboarded radial glow (bright
-                // core + soft halo) sibling of the mesh, so it tracks the camera
-                // while the silhouette spins on Y. The Subway-Surfers read: a true
-                // soft glow halo around the floating object, not a flat disc.
-                AddGlowHalo(rootObj, name, hue, meshGo);
+                // Crystal energy orb shell enclosing the 3D powerup mesh
+                var orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                orb.name = "CrystalOrb";
+                orb.transform.SetParent(rootObj.transform, false);
+                orb.transform.localPosition = new Vector3(0f, 0.45f, 0f);
+                orb.transform.localScale = Vector3.one * 2.1f;
+                var orbCol = orb.GetComponent<Collider>();
+                if (orbCol != null) Object.DestroyImmediate(orbCol);
+
+                var orbMat = MaterialLibrary.GetOrCreateTransparent(
+                    $"{MaterialLibrary.WorldFolder}/PowerUp_{name}_Orb.mat",
+                    new Color(hue.r, hue.g, hue.b, 0.25f), hue * 1.5f);
+                var orbRend = orb.GetComponent<MeshRenderer>();
+                if (orbRend != null) orbRend.sharedMaterial = orbMat;
+
+                // Orbiting crystal ring
+                var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                ring.name = "CrystalRing";
+                ring.transform.SetParent(rootObj.transform, false);
+                ring.transform.localPosition = new Vector3(0f, 0.45f, 0f);
+                ring.transform.localScale = new Vector3(2.5f, 0.03f, 2.5f);
+                ring.transform.localRotation = Quaternion.Euler(25f, 0f, 25f);
+                var ringCol = ring.GetComponent<Collider>();
+                if (ringCol != null) Object.DestroyImmediate(ringCol);
+
+                var ringMat = MaterialLibrary.GetOrCreateTransparent(
+                    $"{MaterialLibrary.WorldFolder}/PowerUp_{name}_Ring.mat",
+                    new Color(hue.r, hue.g, hue.b, 0.45f), hue * 2.5f);
+                var ringRend = ring.GetComponent<MeshRenderer>();
+                if (ringRend != null) ringRend.sharedMaterial = ringMat;
 
                 var collider = rootObj.AddComponent<BoxCollider>();
                 collider.isTrigger = true;
-                collider.size = new Vector3(2f, 2f, 2f);
+                collider.size = new Vector3(2.6f, 2.6f, 2.6f);
 
                 var effect = rootObj.AddComponent<PowerUps.PowerUpEffect>();
                 effect.type = type;
-                // tintTarget points at the FIRST renderer found — Configure() will tint
-                // all of them via the shared material anyway, and we set the tint above
-                // so an absent tintTarget is a null-op, not a loss of colour.
                 effect.tintTarget = meshGo.GetComponentInChildren<MeshRenderer>(true);
 
                 rootObj.AddComponent<PowerUps.RotateSlow>();
@@ -468,7 +520,7 @@ namespace GDGGo.EditorTools
             // on Y, then re-seats the base onto y = 0 so the can floats
             // cleanly above the glow halo instead of half-burying inside it.
             GameObject meshGo = AttachMesh(
-                rootObj, $"{Quaternius}/Survival/GasCan.blend", scale: 0.0080f, upright: true);
+                rootObj, $"{Quaternius}/Survival/GasCan.blend", scale: 0.0125f, upright: true);
             if (meshGo == null)
             {
                 Object.DestroyImmediate(rootObj);
@@ -476,49 +528,62 @@ namespace GDGGo.EditorTools
                 return false;
             }
 
-            // Fuel is deliberately outside the Google Palette: hot orange
-            // (#FF6B0D) so it doesn't read as "another coin".
-            Color fuelOrange = new Color(1.0f, 0.42f, 0.05f);
+            Color fuelOrange = new Color(1.0f, 0.45f, 0.05f);
             Material liquidMat = MaterialLibrary.GetOrCreate(
-                $"{MaterialLibrary.WorldFolder}/Fuel.mat", fuelOrange, 0.55f, 0.0f);
-            // Pumped emission (×1.6 was ×0.9) — same reasoning as BuildPowerUps:
-            // under Built-in without Bloom, emission just brightens the lit
-            // surface, so the halo plus a stronger emission is what makes a fuel
-            // can read as glowing.
-            MaterialLibrary.SetEmission(liquidMat, fuelOrange * 1.6f);
+                $"{MaterialLibrary.WorldFolder}/Fuel.mat", fuelOrange, 0.65f, 0.1f);
+            MaterialLibrary.SetEmission(liquidMat, fuelOrange * 0.5f);
 
-            // Darker orange for the cap + handle so the can reads as a two-tone
-            // object — the silhouette stays unambiguous from any angle.
             Material capMat = MaterialLibrary.GetOrCreate(
                 $"{MaterialLibrary.WorldFolder}/Fuel_Cap.mat",
                 new Color(0.68f, 0.28f, 0.04f), 0.6f, 0.0f);
 
-            // Override the imported GasCan's bundled materials with our hot-orange
-            // body + dark orange cap. The proc-gen builder used "_A"/"_B" child
-            // naming to distinguish slots; the imported blend file doesn't follow
-            // that convention, so the first MeshRenderer carries the body and
-            // every subsequent renderer carries the cap. A single-renderer can
-            // stays single-material (the whole can reads as hot orange).
             var renderers = meshGo.GetComponentsInChildren<MeshRenderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
                 renderers[i].sharedMaterial = (i > 0) ? capMat : liquidMat;
             }
 
-            AddGlowHalo(rootObj, "Fuel", fuelOrange, meshGo);
+            // Crystal energy orb shell enclosing the Fuel Jerry Can
+            var orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            orb.name = "CrystalOrb";
+            orb.transform.SetParent(rootObj.transform, false);
+            orb.transform.localPosition = new Vector3(0f, 0.45f, 0f);
+            orb.transform.localScale = Vector3.one * 2.1f;
+            var orbCol = orb.GetComponent<Collider>();
+            if (orbCol != null) Object.DestroyImmediate(orbCol);
+
+            var orbMat = MaterialLibrary.GetOrCreateTransparent(
+                $"{MaterialLibrary.WorldFolder}/PowerUp_Fuel_Orb.mat",
+                new Color(1f, 0.45f, 0.05f, 0.25f), fuelOrange * 1.5f);
+            var orbRend = orb.GetComponent<MeshRenderer>();
+            if (orbRend != null) orbRend.sharedMaterial = orbMat;
+
+            // Orbiting crystal ring
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "CrystalRing";
+            ring.transform.SetParent(rootObj.transform, false);
+            ring.transform.localPosition = new Vector3(0f, 0.45f, 0f);
+            ring.transform.localScale = new Vector3(2.5f, 0.03f, 2.5f);
+            ring.transform.localRotation = Quaternion.Euler(25f, 0f, 25f);
+            var ringCol = ring.GetComponent<Collider>();
+            if (ringCol != null) Object.DestroyImmediate(ringCol);
+
+            var ringMat = MaterialLibrary.GetOrCreateTransparent(
+                $"{MaterialLibrary.WorldFolder}/PowerUp_Fuel_Ring.mat",
+                new Color(1f, 0.45f, 0.05f, 0.45f), fuelOrange * 2.5f);
+            var ringRend = ring.GetComponent<MeshRenderer>();
+            if (ringRend != null) ringRend.sharedMaterial = ringMat;
 
             var collider = rootObj.AddComponent<BoxCollider>();
             collider.isTrigger = true;
-            // Generous pickup volume — a fuel can is a milestone, not a tight grab.
-            collider.size = new Vector3(1.6f, 1.8f, 1.6f);
+            collider.size = new Vector3(2.6f, 2.6f, 2.6f);
 
             var pickup = rootObj.AddComponent<Coins.CoinPickup>();
-            // Pre-tag the prefab instance so an unconfigured spawner still routes a
-            // fuel pickup as fuel — the field is normally written by CoinSpawner at
-            // spawn time, but pre-tagging is a safety belt and is cheap.
             pickup.coinType = Coins.CoinType.Fuel;
             pickup.coinValue = 0;
             pickup.coinMeshRenderer = meshGo.GetComponentInChildren<MeshRenderer>(true);
+            pickup.rotationSpeedDeg = 140f;
+            pickup.bobAmplitude = 0.2f;
 
             MakeMovingTrigger(rootObj);
 
@@ -556,9 +621,6 @@ namespace GDGGo.EditorTools
         /// </summary>
         private static void AddGlowHalo(GameObject root, string name, Color hue, GameObject mesh)
         {
-            // Measure the mesh's bounds so the halo size scales per pickup — a magnet
-            // and an arrow have different silhouettes, so the glow ring around them
-            // should too.
             float meshSize = 1f;
             if (mesh != null)
             {
@@ -570,34 +632,38 @@ namespace GDGGo.EditorTools
                     meshSize = Mathf.Max(b.size.x, b.size.y, b.size.z);
                     if (meshSize < 0.8f) meshSize = 0.8f;
                 }
+
+                // Enable vibrant emission directly on the 3D model
+                foreach (var r in renderers)
+                {
+                    if (r.sharedMaterial != null)
+                    {
+                        MaterialLibrary.SetEmission(r.sharedMaterial, hue * 1.4f);
+                    }
+                }
             }
 
-            // Outer rig holding both halo sprites. Parented to root (NOT to the
-            // spinning mesh child) so the billboards track the camera independently.
             var rig = new GameObject("GlowHalo");
             rig.transform.SetParent(root.transform, false);
-            rig.transform.localPosition = Vector3.zero;
+            rig.transform.localPosition = new Vector3(0f, 0.15f, 0f);
             rig.transform.localRotation = Quaternion.identity;
             rig.transform.localScale = Vector3.one;
 
-            // Shared radial texture asset. Created at first build, reused after.
             const string glowTexPath = "Assets/Textures/Glow/GlowRadial.png";
 
-            // Bright core — 1.3× mesh bounds, near full-intensity tint.
-            Color brightTint = new Color(hue.r * 2.5f, hue.g * 2.5f, hue.b * 2.5f, 1.0f);
-            Material brightMat = MaterialLibrary.GetOrCreateTexturedGlow(
-                $"{MaterialLibrary.WorldFolder}/PowerUp_{name}_GlowCore.mat",
-                glowTexPath, brightTint);
-            BuildGlowSprite(rig.transform, "BrightCore", meshSize * 1.3f, brightMat);
+            // Soft aura - 1.25x mesh bounds
+            Color auraTint = new Color(hue.r * 1.3f, hue.g * 1.3f, hue.b * 1.3f, 0.65f);
+            Material auraMat = MaterialLibrary.GetOrCreateTexturedGlow(
+                $"{MaterialLibrary.WorldFolder}/PowerUp_{name}_GlowAura.mat",
+                glowTexPath, auraTint);
+            BuildGlowSprite(rig.transform, "Aura", meshSize * 1.25f, auraMat);
 
-            // Soft halo — 2.8× mesh bounds, fainter tint.
-            Color haloTint = new Color(hue.r * 1.4f, hue.g * 1.4f, hue.b * 1.4f, 0.55f);
-            Material haloMat = MaterialLibrary.GetOrCreateTexturedGlow(
-                $"{MaterialLibrary.WorldFolder}/PowerUp_{name}_GlowHalo.mat",
-                glowTexPath, haloTint);
-            // Render the soft halo first so the bright core overlays it.
-            GameObject haloSprite = BuildGlowSprite(rig.transform, "SoftHalo", meshSize * 2.8f, haloMat);
-            haloSprite.transform.SetAsFirstSibling();
+            // Ground light disc lying flat beneath pickup
+            var groundDisc = BuildGlowSprite(rig.transform, "GroundDisc", meshSize * 1.35f, auraMat);
+            groundDisc.transform.localPosition = new Vector3(0f, -0.35f, 0f);
+            var billboard = groundDisc.GetComponent<PowerUps.Billboard>();
+            if (billboard != null) Object.DestroyImmediate(billboard);
+            groundDisc.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
         }
 
         /// <summary>
@@ -1308,22 +1374,24 @@ namespace GDGGo.EditorTools
 
             root.AddComponent<Pedestrians.PedestrianNPC>();
 
-            // Drive the walk cycle. The Quaternius character FBX importer has been
-            // configured (by ModelAxisFixer) to a Generic rig with an auto-generated
-            // Generic Avatar, and a per-FBX PedestrianWalk controller plays this FBX's
-            // own embedded Man_Walk / Female_Walk clip. Without an Animator, the
-            // pedestrian spawned in T-pose and slid along Z — set the controller here
-            // so they walk from spawn.
+            // Drive the walk cycle.
+            var controller = EnsureWalkController(fbxPath);
+            var childAnim = mesh.GetComponent<Animator>();
+            if (childAnim != null)
+            {
+                childAnim.applyRootMotion = false;
+                childAnim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                childAnim.runtimeAnimatorController = controller;
+            }
+
             var animator = root.AddComponent<Animator>();
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.avatar = LoadAvatarFor(fbxPath);
-            // The NPC field is what PedestrianNPC.SetWalking hooks to; route it now so
-            // runtime doesn't have to look it up.
-            var npc = root.GetComponent<Pedestrians.PedestrianNPC>();
-            if (npc != null) npc.animator = animator;
-            var controller = EnsureWalkController(fbxPath);
             if (controller != null) animator.runtimeAnimatorController = controller;
+
+            var npc = root.GetComponent<Pedestrians.PedestrianNPC>();
+            if (npc != null) npc.animator = childAnim != null ? childAnim : animator;
 
             // Streamed and moving, so it needs a kinematic body like every other
             // streamed collider — see MakeMovingTrigger.

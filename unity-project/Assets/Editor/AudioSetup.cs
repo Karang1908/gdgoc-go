@@ -63,7 +63,7 @@ namespace GDGGo.EditorTools
             Debug.Log($"[AudioSetup] Assigned clips on {managers.Length} AudioManager(s).");
         }
 
-        private static void Assign(Audio.AudioManager manager)
+        public static void Assign(Audio.AudioManager manager)
         {
             manager.uiClick = Clip($"{UI}/click1.ogg");
             manager.uiHover = Clip($"{UI}/rollover1.ogg");
@@ -71,7 +71,7 @@ namespace GDGGo.EditorTools
 
             manager.coinPickup = Clip($"{Jingles}/jingles_PIZZI00.ogg");
             manager.pillPickup = Clip($"{Jingles}/jingles_NES07.ogg");
-            manager.powerUpPick = Clip($"{Jingles}/jingles_NES00.ogg");
+            manager.powerUpPick = Clip($"{Jingles}/jingles_HIT15.ogg");
 
             manager.crash = Clip($"{Impacts}/impactMetal_heavy_000.ogg");
             manager.jump = Clip($"{Impacts}/impactPlate_light_000.ogg");
@@ -80,9 +80,11 @@ namespace GDGGo.EditorTools
             manager.policeWarning = Clip($"{Jingles}/jingles_HIT00.ogg");
             manager.gameOver = Clip($"{Jingles}/jingles_SAX00.ogg");
 
-            // Fuel: a positive but non-tonal chime, so it does not read as another coin.
+            // Fuel: a positive chime
             manager.fuelPickup = Clip($"{Jingles}/jingles_STEEL01.ogg");
             manager.lowFuelWarning = Clip($"{Jingles}/jingles_NES13.ogg");
+            manager.sfxVolume = 1.0f;
+            manager.poolSize = 12;
 
             // musicLoop is deliberately left unassigned. Every clip in the Kenney music
             // pack here is a *jingle* — the longest is 1.76 s — and looping a one-second

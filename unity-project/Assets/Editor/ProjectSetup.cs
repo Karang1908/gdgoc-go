@@ -301,6 +301,41 @@ namespace GDGGo.EditorTools
             Debug.Log("[GDG Go Setup] WebGL: Brotli + decompression fallback, exceptions off, data caching on.");
         }
 
+        [MenuItem("GDG Go/Build WebGL", priority = 50)]
+        public static void BuildWebGL()
+        {
+            Debug.Log("[GDG Go Build] Starting WebGL Build...");
+            ConfigureWebGL();
+
+            string[] scenes = { "Assets/Scenes/Game.unity" };
+            string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Build");
+
+            if (!Directory.Exists(buildPath))
+            {
+                Directory.CreateDirectory(buildPath);
+            }
+
+            BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = buildPath,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            };
+
+            var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            var summary = report.summary;
+
+            if (summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            {
+                Debug.Log($"[GDG Go Build] WebGL Build Succeeded! Output size: {summary.totalSize} bytes");
+            }
+            else
+            {
+                Debug.LogError($"[GDG Go Build] WebGL Build Failed with result: {summary.result}");
+            }
+        }
+
         // ==================================================================
         // Validation
         // ==================================================================

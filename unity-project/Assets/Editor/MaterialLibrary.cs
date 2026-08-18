@@ -183,14 +183,14 @@ namespace GDGGo.EditorTools
 
             EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
 
-            const int size = 64;
+            const int size = 128;
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, mipChain: false);
             tex.wrapMode = TextureWrapMode.Clamp;
             tex.filterMode = FilterMode.Bilinear;
             tex.name = Path.GetFileNameWithoutExtension(path);
 
             float centre = (size - 1) * 0.5f;
-            float maxR = centre;                                 // distance from centre to edge along an axis
+            float maxR = centre;
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -198,18 +198,13 @@ namespace GDGGo.EditorTools
                     float dx = (x - centre) / maxR;
                     float dy = (y - centre) / maxR;
                     float r = Mathf.Sqrt(dx * dx + dy * dy);
-                    // Smooth radial falloff: cos(capped r * pi/2)^2 — bright core,
-                    // quadratic soft falloff, exactly zero at the quad edge.
                     float clamped = Mathf.Clamp01(r);
-                    float intensity = Mathf.Cos(clamped * Mathf.PI * 0.5f);
-                    intensity *= intensity;                       // square for a "hot core, soft skirt"
-                    // Halo reads as fully formed when the centre alpha ~ 0.9 — exactly
-                    // 1.0 over additive makes the centre pure white, erasing the hue.
-                    float a = intensity * 0.9f;
-                    // Premultiplied-ish: store the same value in RGB so a tint multiplier
-                    // brighter than 1 stay readable when sampled by Particles/Additive
-                    // (which multiplies texture * tint * vertex color).
-                    tex.SetPixel(x, y, new Color(intensity, intensity, intensity, a));
+                    float falloff = 1f - clamped;
+                    float intensity = falloff * falloff * (3f - 2f * falloff);
+                    intensity = Mathf.Pow(intensity, 1.6f);
+
+                    float alpha = intensity * 0.85f;
+                    tex.SetPixel(x, y, new Color(intensity, intensity, intensity, alpha));
                 }
             }
             tex.Apply();
@@ -218,40 +213,91 @@ namespace GDGGo.EditorTools
             File.WriteAllBytes(path, png);
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
 
-            // Re-load post-import so the returned reference is the asset on disk,
-            // not the throwaway in-memory Texture2D.
             Object.DestroyImmediate(tex);
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         /// <summary>
-        /// Creates (or returns existing) an additive-blended material textured by
-        /// the radial glow texture. The material is per-power-up so each pickup's
-        /// halo carries its own hue, and the texture is shared project-wide.
+        /// Creates (or returns existing) a native URP additive-blended material textured by
+        /// the radial glow texture.
         /// </summary>
         public static Material GetOrCreateTexturedGlow(string materialPath, string texturePath, Color tintColor)
         {
             var existing = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (existing != null) return existing;
-
-            Shader add = Shader.Find("Particles/Additive");
-            if (add == null) { add = Shader.Find("Mobile/Particles/Additive"); }
-            if (add == null)
+            if (existing != null)
             {
-                Debug.LogWarning("[MaterialLibrary] No additive shader found — textured glow will fall back to flat GetOrCreateGlow.");
-                return GetOrCreateGlow(materialPath, tintColor);
+                ConfigureGlowMaterial(existing, tintColor);
+                return existing;
             }
+
+            Shader urpShader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (urpShader == null) urpShader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (urpShader == null) urpShader = Shader.Find("Mobile/Particles/Additive");
 
             EnsureFolder(Path.GetDirectoryName(materialPath).Replace('\\', '/'));
             Texture2D tex = GetOrCreateGlowTexture(texturePath);
 
-            var material = new Material(add) { name = Path.GetFileNameWithoutExtension(materialPath) };
+            var material = new Material(urpShader) { name = Path.GetFileNameWithoutExtension(materialPath) };
+            if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", tex);
             if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", tex);
-            // _Color is the legacy Particles/Additive multiplier; _TintColor is the
-            // newer one. Set both for forward-compat across built-in shader variants.
+            ConfigureGlowMaterial(material, tintColor);
+
+            AssetDatabase.CreateAsset(material, materialPath);
+            return material;
+        }
+
+        private static void ConfigureGlowMaterial(Material material, Color tintColor)
+        {
+            if (material == null) return;
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 1f);
+            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
+
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent + 100;
+
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", tintColor);
             if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", tintColor);
             if (material.HasProperty("_Color")) material.SetColor("_Color", tintColor);
-            AssetDatabase.CreateAsset(material, materialPath);
+            if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", tintColor);
+        }
+
+        /// <summary>
+        /// Creates a transparent material with alpha blending and emission for shields and crystal orbs.
+        /// </summary>
+        public static Material GetOrCreateTransparent(string path, Color color, Color emission)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null) return existing;
+
+            bool urpActive = GraphicsSettings.currentRenderPipeline != null;
+            Shader shader = urpActive ? (Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Universal Render Pipeline/Lit"))
+                                      : (Shader.Find("Standard") ?? Shader.Find("Unlit/Transparent"));
+
+            EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
+
+            var material = new Material(shader) { name = Path.GetFileNameWithoutExtension(path) };
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
+
+            if (material.HasProperty("_Mode")) material.SetFloat("_Mode", 3f);
+            if (material.HasProperty("_SrcBlend")) material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            if (material.HasProperty("_DstBlend")) material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            if (material.HasProperty("_ZWrite")) material.SetInt("_ZWrite", 0);
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.DisableKeyword("_ALPHABLEND_ON");
+            material.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+            SetBaseColor(material, color);
+            if (material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", emission);
+            }
+
+            AssetDatabase.CreateAsset(material, path);
             return material;
         }
 
