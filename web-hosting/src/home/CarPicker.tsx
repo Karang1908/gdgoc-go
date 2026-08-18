@@ -1,8 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Gauge, Shield, Zap, Check, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { lazy, Suspense, useEffect, useState, useCallback, useRef } from 'react';
+import { Play, Check, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CARS, CarOption } from '../data/cars';
 import { useAuth } from '../context/AuthContext';
-import { CarShowcase3D } from '../components/CarShowcase3D';
+
+const CarShowcase3D = lazy(() => import('../components/CarShowcase3D').then((module) => ({
+  default: module.CarShowcase3D,
+})));
 
 interface CarPickerProps {
   selectedCarId: string;
@@ -19,9 +22,18 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
   const initialIndex = Math.max(0, CARS.findIndex((c) => c.id === selectedCarId));
   const [activeIndex, setActiveIndex] = useState<number>(initialIndex !== -1 ? initialIndex : 0);
+  const [use3DPreview, setUse3DPreview] = useState<boolean>(false);
 
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 861px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+    const update = () => setUse3DPreview(query.matches);
+    update();
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
 
   // Sync state if selectedCarId changes from external props
   useEffect(() => {
@@ -33,19 +45,26 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
   const activeCar: CarOption = CARS[activeIndex] || CARS[0];
 
+  const tapFeedback = () => {
+    navigator.vibrate?.(8);
+  };
+
   const handlePrev = useCallback(() => {
     const nextIdx = (activeIndex - 1 + CARS.length) % CARS.length;
+    navigator.vibrate?.(8);
     setActiveIndex(nextIdx);
     onSelectCar(CARS[nextIdx].id);
   }, [activeIndex, onSelectCar]);
 
   const handleNext = useCallback(() => {
     const nextIdx = (activeIndex + 1) % CARS.length;
+    navigator.vibrate?.(8);
     setActiveIndex(nextIdx);
     onSelectCar(CARS[nextIdx].id);
   }, [activeIndex, onSelectCar]);
 
   const handleSelectIndex = (idx: number) => {
+    tapFeedback();
     setActiveIndex(idx);
     onSelectCar(CARS[idx].id);
   };
@@ -114,7 +133,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         <h1 className="picker-title">Choose your vehicle</h1>
         <p className="lede picker-lede">
-          Swipe or navigate left and right to select your getaway vehicle. Each chassis features distinct handling, top speed, and collision durability.
+          Pick your vehicle, then start the chase. Swipe or use the arrows to browse the garage.
         </p>
       </div>
 
@@ -138,11 +157,17 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           onTouchEnd={handleTouchEnd}
         >
           <div className="showcase-stage" onContextMenu={(e) => e.preventDefault()}>
-            <CarShowcase3D
-              key={activeCar.id}
-              carId={activeCar.id}
-              fallbackImage={activeCar.image}
-            />
+            {use3DPreview ? (
+              <Suspense fallback={<img src={activeCar.image} alt={activeCar.name} className="showcase-static-car" draggable={false} />}>
+                <CarShowcase3D
+                  key={activeCar.id}
+                  carId={activeCar.id}
+                  fallbackImage={activeCar.image}
+                />
+              </Suspense>
+            ) : (
+              <img src={activeCar.image} alt={activeCar.name} className="showcase-static-car" draggable={false} />
+            )}
           </div>
 
           <div className="showcase-details">
@@ -165,64 +190,22 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
             <p className="showcase-desc">{activeCar.description}</p>
 
-            {/* Spec Meters */}
-            <div className="showcase-stats-grid">
-              <div className="stat-card">
-                <div className="stat-label">
-                  <span className="stat-name-label">
-                    <Zap size={13} style={{ color: 'var(--g-blue)' }} />
-                    <span>Top Speed</span>
-                  </span>
-                  <span className="stat-num font-mono">{activeCar.stats.speed}</span>
+            <div className="vehicle-stat-bars" aria-label={`${activeCar.name} vehicle profile`}>
+              {([
+                ['Speed', activeCar.stats.speed, 'var(--g-blue)'],
+                ['Handling', activeCar.stats.handling, 'var(--g-red)'],
+                ['Armor', activeCar.stats.durability, 'var(--g-yellow)'],
+              ] as const).map(([label, value, color]) => (
+                <div className="vehicle-stat" key={label}>
+                  <div className="vehicle-stat-label">
+                    <span>{label}</span>
+                    <span className="font-mono">{value}</span>
+                  </div>
+                  <div className="vehicle-stat-track" aria-hidden="true">
+                    <span style={{ width: `${value}%`, background: color }} />
+                  </div>
                 </div>
-                <div className="stat-track">
-                  <div
-                    className="stat-fill"
-                    style={{
-                      width: `${activeCar.stats.speed}%`,
-                      background: 'var(--g-blue)',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-label">
-                  <span className="stat-name-label">
-                    <Gauge size={13} style={{ color: 'var(--g-yellow)' }} />
-                    <span>Handling</span>
-                  </span>
-                  <span className="stat-num font-mono">{activeCar.stats.handling}</span>
-                </div>
-                <div className="stat-track">
-                  <div
-                    className="stat-fill"
-                    style={{
-                      width: `${activeCar.stats.handling}%`,
-                      background: 'var(--g-yellow)',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-label">
-                  <span className="stat-name-label">
-                    <Shield size={13} style={{ color: 'var(--g-green)' }} />
-                    <span>Durability</span>
-                  </span>
-                  <span className="stat-num font-mono">{activeCar.stats.durability}</span>
-                </div>
-                <div className="stat-track">
-                  <div
-                    className="stat-fill"
-                    style={{
-                      width: `${activeCar.stats.durability}%`,
-                      background: 'var(--g-green)',
-                    }}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Actions Bar */}
@@ -230,7 +213,10 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               <button
                 id="start-chase-btn"
                 className="btn btn-filled btn-lg launch-showcase-btn"
-                onClick={onStartGame}
+                onClick={() => {
+                  navigator.vibrate?.(14);
+                  onStartGame();
+                }}
               >
                 <Play size={18} fill="currentColor" />
                 <span>START POLICE CHASE</span>
@@ -269,7 +255,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               <div className="thumb-info">
                 <span className="thumb-name">{car.name}</span>
                 <span className="thumb-stats font-mono">
-                  SPD {car.stats.speed} • HDL {car.stats.handling}
+                  {car.subtitle}
                 </span>
               </div>
               {isSelected && (
@@ -468,6 +454,15 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           box-sizing: border-box;
         }
 
+        .showcase-static-car {
+          width: min(92%, 360px);
+          height: min(92%, 240px);
+          object-fit: contain;
+          filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.32));
+          user-select: none;
+          pointer-events: none;
+        }
+
         .showcase-details {
           display: flex;
           flex-direction: column;
@@ -526,55 +521,45 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           line-height: 1.35;
         }
 
-        .showcase-stats-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          padding: 8px 12px;
-          background: var(--surface-2);
-          border: 1px solid var(--border);
-          border-radius: var(--r-md);
+        .vehicle-stat-bars {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
         }
 
-        .stat-card {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
+        .vehicle-stat {
+          min-width: 0;
         }
 
-        .stat-label {
+        .vehicle-stat-label {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 0.7rem;
-          font-weight: 500;
+          gap: 6px;
+          margin-bottom: 4px;
           color: var(--text-2);
-        }
-
-        .stat-name-label {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .stat-num {
-          font-size: 0.72rem;
+          font-size: 0.62rem;
           font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .vehicle-stat-label .font-mono {
           color: var(--text);
+          font-size: 0.64rem;
         }
 
-        .stat-track {
-          height: 4px;
-          width: 100%;
-          background: var(--surface-3);
-          border-radius: var(--pill);
+        .vehicle-stat-track {
+          height: 6px;
           overflow: hidden;
+          border-radius: var(--pill);
+          background: var(--surface-3);
         }
 
-        .stat-fill {
+        .vehicle-stat-track span {
+          display: block;
           height: 100%;
-          border-radius: var(--pill);
-          transition: width 0.3s var(--ease);
+          border-radius: inherit;
         }
 
         .showcase-actions {
@@ -583,7 +568,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .launch-showcase-btn {
           width: 100%;
-          height: 44px;
+          min-height: 48px;
           font-weight: 700;
           font-size: 0.88rem;
           letter-spacing: 0.02em;
@@ -602,7 +587,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         /* Thumbnails Selector Dock */
         .thumbnails-dock {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: clamp(6px, 1.2vw, 10px);
           width: 100%;
           max-width: 860px;
@@ -623,6 +608,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           text-align: left;
           touch-action: manipulation;
           box-sizing: border-box;
+          min-width: 0;
         }
 
         .thumbnail-chip:hover {
@@ -658,6 +644,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .thumb-info {
           flex: 1;
+          min-width: 0;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -688,38 +675,216 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         @media (max-width: 860px) {
           .car-picker-container {
-            padding: 6px 10px 10px;
-            gap: 8px;
+            justify-content: flex-start;
+            padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+            gap: clamp(6px, 1.1vh, 9px);
+            overflow: hidden;
+            overscroll-behavior: contain;
+          }
+          .picker-header {
+            max-width: 440px;
+            margin-top: auto;
+          }
+          .picker-header-top {
+            display: none;
+          }
+          .picker-title {
+            font-size: clamp(1.18rem, 5.6vw, 1.45rem);
+          }
+          .picker-lede {
+            max-width: 390px;
+            font-size: clamp(0.68rem, 3vw, 0.78rem);
+            line-height: 1.25;
           }
           .showcase-card {
             grid-template-columns: 1fr;
-            gap: 8px;
-            padding: 10px 12px;
-            max-width: 380px;
+            gap: clamp(5px, 0.8vh, 8px);
+            padding: clamp(7px, 1vh, 10px);
+            max-width: 440px;
+            min-width: 0;
+            border-radius: 18px;
           }
           .showcase-stage {
-            min-height: 120px;
-            max-height: 150px;
+            height: clamp(108px, 20vh, 154px);
+            min-height: 0;
+            max-height: none;
+            border-radius: 14px;
+            padding: 4px;
           }
           .showcase-desc {
             display: none;
           }
+          .showcase-details {
+            gap: clamp(5px, 0.8vh, 8px);
+          }
+          .showcase-car-name {
+            font-size: clamp(1.08rem, 5vw, 1.32rem);
+          }
+          .showcase-subtitle {
+            font-size: 0.68rem;
+          }
+          .showcase-type-tag {
+            font-size: 0.56rem;
+          }
           .thumbnails-dock {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
-            max-width: 380px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 4px;
+            max-width: 440px;
+            min-width: 0;
+            margin-bottom: auto;
           }
           .thumb-stats {
             display: none;
           }
           .thumbnail-chip {
-            padding: 4px 6px;
-            height: 34px;
+            position: relative;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1px;
+            height: 44px;
+            min-height: 44px;
+            padding: 4px;
+            border-radius: 10px;
+            overflow: hidden;
+          }
+          .thumb-preview-box {
+            width: 24px;
+            height: 18px;
+          }
+          .thumb-info {
+            width: 100%;
+            flex: 0 1 auto;
+            text-align: center;
+          }
+          .thumb-name {
+            font-size: clamp(0.5rem, 2.2vw, 0.58rem);
+            line-height: 1;
+          }
+          .thumb-check {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            display: grid;
+            width: 15px;
+            height: 15px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--accent-soft);
+          }
+          .thumb-check svg {
+            width: 10px;
+            height: 10px;
           }
           .carousel-arrow-btn {
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
+            position: absolute;
+            top: calc(clamp(54px, 10vh, 77px) - 12px);
+            z-index: 3;
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            background: rgba(10, 10, 10, 0.82);
+            border-color: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          }
+          .carousel-wrapper {
+            position: relative;
+            display: block;
+            max-width: 440px;
+            min-width: 0;
+          }
+          .carousel-arrow-btn.prev-btn { left: 8px; }
+          .carousel-arrow-btn.next-btn { right: 8px; }
+          .vehicle-stat-bars { gap: 8px; }
+          .vehicle-stat-label {
+            margin-bottom: 3px;
+            font-size: 0.56rem;
+          }
+          .vehicle-stat-label .font-mono {
+            font-size: 0.58rem;
+          }
+          .vehicle-stat-track {
+            height: 5px;
+          }
+          .launch-showcase-btn {
+            min-height: 46px;
+            height: 46px;
+            font-size: clamp(0.72rem, 3.4vw, 0.86rem);
+          }
+        }
+
+        @media (max-width: 600px) {
+          .car-picker-container {
+            padding-inline: 14px;
+            gap: clamp(8px, 1.25vh, 11px);
+          }
+          .picker-header,
+          .carousel-wrapper,
+          .thumbnails-dock {
+            max-width: 410px;
+          }
+          .picker-title {
+            font-size: clamp(1.22rem, 5.5vw, 1.48rem);
+          }
+          .picker-lede {
+            max-width: 340px;
+            font-size: clamp(0.72rem, 3.1vw, 0.8rem);
+            text-wrap: balance;
+          }
+          .showcase-stage {
+            height: clamp(112px, 17vh, 142px);
+          }
+          .carousel-arrow-btn {
+            top: calc(clamp(56px, 8.5vh, 71px) - 12px);
+          }
+        }
+
+        @media (max-width: 420px) {
+          .carousel-arrow-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+          }
+          .showcase-card { padding: 7px; }
+          .thumb-preview-box { width: 22px; }
+        }
+
+        @media (max-width: 360px) {
+          .car-picker-container {
+            padding-inline: 7px;
+          }
+          .picker-wallet-group .wallet-chip.standard,
+          .wallet-chip-lbl,
+          .thumb-info {
+            display: none;
+          }
+          .thumbnail-chip {
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 600px) and (max-height: 700px) {
+          .picker-lede {
+            display: none;
+          }
+          .showcase-stage {
+            height: clamp(96px, 18vh, 122px);
+          }
+          .carousel-arrow-btn {
+            top: calc(clamp(48px, 9vh, 61px) - 12px);
+          }
+        }
+
+        @media (max-width: 600px) and (max-height: 580px) {
+          .garage-badge,
+          .picker-wallet-group {
+            display: none;
+          }
+          .showcase-stage {
+            height: 88px;
+          }
+          .carousel-arrow-btn {
+            top: 27px;
           }
         }
       `}</style>

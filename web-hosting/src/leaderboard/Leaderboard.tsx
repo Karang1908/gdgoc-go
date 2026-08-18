@@ -79,7 +79,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         <h1 className="leaderboard-title">Top Drivers</h1>
         <p className="lede leaderboard-lede">
-          Live global standings: one personal best per driver. Track your high score, cumulative standard coins, and banked GDG tokens.
+          Live Global Rankings
         </p>
       </div>
 
@@ -180,15 +180,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
       {/* User's Own Standing Highlight Card */}
       {user && (
-        <div className="user-standing-card card animate-fade-in">
-          <div className="standing-tag">
-            <span>YOUR DRIVER PROFILE & WALLET</span>
-          </div>
+        <section className="user-standing-card animate-fade-in" aria-label="Your leaderboard position and wallet">
           <div className="standing-row">
-            <div className="standing-rank font-display">
-              {userDriverIndex !== -1 ? `#${userDriverIndex + 1}` : 'UNRANKED'}
-            </div>
-            <div className="standing-info">
+            <div className="standing-profile">
+              <div className="standing-rank font-display">
+                {userStanding?.rank ? `#${userStanding.rank}` : '—'}
+              </div>
               <div className="standing-name-stack">
                 <span className="standing-username font-display">
                   @{profile?.username || userStanding?.username || user?.email?.split('@')[0] || 'driver'}
@@ -204,22 +201,22 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                 <span className="standing-stat-val font-mono">{fmt(userStanding?.bestScore || 0)}</span>
               </div>
               <div className="standing-stat-item">
-                <span className="standing-stat-label">TOTAL COINS</span>
+                <span className="standing-stat-label">CUMULATIVE COINS</span>
                 <span className="standing-stat-val font-mono">
                   <Coins size={12} className="standing-coin-icon" />
-                  {fmt(userCoins || userStanding?.totalCoins || 0)}
+                  {fmt(userCoins)}
                 </span>
               </div>
               <div className="standing-stat-item">
                 <span className="standing-stat-label">GDG COINS</span>
                 <span className="standing-stat-val font-mono gdg-val">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
-                  {fmt(userGdgCoins || userStanding?.totalGdgCoins || 0)}
+                  {fmt(userGdgCoins)}
                 </span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Filter & Search Bar */}
@@ -228,7 +225,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search drivers by username or name..."
+            placeholder="Search drivers…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -258,6 +255,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
       {/* Standings Table */}
       <div className="table-container card">
         <table className="leaderboard-table">
+          <colgroup>
+            <col className="col-rank" />
+            <col className="col-driver" />
+            <col className="col-score" />
+            <col className="col-coins" />
+            <col className="col-pills" />
+            <col className="col-distance" />
+            <col className="col-games" />
+          </colgroup>
           <thead>
             <tr>
               <th className="th-rank">Rank</th>
@@ -301,7 +307,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
               </tr>
             ) : (
               filteredDrivers.map((driver, index) => {
-                const rankNum = driver.rank || (index + 1);
+                const rankNum = driver.rank ?? (index + 1);
                 const isCurrentUser = Boolean(
                   (user && driver.userId && driver.userId === user.id) ||
                   (profile?.username && driver.username && driver.username.toLowerCase() === profile.username.toLowerCase())
@@ -312,13 +318,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                     key={driver.userId || driver.username || index}
                     className={`table-row ${isCurrentUser ? 'current-user-row' : ''} ${rankNum <= 3 ? `rank-${rankNum}-row` : ''}`}
                   >
-                    <td className="td-rank">
+                    <td className="td-rank" data-label="Rank">
                       <div className={`rank-pill font-display ${rankNum === 1 ? 'gold' : rankNum === 2 ? 'silver' : rankNum === 3 ? 'bronze' : ''}`}>
                         {rankNum === 1 ? '#1' : rankNum === 2 ? '#2' : rankNum === 3 ? '#3' : `#${rankNum}`}
                       </div>
                     </td>
 
-                    <td className="td-driver">
+                    <td className="td-driver" data-label="Driver">
                       <div className="driver-cell">
                         <div className="driver-identity-col">
                           <span className="driver-username font-display">
@@ -334,29 +340,29 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
                       </div>
                     </td>
 
-                    <td className="td-score font-mono">
+                    <td className="td-score font-mono" data-label="Score">
                       {fmt(driver.bestScore)}
                     </td>
 
-                    <td className="td-coins font-mono">
+                    <td className="td-coins font-mono" data-label="Coins">
                       <span className="table-coin-cell">
                         <Coins size={12} className="inline-coin-icon" />
                         {fmt(driver.totalCoins)}
                       </span>
                     </td>
 
-                    <td className="td-pills font-mono">
+                    <td className="td-pills font-mono" data-label="GDG">
                       <span className="table-pill-cell">
                         <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
                         {fmt(driver.totalGdgCoins)}
                       </span>
                     </td>
 
-                    <td className="td-distance font-mono">
+                    <td className="td-distance font-mono" data-label="Distance">
                       {fmt(driver.bestDistance)} m
                     </td>
 
-                    <td className="td-games font-mono">
+                    <td className="td-games font-mono" data-label="Races">
                       {fmt(driver.totalGames)}
                     </td>
                   </tr>
@@ -372,7 +378,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           height: 100%;
           max-height: 100%;
           width: 100%;
-          max-width: 980px;
+          max-width: 1180px;
           margin: 0 auto;
           padding: 16px 16px max(32px, env(safe-area-inset-bottom, 0px) + 16px);
           overflow-y: auto;
@@ -581,73 +587,90 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         /* User standing highlight card */
         .user-standing-card {
-          padding: 12px 16px;
+          overflow: hidden;
           background: var(--accent-soft);
-          border: 2px solid var(--accent);
-          border-radius: var(--r-xl);
+          border: 1px solid var(--accent);
+          border-radius: 16px;
           margin-bottom: 20px;
         }
 
-        .standing-tag {
-          font-family: var(--font-display);
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: var(--accent);
-          letter-spacing: 0.04em;
-          margin-bottom: 6px;
+        .standing-row {
+          display: grid;
+          grid-template-columns: minmax(240px, 1fr) auto;
+          align-items: stretch;
         }
 
-        .standing-row {
+        .standing-profile {
           display: flex;
+          min-width: 0;
           align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
           gap: 12px;
+          padding: 14px 18px;
         }
 
         .standing-rank {
-          font-size: 1.35rem;
+          display: grid;
+          width: 48px;
+          height: 48px;
+          flex: 0 0 48px;
+          place-items: center;
+          border-radius: 14px;
+          background: var(--accent);
+          color: var(--on-accent);
+          font-size: 1.05rem;
           font-weight: 800;
-          color: var(--accent);
         }
 
         .standing-name-stack {
           display: flex;
           flex-direction: column;
+          min-width: 0;
         }
 
         .standing-username {
-          font-size: 0.95rem;
-          font-weight: 700;
+          overflow: hidden;
           color: var(--text);
+          font-size: 1rem;
+          font-weight: 700;
+          line-height: 1.2;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .standing-realname {
-          font-size: 0.75rem;
           color: var(--text-2);
+          font-size: 0.76rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .standing-stats-grid {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(116px, 1fr));
+          align-items: stretch;
         }
 
         .standing-stat-item {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          justify-content: center;
+          gap: 2px;
+          min-width: 0;
+          padding: 14px 16px;
+          border-left: 1px solid rgba(66, 133, 244, 0.22);
         }
 
         .standing-stat-label {
-          font-size: 0.6rem;
+          font-size: 0.58rem;
           font-weight: 700;
           color: var(--text-2);
+          letter-spacing: 0.03em;
+          white-space: nowrap;
         }
 
         .standing-stat-val {
-          font-size: 0.88rem;
+          font-size: 0.92rem;
           font-weight: 700;
           color: var(--text);
           display: flex;
@@ -724,38 +747,57 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .table-container {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
-          border-radius: var(--r-xl);
+          padding: 0;
+          border-radius: 16px;
           background: var(--surface);
           border: 1px solid var(--border);
-          box-shadow: var(--shadow-1);
+          box-shadow: none;
         }
 
         .leaderboard-table {
           width: 100%;
+          min-width: 860px;
+          table-layout: fixed;
           border-collapse: collapse;
           text-align: left;
+          font-variant-numeric: tabular-nums;
         }
+
+        .leaderboard-table .col-rank { width: 8%; }
+        .leaderboard-table .col-driver { width: 21%; }
+        .leaderboard-table .col-score { width: 14%; }
+        .leaderboard-table .col-coins { width: 18%; }
+        .leaderboard-table .col-pills { width: 13%; }
+        .leaderboard-table .col-distance { width: 16%; }
+        .leaderboard-table .col-games { width: 10%; }
 
         .leaderboard-table th {
           background: var(--surface-2);
-          padding: 12px 14px;
+          padding: 13px 16px;
           font-size: 0.72rem;
           font-weight: 700;
           color: var(--text-2);
           text-transform: uppercase;
           letter-spacing: 0.04em;
           border-bottom: 1px solid var(--border);
+          white-space: nowrap;
         }
 
-        .th-rank { width: 64px; text-align: center; }
+        .th-rank { text-align: center; }
         .th-score { text-align: right; }
         .th-coins { text-align: right; }
         .th-pills { text-align: right; }
         .th-distance { text-align: right; }
-        .th-games { text-align: right; width: 70px; }
+        .th-games { text-align: right; }
+
+        .leaderboard-table th:first-child,
+        .leaderboard-table td:first-child { padding-left: 16px; }
+
+        .leaderboard-table th:last-child,
+        .leaderboard-table td:last-child { padding-right: 18px; }
 
         .leaderboard-table td {
-          padding: 12px 14px;
+          padding: 14px 16px;
           border-bottom: 1px solid var(--border-subtle);
           font-size: 0.84rem;
         }
@@ -823,23 +865,31 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           display: flex;
           align-items: center;
           gap: 8px;
+          min-width: 0;
         }
 
         .driver-identity-col {
           display: flex;
           flex-direction: column;
           gap: 1px;
+          min-width: 0;
         }
 
         .driver-username {
           font-weight: 700;
           font-size: 0.88rem;
           color: var(--text);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .driver-realname {
           font-size: 0.72rem;
           color: var(--text-2);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .you-badge {
@@ -867,6 +917,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .table-coin-cell, .table-pill-cell {
           display: inline-flex;
           align-items: center;
+          justify-content: flex-end;
           gap: 4px;
         }
 
@@ -876,7 +927,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           color: var(--text-2);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+          .leaderboard-table {
+            min-width: 0;
+            table-layout: auto;
+          }
           .leaderboard-container {
             padding: 8px 8px max(24px, env(safe-area-inset-bottom, 0px) + 12px);
           }
@@ -933,14 +988,196 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             font-size: 0.62rem;
             gap: 4px;
           }
-          .th-coins, .td-coins, .th-games, .td-games, .th-distance, .td-distance {
-            display: none;
-          }
           .standing-stats-grid {
             gap: 8px;
           }
           .leaderboard-controls {
             margin-bottom: 10px;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .leaderboard-container {
+            padding: 10px 8px 18px;
+          }
+
+          .back-btn,
+          .refresh-btn,
+          .clear-search-btn {
+            min-height: 44px;
+          }
+
+          .back-btn { padding: 0 14px; }
+          .header-badge { min-height: 36px; }
+
+          .user-standing-card {
+            margin-bottom: 12px;
+          }
+
+          .standing-row {
+            display: block;
+          }
+
+          .standing-profile {
+            padding: 12px;
+          }
+
+          .standing-rank {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
+          }
+
+          .standing-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0;
+            border-top: 1px solid rgba(66, 133, 244, 0.22);
+          }
+
+          .standing-stat-item {
+            padding: 10px 8px;
+          }
+
+          .standing-stat-item:first-child {
+            border-left: 0;
+          }
+
+          .standing-stat-label {
+            overflow: hidden;
+            font-size: 0.52rem;
+            text-overflow: ellipsis;
+          }
+
+          .standing-stat-val {
+            font-size: 0.78rem;
+          }
+
+          .search-input { height: 48px; font-size: 1rem; }
+          .refresh-btn { height: 48px; padding: 0 14px; }
+          .clear-search-btn {
+            right: 2px;
+            width: 44px;
+            padding: 0;
+          }
+
+          .table-container {
+            overflow: visible;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+          }
+
+          .leaderboard-table,
+          .leaderboard-table tbody {
+            display: block;
+            width: 100%;
+          }
+
+          .leaderboard-table colgroup { display: none; }
+
+          .leaderboard-table thead { display: none; }
+
+          .leaderboard-table tbody > tr:not(.table-row),
+          .leaderboard-table tbody > tr:not(.table-row) > td {
+            display: block;
+            width: 100%;
+          }
+
+          .leaderboard-table .table-row {
+            display: grid;
+            grid-template-columns: 44px repeat(4, minmax(0, 1fr));
+            gap: 10px 6px;
+            margin-bottom: 8px;
+            padding: 12px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            background: var(--surface);
+          }
+
+          .leaderboard-table .current-user-row {
+            border-color: var(--accent);
+          }
+
+          .leaderboard-table .table-row td {
+            display: block !important;
+            min-width: 0;
+            padding: 0;
+            border: 0;
+          }
+
+          .leaderboard-table .table-row td:first-child,
+          .leaderboard-table .table-row td:last-child {
+            padding-right: 0;
+            padding-left: 0;
+          }
+
+          .leaderboard-table td::before {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--text-3);
+            content: attr(data-label);
+            font-family: var(--font-ui);
+            font-size: 0.56rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+          }
+
+          .leaderboard-table .td-rank {
+            grid-column: 1;
+            grid-row: 1 / span 2;
+            align-self: center;
+          }
+          .leaderboard-table .td-rank::before,
+          .leaderboard-table .td-driver::before { display: none; }
+
+          .leaderboard-table .td-driver { grid-column: 2 / 5; grid-row: 1; }
+          .leaderboard-table .td-score { grid-column: 5; grid-row: 1; }
+          .leaderboard-table .td-coins { grid-column: 2; grid-row: 2; }
+          .leaderboard-table .td-pills { grid-column: 3; grid-row: 2; }
+          .leaderboard-table .td-distance { grid-column: 4; grid-row: 2; }
+          .leaderboard-table .td-games { grid-column: 5; grid-row: 2; }
+
+          .leaderboard-table .td-score,
+          .leaderboard-table .td-coins,
+          .leaderboard-table .td-pills,
+          .leaderboard-table .td-distance,
+          .leaderboard-table .td-games {
+            display: block !important;
+            text-align: right;
+            font-size: 0.72rem;
+          }
+
+          .driver-username,
+          .driver-realname {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .table-loading,
+          .table-error,
+          .table-empty {
+            display: block;
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .leaderboard-controls {
+            align-items: stretch;
+          }
+
+          .refresh-btn span {
+            display: none;
+          }
+
+          .refresh-btn {
+            width: 48px;
+            padding: 0;
           }
         }
       `}</style>

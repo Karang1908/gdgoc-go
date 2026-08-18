@@ -159,13 +159,19 @@
 }
 
 html {
+  height: 100vh;
   height: 100dvh;
+  max-height: 100vh;
   max-height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  height: 100vh;
   height: 100dvh;
+  max-height: 100vh;
   max-height: 100dvh;
   width: 100vw;
   overflow: hidden;
@@ -179,10 +185,29 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.game-active {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  overflow: hidden;
+  touch-action: none;
+}
+
+body.game-active #root {
+  height: var(--app-height, 100dvh);
+  max-height: none;
+  overflow: hidden;
 }
 
 #root {
+  height: 100vh;
   height: 100dvh;
+  max-height: 100vh;
   max-height: 100dvh;
   width: 100vw;
   overflow: hidden;

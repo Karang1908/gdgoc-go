@@ -1,16 +1,49 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Maximize2, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import { UnityEmbed, UnityEmbedHandle } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
-import { GameOverPayload, submitScore } from '../lib/api';
+import {
+  flushQueuedScores,
+  GameOverPayload,
+  queueScore,
+  removeQueuedScore,
+  ScoreSubmissionError,
+  ScoreSubmissionResult,
+  submitScore,
+} from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { CARS } from '../data/cars';
 import { bgmEngine } from '../lib/bgm';
+import {
+  canFullscreenDisplay,
+  isFullscreenDisplay,
+  isStandaloneDisplay,
+} from '../lib/gameDisplay';
 
 interface GameViewProps {
   carId: string;
   onBackToGarage: () => void;
   onViewLeaderboard: () => void;
+}
+
+export type ScoreSaveState = 'idle' | 'saving' | 'saved' | 'queued' | 'error';
+
+function createRunId(): string {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.randomUUID === 'function') {
+    return webCrypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  if (webCrypto?.getRandomValues) {
+    webCrypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export const GameView: React.FC<GameViewProps> = ({
@@ -19,12 +52,36 @@ export const GameView: React.FC<GameViewProps> = ({
   onViewLeaderboard,
 }) => {
   const { session, profile, refreshCoins } = useAuth();
-  const [runKey, setRunKey] = useState<number>(1);
+  const [runId, setRunId] = useState<string>(() => createRunId());
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
+  const [saveState, setSaveState] = useState<ScoreSaveState>('idle');
+  const [saveMessage, setSaveMessage] = useState<string>('');
+  const [submissionResult, setSubmissionResult] = useState<ScoreSubmissionResult | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(bgmEngine.getMuted());
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => (
+    isStandaloneDisplay() || isFullscreenDisplay()
+  ));
   const unityEmbedRef = useRef<UnityEmbedHandle>(null);
+  const handledRunRef = useRef<string | null>(null);
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
+
+  useEffect(() => {
+    const updateFullscreenState = () => {
+      setIsFullscreen(isStandaloneDisplay() || isFullscreenDisplay());
+    };
+
+    document.body.classList.add('game-active');
+    document.addEventListener('fullscreenchange', updateFullscreenState);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenState as EventListener);
+    updateFullscreenState();
+
+    return () => {
+      document.body.classList.remove('game-active');
+      document.removeEventListener('fullscreenchange', updateFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', updateFullscreenState as EventListener);
+    };
+  }, []);
 
   const handleExitFullscreen = useCallback(() => {
     if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
@@ -35,6 +92,32 @@ export const GameView: React.FC<GameViewProps> = ({
       }
     }
   }, []);
+
+  // Retry scores that were banked locally during a connection interruption.
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId) return;
+
+    let cancelled = false;
+    const flush = async () => {
+      const saved = await flushQueuedScores(userId);
+      if (cancelled || saved.size === 0) return;
+      const currentResult = saved.get(runId);
+      if (currentResult) {
+        setSubmissionResult(currentResult);
+        setSaveState('saved');
+        setSaveMessage(currentResult.status === 'duplicate' ? 'Run already banked.' : 'Run banked.');
+      }
+      await refreshCoins();
+    };
+
+    void flush();
+    window.addEventListener('online', flush);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', flush);
+    };
+  }, [refreshCoins, runId, session?.user.id]);
 
   // Start background music on mount / user interaction
   useEffect(() => {
@@ -64,43 +147,94 @@ export const GameView: React.FC<GameViewProps> = ({
       const data = event.data;
       if (!data || typeof data !== 'object') return;
 
+      const frameWindow = unityEmbedRef.current?.getContentWindow();
+      if (event.origin !== window.location.origin || event.source !== frameWindow) return;
+
       const type = String(data.type || '').toLowerCase();
 
       if (type === 'gamestart' || type === 'start') {
         setGameOverPayload(null);
+        setSaveState('idle');
+        setSaveMessage('');
+        setSubmissionResult(null);
       }
 
       if (type === 'gameover') {
+        if (String(data.run_id || '') !== runId || handledRunRef.current === runId) return;
+
+        const metric = (value: unknown): number | null => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+        };
+        const score = metric(data.score);
+        const coins = metric(data.coins);
+        const pills = metric(data.pills);
+        const bonus = metric(data.bonus);
+        const distance = metric(data.distance);
+        const duration = metric(data.duration);
+        if (score == null || coins == null || pills == null || bonus == null || distance == null || duration == null) {
+          console.warn('[GameView] Rejected invalid game-over telemetry.');
+          return;
+        }
+
         const payload: GameOverPayload = {
           type: 'gameover',
-          score: Number(data.score) || 0,
-          coins: Number(data.coins) || 0,
-          pills: Number(data.pills) || 0,
-          distance: Number(data.distance) || 0,
-          duration: Number(data.duration) || 0,
+          run_id: runId,
+          score,
+          coins,
+          pills,
+          bonus,
+          distance,
+          duration: Math.max(1, duration),
           reason: String(data.reason || 'police'),
         };
 
+        handledRunRef.current = runId;
         setGameOverPayload(payload);
+        setSubmissionResult(null);
         bgmEngine.stop();
 
-        // Submit score to Supabase
+        const userId = session?.user.id;
+        if (!userId) {
+          setSaveState('error');
+          setSaveMessage('Your session expired. Sign in again to save this run.');
+          return;
+        }
+
+        queueScore(userId, payload);
+        setSaveState('saving');
+        setSaveMessage('Banking run…');
         try {
-          await submitScore(payload);
+          const result = await submitScore(payload);
+          removeQueuedScore(userId, runId);
+          setSubmissionResult(result);
+          setSaveState('saved');
+          setSaveMessage(result.status === 'duplicate' ? 'Run already banked.' : 'Run banked.');
           await refreshCoins();
         } catch (err) {
           console.error('[GameView] Failed to submit score:', err);
+          if (err instanceof ScoreSubmissionError && !err.retryable) {
+            removeQueuedScore(userId, runId);
+            setSaveState('error');
+          } else {
+            setSaveState('queued');
+          }
+          setSaveMessage(err instanceof Error ? err.message : 'Run saved on this device and will retry online.');
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [carId, refreshCoins]);
+  }, [refreshCoins, runId, session?.user.id]);
 
   const handlePlayAgain = () => {
     setGameOverPayload(null);
-    setRunKey((prev) => prev + 1);
+    setSaveState('idle');
+    setSaveMessage('');
+    setSubmissionResult(null);
+    handledRunRef.current = null;
+    setRunId(createRunId());
     bgmEngine.start();
   };
 
@@ -135,6 +269,21 @@ export const GameView: React.FC<GameViewProps> = ({
         </div>
 
         <div className="floating-hud-right">
+          {!isFullscreen && canFullscreenDisplay() && (
+            <button
+              id="enter-fullscreen-btn"
+              className="floating-hud-btn"
+              onClick={() => {
+                navigator.vibrate?.(10);
+                unityEmbedRef.current?.triggerFullscreen();
+              }}
+              title="Enter Full Screen"
+              aria-label="Enter Full Screen"
+            >
+              <Maximize2 size={16} />
+            </button>
+          )}
+
           <button
             id="toggle-music-btn"
             className="floating-hud-btn"
@@ -159,17 +308,29 @@ export const GameView: React.FC<GameViewProps> = ({
       <div className="game-canvas-wrapper">
         <UnityEmbed
           ref={unityEmbedRef}
-          key={runKey}
-          token={session?.access_token || ''}
+          key={runId}
+          runId={runId}
           username={profile?.username || ''}
           displayName={profile?.display_name || ''}
           carId={carId}
         />
 
+        <div className="mobile-control-hint" role="status">
+          <span>Swipe to steer</span>
+          <span>Up to jump</span>
+          <span>Down to brake</span>
+          <span>Double-tap to boost</span>
+        </div>
+
+        <div className="portrait-game-hint" role="status">Rotate for a wider road view</div>
+
         {/* Game Over Result Overlay */}
         {gameOverPayload && (
           <ResultOverlay
             payload={gameOverPayload}
+            saveState={saveState}
+            saveMessage={saveMessage}
+            submissionResult={submissionResult}
             onPlayAgain={handlePlayAgain}
             onViewLeaderboard={() => {
               handleExitFullscreen();
@@ -185,7 +346,9 @@ export const GameView: React.FC<GameViewProps> = ({
           top: 0;
           left: 0;
           width: 100vw;
+          height: 100vh;
           height: 100dvh;
+          height: var(--app-height, 100dvh);
           margin: 0;
           padding: 0;
           background: #000000;
@@ -213,6 +376,11 @@ export const GameView: React.FC<GameViewProps> = ({
           justify-content: space-between;
           z-index: 20;
           pointer-events: none;
+        }
+
+        .mobile-control-hint,
+        .portrait-game-hint {
+          display: none;
         }
 
         .floating-hud-left,
@@ -281,16 +449,16 @@ export const GameView: React.FC<GameViewProps> = ({
           color: #ffffff;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 600px), (max-height: 520px) and (pointer: coarse) {
           .floating-game-hud {
             top: max(6px, env(safe-area-inset-top));
             left: max(6px, env(safe-area-inset-left));
             right: max(6px, env(safe-area-inset-right));
           }
           .floating-hud-btn {
-            height: 34px;
-            padding: 0 8px;
-            min-width: 34px;
+            height: 44px;
+            padding: 0 12px;
+            min-width: 44px;
           }
           .back-garage-btn span {
             display: none;
@@ -298,6 +466,64 @@ export const GameView: React.FC<GameViewProps> = ({
           .floating-car-indicator {
             display: none;
           }
+
+          .mobile-control-hint {
+            position: absolute;
+            left: 50%;
+            bottom: max(12px, env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            z-index: 18;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 5px 10px;
+            width: min(340px, calc(100vw - 20px));
+            padding: 8px 12px;
+            overflow: hidden;
+            border-radius: 14px;
+            color: #ffffff;
+            background: rgba(12, 12, 12, 0.78);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
+            white-space: normal;
+            pointer-events: none;
+            animation: control-hint-out 6s ease-out forwards;
+          }
+
+          .mobile-control-hint span + span::before {
+            content: none;
+          }
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+          .portrait-game-hint {
+            position: absolute;
+            top: max(58px, calc(env(safe-area-inset-top) + 54px));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 18;
+            display: block;
+            padding: 7px 12px;
+            border-radius: var(--pill);
+            background: rgba(12, 12, 12, 0.74);
+            color: #ffffff;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3);
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+            pointer-events: none;
+          }
+        }
+
+        @keyframes control-hint-out {
+          0%, 72% { opacity: 1; }
+          100% { opacity: 0; visibility: hidden; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mobile-control-hint { animation: none; }
         }
       `}</style>
     </div>

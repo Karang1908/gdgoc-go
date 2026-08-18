@@ -1,19 +1,21 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { exitFullscreenDisplay, requestFullscreenDisplay } from '../lib/gameDisplay';
 
 export interface UnityEmbedHandle {
   triggerFullscreen: () => void;
   exitFullscreen: () => void;
+  getContentWindow: () => Window | null;
 }
 
 interface UnityEmbedProps {
-  token: string;
+  runId: string;
   username: string;
   displayName: string;
   carId: string;
 }
 
 export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
-  token,
+  runId,
   username,
   displayName,
   carId,
@@ -22,7 +24,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const queryParams = new URLSearchParams({
-    token: token || '',
+    run: runId,
     u: username || '',
     dn: displayName || '',
     car: carId || 'sports',
@@ -31,43 +33,30 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const src = `/Build/index.html?${queryParams.toString()}`;
 
   const triggerFullscreen = () => {
-    const target = containerRef.current || iframeRef.current;
+    const target = containerRef.current?.closest('.game-view-container') as HTMLElement | null ||
+      containerRef.current || iframeRef.current;
     if (target) {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-        if (target.requestFullscreen) {
-          target.requestFullscreen().catch((err) => {
-            console.warn('[UnityEmbed] Fullscreen request warning:', err);
-          });
-        } else if ((target as any).webkitRequestFullscreen) {
-          (target as any).webkitRequestFullscreen();
-        } else if ((target as any).msRequestFullscreen) {
-          (target as any).msRequestFullscreen();
-        }
-      }
+      void requestFullscreenDisplay(target);
     }
 
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, window.location.origin);
     }
+
   };
 
   const exitFullscreen = () => {
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
+    void exitFullscreenDisplay();
 
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, window.location.origin);
     }
   };
 
   useImperativeHandle(ref, () => ({
     triggerFullscreen,
     exitFullscreen,
+    getContentWindow: () => iframeRef.current?.contentWindow || null,
   }));
 
   // Automatically focus the iframe on mount so keyboard and touch controls work immediately

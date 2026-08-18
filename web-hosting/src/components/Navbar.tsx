@@ -1,11 +1,12 @@
 import React from 'react';
-import { Gamepad2, Trophy, Sun, Moon, LogOut, User, Coins } from 'lucide-react';
+import { CircleHelp, Gamepad2, Trophy, Sun, Moon, LogOut, User, Coins } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { AppRoute } from '../lib/routes';
 
 interface NavbarProps {
-  currentRoute: 'home' | 'leaderboard';
-  navigate: (route: 'home' | 'leaderboard') => void;
+  currentRoute: AppRoute;
+  navigate: (route: AppRoute) => void;
   onOpenAuth: () => void;
 }
 
@@ -21,11 +22,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="appbar">
       <div className="appbar-content">
         {/* Left: Brand Lockup with Logo and GDGoC Go! */}
-        <div
+        <button
+          type="button"
           className="brand"
           onClick={() => navigate('home')}
-          role="button"
-          tabIndex={0}
           aria-label="GDGoC Go Home"
         >
           {/* Desktop full logo */}
@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="brand-divider" />
           <span className="brand-title">GDGoC Go!</span>
-        </div>
+        </button>
 
         {/* Center/Nav: Pill Navigation & Actions */}
         <nav className="nav-actions">
@@ -71,6 +71,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Trophy size={17} />
             <span className="nav-pill-label">Leaderboard</span>
+          </button>
+
+          <button
+            id="nav-controls-btn"
+            className={`nav-pill controls-nav-pill ${currentRoute === 'controls' ? 'active' : ''}`}
+            onClick={() => navigate('controls')}
+            aria-label="How to Play"
+            title="How to Play"
+          >
+            <CircleHelp size={17} />
+            <span className="nav-pill-label">How to Play</span>
           </button>
 
           {/* Cumulative Wallet Chips */}
@@ -152,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           position: sticky;
           top: 0;
           z-index: 100;
-          height: 56px;
+          height: 64px;
           width: 100%;
           flex-shrink: 0;
           box-sizing: border-box;
@@ -179,6 +190,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           cursor: pointer;
           user-select: none;
           flex-shrink: 0;
+          border: 0;
+          background: transparent;
+          text-align: left;
         }
 
         .logo-desktop.logo-light {
@@ -426,11 +440,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         @media (max-width: 600px) {
           .appbar {
-            height: 50px;
+            height: calc(60px + env(safe-area-inset-top, 0px));
             padding-top: env(safe-area-inset-top, 0px);
           }
           .appbar-content {
-            padding: 0 10px;
+            height: 60px;
+            padding: 0 8px;
             gap: 6px;
           }
           .brand {
@@ -445,38 +460,66 @@ export const Navbar: React.FC<NavbarProps> = ({
           }
           .nav-actions {
             gap: 4px;
+            min-width: 0;
           }
           .nav-pill {
-            padding: 0 8px;
-            height: 32px;
+            display: none;
           }
-          .nav-pill-label {
+          .nav-pill.controls-nav-pill {
+            display: inline-flex;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            justify-content: center;
+            padding: 0;
+          }
+          .controls-nav-pill .nav-pill-label {
             display: none;
           }
           .theme-toggle-btn {
-            width: 32px;
-            height: 32px;
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
           }
           .nav-signin-btn {
-            height: 32px;
-            padding: 0 10px;
+            height: 44px;
+            padding: 0 12px;
             font-size: 0.78rem;
           }
           .wallet-chip.standard {
             display: none;
           }
           .wallet-chip.gdg {
-            height: 30px;
-            padding: 0 6px;
+            height: 36px;
+            padding: 0 8px;
             font-size: 0.72rem;
           }
           .user-profile-pill {
-            padding: 0 2px 0 6px;
-            height: 32px;
+            padding: 0 0 0 8px;
+            height: 44px;
           }
+          .signout-icon-btn { width: 44px; height: 44px; }
           .user-username {
             max-width: 50px;
           }
+        }
+
+        @media (max-width: 480px) {
+          .brand-title { display: none; }
+          .coin-label { display: none; }
+        }
+
+        @media (max-width: 380px) {
+          .user-text-stack { display: none; }
+          .user-profile-pill { padding-left: 7px; gap: 2px; }
+          .coin-label { display: none; }
+        }
+
+        @media (pointer: coarse) {
+          .nav-pill,
+          .theme-toggle-btn,
+          .nav-signin-btn,
+          .signout-icon-btn { min-height: 44px; }
         }
       `}</style>
     </header>

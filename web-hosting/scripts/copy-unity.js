@@ -26,7 +26,12 @@ const cleanIndexHtml = `<!DOCTYPE html>
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background: #080B12;
+        background: #000000;
+        touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
       #unity-container {
         width: 100%;
@@ -34,15 +39,69 @@ const cleanIndexHtml = `<!DOCTYPE html>
         position: absolute;
         top: 0;
         left: 0;
+        touch-action: none;
       }
       #unity-canvas {
         width: 100%;
         height: 100%;
-        background: #080B12;
+        background: #000000;
         display: block;
+        touch-action: none;
       }
       #unity-footer, #unity-fullscreen-button, #unity-build-title, #unity-logo-title-footer {
         display: none !important;
+      }
+      #unity-loading-bar {
+        position: absolute !important;
+        inset: 0 !important;
+        z-index: 10;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        width: 100% !important;
+        height: 100% !important;
+        background: #101114;
+      }
+      #unity-logo { display: none !important; }
+      .gdg-loading-mark {
+        display: grid;
+        grid-template-columns: repeat(4, 12px);
+        gap: 6px;
+      }
+      .gdg-loading-mark span {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .gdg-loading-mark span:nth-child(1) { background: #4285f4; }
+      .gdg-loading-mark span:nth-child(2) { background: #ea4335; }
+      .gdg-loading-mark span:nth-child(3) { background: #fbbc04; }
+      .gdg-loading-mark span:nth-child(4) { background: #34a853; }
+      .gdg-loading-title {
+        color: #ffffff;
+        font: 700 clamp(20px, 5vw, 28px)/1.1 system-ui, -apple-system, sans-serif;
+        letter-spacing: -0.02em;
+      }
+      .gdg-loading-copy {
+        color: #bdc1c6;
+        font: 500 13px/1.4 system-ui, -apple-system, sans-serif;
+      }
+      #unity-progress-bar-empty {
+        width: min(240px, calc(100vw - 64px)) !important;
+        height: 8px !important;
+        margin: 2px 0 0 !important;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #303134 !important;
+      }
+      #unity-progress-bar-full {
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: inherit;
+        background: #4285f4 !important;
+        transition: width 120ms ease-out;
       }
     </style>
   </head>
@@ -50,7 +109,11 @@ const cleanIndexHtml = `<!DOCTYPE html>
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas" tabindex="-1"></canvas>
       <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
+        <div class="gdg-loading-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="gdg-loading-title">GDGoC Go!</div>
+        <div class="gdg-loading-copy">Loading the chase…</div>
         <div id="unity-progress-bar-empty">
           <div id="unity-progress-bar-full"></div>
         </div>
@@ -81,6 +144,8 @@ const cleanIndexHtml = `<!DOCTYPE html>
 
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/Build.loader.js";
+      var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      var mobilePixelRatio = window.innerWidth >= 768 ? 1.25 : 1;
       var config = {
         arguments: [],
         dataUrl: buildUrl + "/Build.data.unityweb",
@@ -91,12 +156,15 @@ const cleanIndexHtml = `<!DOCTYPE html>
         productName: "GDG Go",
         productVersion: "1.0",
         showBanner: unityShowBanner,
+        devicePixelRatio: coarsePointer
+          ? Math.min(window.devicePixelRatio || 1, mobilePixelRatio)
+          : Math.min(window.devicePixelRatio || 1, 2),
       };
 
       canvas.style.width = "100%";
       canvas.style.height = "100%";
 
-      document.querySelector("#unity-loading-bar").style.display = "block";
+      document.querySelector("#unity-loading-bar").style.display = "flex";
 
       var script = document.createElement("script");
       script.src = loaderUrl;
@@ -107,7 +175,18 @@ const cleanIndexHtml = `<!DOCTYPE html>
           window.unityInstance = unityInstance;
           document.querySelector("#unity-loading-bar").style.display = "none";
 
+          // Web Audio starts suspended on iOS and many Android browsers until a gesture.
+          function resumeAudio() {
+            if (typeof WEBAudio !== 'undefined' && WEBAudio.audioContext && WEBAudio.audioContext.state === 'suspended') {
+              WEBAudio.audioContext.resume();
+            }
+          }
+          window.addEventListener('touchstart', resumeAudio, { passive: true });
+          window.addEventListener('touchend', resumeAudio, { passive: true });
+          window.addEventListener('click', resumeAudio, { passive: true });
+
           window.addEventListener("message", (event) => {
+            if (event.origin !== window.location.origin || event.source !== window.parent) return;
             if (event.data && event.data.type === "unityFullscreen") {
               try { unityInstance.SetFullscreen(1); } catch(e) {}
             } else if (event.data && event.data.type === "unityExitFullscreen") {
@@ -141,7 +220,7 @@ if (fs.existsSync(srcDir) && fs.readdirSync(srcDir).length > 0) {
   const styleCssPath = path.join(destDir, 'TemplateData/style.css');
   if (fs.existsSync(styleCssPath)) {
     let styleCss = fs.readFileSync(styleCssPath, 'utf8');
-    styleCss += `\n#unity-footer, #unity-fullscreen-button, #unity-build-title, #unity-logo-title-footer { display: none !important; }\n#unity-container.unity-desktop { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; transform: none !important; }\n#unity-canvas { width: 100% !important; height: 100% !important; }\n`;
+    styleCss += `\n#unity-footer, #unity-fullscreen-button, #unity-build-title, #unity-logo-title-footer { display: none !important; }\n#unity-container.unity-desktop { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; transform: none !important; touch-action: none !important; }\n#unity-canvas { width: 100% !important; height: 100% !important; touch-action: none !important; }\n`;
     fs.writeFileSync(styleCssPath, styleCss, 'utf8');
   }
 

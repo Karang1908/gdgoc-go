@@ -2,9 +2,11 @@ import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 
 export interface GameOverPayload {
   type: 'gameover';
+  run_id: string;
   score: number;
   coins: number;
   pills?: number;
+  bonus?: number;
   distance: number;
   duration: number;
   reason?: 'police' | 'fuel' | string;
@@ -18,148 +20,182 @@ export interface ScoreRow {
   score: number;
   coins: number;
   pills?: number;
+  gdg_coins?: number;
+  bonus_score?: number;
+  run_id?: string;
   distance: number;
   duration_seconds: number;
   created_at: string;
 }
 
-/**
- * Submits the completed run score to Supabase scores table.
- * Accurately calculates and synchronizes exact cumulative GDG coins to the leaderboard table.
- */
-export async function submitScore(payload: GameOverPayload): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session || !session.user) {
-    console.warn('[API] Cannot submit score: No active user session.');
-    return;
+export interface ScoreSubmissionResult {
+  status: 'saved' | 'duplicate';
+  scoreId: string;
+  isPersonalBest: boolean;
+  bestScore: number;
+  totalCoins: number;
+  totalGdgCoins: number;
+  bestDistance: number;
+  totalGames: number;
+  rank: number | null;
+}
+
+export class ScoreSubmissionError extends Error {
+  constructor(message: string, public retryable = true, public code?: string) {
+    super(message);
+    this.name = 'ScoreSubmissionError';
+  }
+}
+
+const RUN_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PENDING_SCORES_KEY = 'gdg-go:pending-scores:v1';
+
+interface PendingScore {
+  userId: string;
+  payload: GameOverPayload;
+  queuedAt: string;
+}
+
+function wholeNumber(value: number, label: string, minimum = 0): number {
+  if (!Number.isFinite(value)) {
+    throw new ScoreSubmissionError(`${label} was not a valid number.`, false, 'invalid_payload');
+  }
+  const rounded = Math.round(value);
+  if (rounded < minimum) {
+    throw new ScoreSubmissionError(`${label} was outside the allowed range.`, false, 'invalid_payload');
+  }
+  return rounded;
+}
+
+function normalizeScorePayload(payload: GameOverPayload): GameOverPayload {
+  if (!RUN_ID_PATTERN.test(payload.run_id)) {
+    throw new ScoreSubmissionError('This run did not have a valid identity.', false, 'invalid_run_id');
   }
 
-  // 1. Query current total GDG coins prior to trigger recomputation
-  let currentGdgCoins = 0;
-  try {
-    const { data: currentLead } = await supabase
-      .from('leaderboard')
-      .select('total_gdg_coins')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-    if (currentLead && typeof currentLead.total_gdg_coins === 'number') {
-      currentGdgCoins = currentLead.total_gdg_coins;
-    }
-  } catch (leadErr) {
-    console.warn('[API] Current leaderboard GDG coins query warning:', leadErr);
-  }
-
-  // 2. Ensure user profile exists in public.users to satisfy stamp_score_identity trigger
-  const fallbackName = session.user.email?.split('@')[0] || 'driver';
-  let username = fallbackName;
-  let displayName = fallbackName;
-
-  try {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('username, display_name')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
-    if (profile?.username) {
-      username = profile.username;
-      displayName = profile.display_name || profile.username;
-    } else {
-      await supabase.from('users').upsert({
-        id: session.user.id,
-        username: fallbackName,
-        display_name: fallbackName,
-      });
-    }
-  } catch (profileErr) {
-    console.warn('[API] Profile verification warning:', profileErr);
-  }
-
-  // 3. Sanitize and bound parameters to satisfy PostgreSQL check constraints
-  const distance = Math.max(0, Math.round(payload.distance));
-  const coins = Math.max(0, Math.round(payload.coins));
-  const pills = Math.max(0, Math.round(payload.pills || 0));
-  const minScore = distance * 2 + coins + pills * 25;
-  const score = Math.max(minScore, Math.round(payload.score));
-  
-  // Ensure duration_seconds satisfies: duration_seconds = 0 or distance <= duration_seconds * 70
-  const minDurationForDistance = Math.ceil(distance / 65);
-  const rawDuration = Math.round(payload.duration) || 1;
-  const duration_seconds = Math.max(minDurationForDistance, Math.max(1, rawDuration));
-
-  const scorePayload = {
-    user_id: session.user.id,
-    username,
-    display_name: displayName,
-    score,
-    coins,
-    distance,
-    duration_seconds,
+  const normalized: GameOverPayload = {
+    type: 'gameover',
+    run_id: payload.run_id,
+    score: wholeNumber(payload.score, 'Score'),
+    coins: wholeNumber(payload.coins, 'Coin count'),
+    pills: wholeNumber(payload.pills || 0, 'GDG coin count'),
+    bonus: wholeNumber(payload.bonus || 0, 'Bonus score'),
+    distance: wholeNumber(payload.distance, 'Distance'),
+    duration: wholeNumber(payload.duration, 'Duration', 1),
+    reason: payload.reason || 'police',
   };
 
-  console.log('[API] Committing verified score:', scorePayload);
+  return normalized;
+}
 
-  // 4. First attempt: Use official Supabase client
-  let inserted = false;
+function readPendingScores(): PendingScore[] {
   try {
-    const { data, error } = await supabase
-      .from('scores')
-      .insert([scorePayload])
-      .select();
+    const parsed = JSON.parse(localStorage.getItem(PENDING_SCORES_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
-    if (!error && data) {
-      console.log('[API] Score committed successfully via Supabase client:', data);
-      inserted = true;
-    } else if (error) {
-      console.warn('[API] Supabase client insert returned error, attempting REST fallback:', error.message);
-    }
-  } catch (clientErr) {
-    console.warn('[API] Supabase client insert threw exception, attempting REST fallback:', clientErr);
+function writePendingScores(scores: PendingScore[]): void {
+  try {
+    localStorage.setItem(PENDING_SCORES_KEY, JSON.stringify(scores.slice(-20)));
+  } catch {
+    // A full or disabled local store should not prevent the current online attempt.
+  }
+}
+
+export function queueScore(userId: string, payload: GameOverPayload): void {
+  const pending = readPendingScores().filter(
+    (item) => !(item.userId === userId && item.payload?.run_id === payload.run_id),
+  );
+  pending.push({ userId, payload, queuedAt: new Date().toISOString() });
+  writePendingScores(pending);
+}
+
+export function removeQueuedScore(userId: string, runId: string): void {
+  writePendingScores(readPendingScores().filter(
+    (item) => !(item.userId === userId && item.payload?.run_id === runId),
+  ));
+}
+
+/**
+ * Submits a run through the database-owned RPC. The run UUID is unique per user,
+ * so a network retry can never create a second score or double-count the wallet.
+ */
+export async function submitScore(payload: GameOverPayload): Promise<ScoreSubmissionResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session || !session.user) {
+    throw new ScoreSubmissionError('Your session expired. Sign in again to save this run.', true, 'no_session');
   }
 
-  // 5. Fallback attempt: Direct authenticated REST endpoint fetch
-  if (!inserted) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation',
-        },
-        body: JSON.stringify(scorePayload),
-      });
+  const run = normalizeScorePayload(payload);
+  const { data, error } = await supabase.rpc('submit_game_score', {
+    p_run_id: run.run_id,
+    p_score: run.score,
+    p_coins: run.coins,
+    p_pills: run.pills || 0,
+    p_bonus_score: run.bonus || 0,
+    p_distance: run.distance,
+    p_duration_seconds: run.duration,
+  });
 
-      if (res.ok) {
-        const result = await res.json();
-        console.log('[API] Score committed successfully via REST fallback:', result);
-        inserted = true;
-      } else {
-        const errorText = await res.text();
-        console.warn('[API] Score submission REST fallback status ' + res.status + ':', errorText);
+  if (error) {
+    const migrationMissing = error.code === 'PGRST202' || /submit_game_score/i.test(error.message || '');
+    const permanentCodes = new Set(['22003', '23502', '23514']);
+    throw new ScoreSubmissionError(
+      migrationMissing
+        ? 'Score saving is being upgraded. This run will retry automatically.'
+        : (error.message || 'This run could not be saved yet.'),
+      migrationMissing || !permanentCodes.has(error.code || ''),
+      error.code,
+    );
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.score_id) {
+    throw new ScoreSubmissionError('The score server returned an incomplete result.', true, 'empty_result');
+  }
+
+  return {
+    status: row.submission_status === 'duplicate' ? 'duplicate' : 'saved',
+    scoreId: String(row.score_id),
+    isPersonalBest: Boolean(row.is_personal_best),
+    bestScore: Number(row.best_score) || run.score,
+    totalCoins: Number(row.total_coins) || 0,
+    totalGdgCoins: Number(row.total_gdg_coins) || 0,
+    bestDistance: Number(row.best_distance) || 0,
+    totalGames: Number(row.total_games) || 0,
+    rank: row.rank == null ? null : Number(row.rank),
+  };
+}
+
+const activeScoreFlushes = new Map<string, Promise<Map<string, ScoreSubmissionResult>>>();
+
+export function flushQueuedScores(userId: string): Promise<Map<string, ScoreSubmissionResult>> {
+  const existingFlush = activeScoreFlushes.get(userId);
+  if (existingFlush) return existingFlush;
+
+  const flush = (async () => {
+    const saved = new Map<string, ScoreSubmissionResult>();
+    const pending = readPendingScores().filter((item) => item.userId === userId);
+
+    for (const item of pending) {
+      try {
+        const result = await submitScore(item.payload);
+        removeQueuedScore(userId, item.payload.run_id);
+        saved.set(item.payload.run_id, result);
+      } catch (error) {
+        if (error instanceof ScoreSubmissionError && !error.retryable) {
+          removeQueuedScore(userId, item.payload.run_id);
+        }
       }
-    } catch (fetchErr) {
-      console.warn('[API] Score submission REST request failed:', fetchErr);
     }
-  }
 
-  // 6. Synchronize exact cumulative GDG Coins onto public.leaderboard
-  try {
-    const exactGdgCoins = currentGdgCoins + pills;
-    const { error: updateErr } = await supabase
-      .from('leaderboard')
-      .update({ total_gdg_coins: exactGdgCoins })
-      .eq('user_id', session.user.id);
+    return saved;
+  })().finally(() => activeScoreFlushes.delete(userId));
 
-    if (!updateErr) {
-      console.log(`[API] Successfully synced leaderboard total_gdg_coins to ${exactGdgCoins}`);
-    } else {
-      console.warn('[API] Warning syncing leaderboard total_gdg_coins:', updateErr.message);
-    }
-  } catch (syncErr) {
-    console.warn('[API] Exception updating leaderboard total_gdg_coins:', syncErr);
-  }
+  activeScoreFlushes.set(userId, flush);
+  return flush;
 }
 
 /**
@@ -173,7 +209,7 @@ export async function fetchLeaderboard(limit = 100): Promise<ScoreRow[]> {
   try {
     const { data, error } = await supabase
       .from('scores')
-      .select('id, user_id, username, display_name, score, coins, distance, duration_seconds, created_at')
+      .select('id, user_id, username, display_name, run_id, score, coins, pills, gdg_coins, bonus_score, distance, duration_seconds, created_at')
       .order('score', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(fetchLimit);
@@ -191,7 +227,7 @@ export async function fetchLeaderboard(limit = 100): Promise<ScoreRow[]> {
   // 2. Fallback to direct REST API
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/scores?select=id,user_id,username,display_name,score,coins,distance,duration_seconds,created_at&order=score.desc,created_at.asc&limit=${fetchLimit}`,
+      `${SUPABASE_URL}/rest/v1/scores?select=id,user_id,username,display_name,run_id,score,coins,pills,gdg_coins,bonus_score,distance,duration_seconds,created_at&order=score.desc,created_at.asc&limit=${fetchLimit}`,
       {
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -233,6 +269,15 @@ function deduplicateLeaderboard(rows: ScoreRow[], limit: number): ScoreRow[] {
   return uniqueScores;
 }
 
+function getRunGdgCoins(row: ScoreRow): number {
+  const pills = Math.max(0, Number(row.pills) || 0);
+  const exactGdgCoins = Math.max(0, Number(row.gdg_coins) || 0);
+  if (row.run_id) return pills;
+  if (pills > 0) return pills;
+  if (exactGdgCoins > 0) return exactGdgCoins;
+  return Math.max(1, Math.floor((Number(row.coins) || 0) / 15));
+}
+
 export interface DriverStats {
   userId?: string;
   username: string;
@@ -247,7 +292,6 @@ export interface DriverStats {
 }
 
 /**
-/**
  * Fetches the global leaderboard with aggregated cumulative coins & GDG coins.
  */
 export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[]> {
@@ -256,11 +300,12 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
     const { data, error } = await supabase
       .from('leaderboard')
       .select('user_id, username, display_name, best_score, total_coins, total_gdg_coins, best_distance, total_games, rank, last_played')
-      .order('best_score', { ascending: false })
+      .not('rank', 'is', null)
+      .order('rank', { ascending: true })
       .limit(limit);
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data.map((row: any, idx: number) => ({
+      return data.map((row: any) => ({
         userId: row.user_id || undefined,
         username: row.username || 'driver',
         displayName: row.display_name || row.username || 'Driver',
@@ -268,8 +313,8 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
         totalCoins: Number(row.total_coins) || 0,
         totalGdgCoins: Number(row.total_gdg_coins) || 0,
         bestDistance: Number(row.best_distance) || 0,
-        totalGames: Number(row.total_games) || 1,
-        rank: Number(row.rank) || (idx + 1),
+        totalGames: Number(row.total_games) || 0,
+        rank: row.rank == null ? undefined : Number(row.rank),
         lastPlayed: row.last_played || new Date().toISOString(),
       }));
     }
@@ -284,7 +329,7 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
   try {
     const { data, error } = await supabase
       .from('scores')
-      .select('id, user_id, username, display_name, score, coins, distance, duration_seconds, created_at')
+      .select('id, user_id, username, display_name, run_id, score, coins, pills, gdg_coins, bonus_score, distance, duration_seconds, created_at')
       .order('score', { ascending: false })
       .limit(fetchLimit);
 
@@ -298,7 +343,7 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
   if (allRows.length === 0) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/scores?select=id,user_id,username,display_name,score,coins,distance,duration_seconds,created_at&order=score.desc&limit=${fetchLimit}`,
+        `${SUPABASE_URL}/rest/v1/scores?select=id,user_id,username,display_name,run_id,score,coins,pills,gdg_coins,bonus_score,distance,duration_seconds,created_at&order=score.desc&limit=${fetchLimit}`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -339,10 +384,7 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
     driver.totalCoins += (Number(row.coins) || 0);
 
     // Cumulative GDG Coins computed from collected pills / coins
-    const gdgEarned = (row as any).pills !== undefined && (row as any).pills !== null
-      ? Number((row as any).pills)
-      : Math.max(0, Math.floor((Number(row.coins) || 0) / 15));
-    driver.totalGdgCoins += gdgEarned;
+    driver.totalGdgCoins += getRunGdgCoins(row);
 
     if (row.score > driver.bestScore) {
       driver.bestScore = Number(row.score) || 0;
@@ -398,7 +440,7 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
           totalGdgCoins: Number(data.total_gdg_coins) || 0,
           bestDistance: Number(data.best_distance) || 0,
           totalGames: Number(data.total_games) || 0,
-          rank: Number(data.rank) || 1,
+          rank: data.rank == null ? undefined : Number(data.rank),
           lastPlayed: data.last_played || lastPlayed,
         };
       }
@@ -407,7 +449,7 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
     // 2. Fallback to scores table
     const query = supabase
       .from('scores')
-      .select('id, user_id, username, display_name, score, coins, pills, distance, created_at');
+      .select('id, user_id, username, display_name, run_id, score, coins, pills, gdg_coins, bonus_score, distance, duration_seconds, created_at');
 
     if (userId) query.eq('user_id', userId);
     else if (username) query.eq('username', username);
@@ -417,10 +459,7 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
       for (const row of data) {
         totalGames += 1;
         totalCoins += (Number(row.coins) || 0);
-        const gdgEarned = (row as any).pills !== undefined && (row as any).pills !== null
-          ? Number((row as any).pills)
-          : Math.max(0, Math.floor((Number(row.coins) || 0) / 15));
-        totalGdgCoins += gdgEarned;
+        totalGdgCoins += getRunGdgCoins(row as ScoreRow);
         if (Number(row.score) > bestScore) bestScore = Number(row.score);
         if (Number(row.distance) > bestDistance) bestDistance = Number(row.distance);
         if (row.display_name) displayName = row.display_name;
@@ -451,7 +490,7 @@ export async function fetchUserBest(userId: string, username?: string): Promise<
   try {
     const query = supabase
       .from('scores')
-      .select('id, user_id, username, display_name, score, coins, distance, duration_seconds, created_at')
+      .select('id, user_id, username, display_name, run_id, score, coins, pills, gdg_coins, bonus_score, distance, duration_seconds, created_at')
       .order('score', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(1);

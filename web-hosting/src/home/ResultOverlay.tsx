@@ -1,40 +1,69 @@
 import React, { useEffect } from 'react';
-import { RotateCcw, Trophy, ArrowRight, ShieldAlert, Fuel, Award, Clock, Coins } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import { GameOverPayload } from '../lib/api';
+import {
+  RotateCcw,
+  Trophy,
+  ArrowRight,
+  ShieldAlert,
+  Fuel,
+  Award,
+  Clock,
+  Coins,
+  CircleCheck,
+  CloudOff,
+  LoaderCircle,
+  TriangleAlert,
+} from 'lucide-react';
+import { GameOverPayload, ScoreSubmissionResult } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import type { ScoreSaveState } from './GameView';
 
 interface ResultOverlayProps {
   payload: GameOverPayload;
+  saveState: ScoreSaveState;
+  saveMessage: string;
+  submissionResult: ScoreSubmissionResult | null;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
 }
 
 export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   payload,
+  saveState,
+  saveMessage,
+  submissionResult,
   onPlayAgain,
   onViewLeaderboard,
 }) => {
   const { userStats, userCoins, userGdgCoins } = useAuth();
   const isBusted = payload.reason === 'police';
-  const isHighscore = userStats?.bestScore ? payload.score > userStats.bestScore : false;
+  const isHighscore = submissionResult?.isPersonalBest ?? payload.score > (userStats?.bestScore || 0);
 
   useEffect(() => {
     if (isHighscore || payload.score >= 1000) {
-      try {
+      void import('canvas-confetti').then(({ default: confetti }) => {
         confetti({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 },
           colors: ['#4285F4', '#EA4335', '#FBBC04', '#34A853'],
         });
-      } catch (err) {}
+      }).catch(() => {});
     }
   }, [isHighscore, payload.score]);
 
   const runGdgCoins = Number(payload.pills) || 0;
-  const displayTotalCoins = (userCoins || 0) + payload.coins;
-  const displayTotalGdg = (userGdgCoins || 0) + runGdgCoins;
+  const runIsPending = saveState === 'saving' || saveState === 'queued';
+  const displayTotalCoins = submissionResult?.totalCoins ?? ((userCoins || 0) + (runIsPending ? payload.coins : 0));
+  const displayTotalGdg = submissionResult?.totalGdgCoins ?? ((userGdgCoins || 0) + (runIsPending ? runGdgCoins : 0));
+  const saveIcon = saveState === 'saved'
+    ? <CircleCheck size={14} />
+    : saveState === 'saving'
+      ? <LoaderCircle size={14} className="save-spinner" />
+      : saveState === 'queued'
+        ? <CloudOff size={14} />
+        : saveState === 'error'
+          ? <TriangleAlert size={14} />
+          : <LoaderCircle size={14} className="save-spinner" />;
 
   return (
     <div className="result-backdrop animate-fade-in">
@@ -68,10 +97,13 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             <span className="score-number font-mono">{payload.score.toLocaleString()}</span>
             <span className="score-pts">PTS</span>
           </div>
-          {userStats?.bestScore && (
+          {(submissionResult?.bestScore || userStats?.bestScore) ? (
             <span className="previous-best">
-              Personal Best: {Math.max(userStats.bestScore, payload.score).toLocaleString()}
+              Personal Best: {(submissionResult?.bestScore || Math.max(userStats?.bestScore || 0, payload.score)).toLocaleString()}
             </span>
+          ) : null}
+          {(payload.bonus || 0) > 0 && (
+            <span className="run-bonus">Near-miss bonus: +{payload.bonus?.toLocaleString()}</span>
           )}
         </div>
 
@@ -135,6 +167,11 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           </div>
         </div>
 
+        <div className={`score-save-status ${saveState}`} role={saveState === 'error' ? 'alert' : 'status'}>
+          {saveIcon}
+          <span>{saveMessage || 'Preparing score…'}</span>
+        </div>
+
         {/* Actions */}
         <div className="result-actions">
           <button
@@ -164,6 +201,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           top: 0;
           left: 0;
           width: 100vw;
+          height: 100vh;
           height: 100dvh;
           background: rgba(0, 0, 0, 0.75);
           backdrop-filter: blur(8px);
@@ -183,6 +221,9 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           border: 2px solid var(--border);
           box-shadow: var(--shadow-3);
           overflow: hidden;
+          max-height: calc(100dvh - max(20px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom)));
+          overflow-y: auto;
+          overscroll-behavior: contain;
           text-align: center;
           padding: 0;
         }
@@ -270,6 +311,15 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           font-size: 0.72rem;
           color: var(--text-3);
         }
+
+        .run-bonus {
+          margin-top: 2px;
+          color: #B26A00;
+          font-size: 0.72rem;
+          font-weight: 700;
+        }
+
+        :root[data-theme='dark'] .run-bonus { color: #FFD54F; }
 
         .stats-breakdown-grid {
           display: grid;
@@ -371,12 +421,46 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .action-btn {
-          height: 42px;
+          min-height: 48px;
           font-size: 0.82rem;
           font-weight: 700;
           letter-spacing: 0.03em;
           padding: 0 12px;
           touch-action: manipulation;
+        }
+
+        .score-save-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 28px;
+          margin: -4px 16px 8px;
+          color: var(--text-2);
+          font-size: 0.72rem;
+          font-weight: 700;
+        }
+
+        .score-save-status.saved { color: var(--g-green); }
+        .score-save-status.queued { color: #B26A00; }
+        :root[data-theme='dark'] .score-save-status.queued { color: #FFD54F; }
+        .score-save-status.error { color: var(--danger); }
+
+        .save-spinner { animation: score-save-spin 0.9s linear infinite; }
+
+        @keyframes score-save-spin { to { transform: rotate(360deg); } }
+
+        @media (max-height: 520px) and (orientation: landscape) {
+          .result-backdrop { align-items: flex-start; }
+          .result-card { max-width: 620px; }
+          .result-header { padding-top: 8px; }
+          .result-subtitle { display: none; }
+          .score-hero-box { padding: 6px; }
+          .stats-breakdown-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .save-spinner { animation: none; }
         }
       `}</style>
     </div>

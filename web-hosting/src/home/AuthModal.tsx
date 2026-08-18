@@ -240,6 +240,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           top: 0;
           left: 0;
           width: 100vw;
+          height: 100vh;
           height: 100dvh;
           background: rgba(0, 0, 0, 0.75);
           backdrop-filter: blur(8px);
@@ -260,6 +261,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           border: 2px solid var(--border);
           box-shadow: var(--shadow-3);
           overflow: hidden;
+          max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+          overflow-y: auto;
+          overscroll-behavior: contain;
           padding: 0;
         }
 
@@ -454,6 +458,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           font-size: 0.88rem;
           font-weight: 700;
           touch-action: manipulation;
+        }
+
+        @media (max-width: 600px), (pointer: coarse) {
+          .modal-close-icon-btn {
+            top: 6px;
+            right: 6px;
+            width: 44px;
+            height: 44px;
+          }
+
+          .tab-btn { min-height: 44px; }
+
+          .input-field {
+            height: 48px;
+            font-size: 1rem;
+          }
+
+          .password-toggle-btn {
+            right: 2px;
+            width: 44px;
+            height: 44px;
+          }
+
+          .input-field.with-suffix { padding-right: 48px; }
+          .submit-btn { min-height: 48px; }
         }
       `}</style>
     </div>

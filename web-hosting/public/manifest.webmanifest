@@ -1,14 +1,30 @@
 {
   "name": "GDGoC Go!",
+  "id": "/",
   "short_name": "GDGoC Go!",
   "description": "Outrun the police, dodge city traffic, and climb the live global leaderboard in GDGoC Go!",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
   "categories": ["games", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Play GDGoC Go",
+      "short_name": "Play",
+      "url": "/",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Ranks",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/assets/icon-192.png",

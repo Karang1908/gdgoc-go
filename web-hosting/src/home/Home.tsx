@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Play, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { CarPicker } from './CarPicker';
-import { GameView } from './GameView';
+import { exitFullscreenDisplay, requestFullscreenDisplay } from '../lib/gameDisplay';
+import { AppRoute } from '../lib/routes';
+
+const GameView = lazy(() => import('./GameView').then((module) => ({
+  default: module.GameView,
+})));
 
 interface HomeProps {
-  navigate: (route: 'home' | 'leaderboard') => void;
+  navigate: (route: AppRoute) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
 }
@@ -21,28 +26,24 @@ export const Home: React.FC<HomeProps> = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const handleStartGame = () => {
-    // Attempt native browser fullscreen if supported
     const root = document.getElementById('game-fullscreen-root');
     if (root) {
-      if (root.requestFullscreen) {
-        root.requestFullscreen().catch(() => {});
-      } else if ((root as any).webkitRequestFullscreen) {
-        (root as any).webkitRequestFullscreen();
-      }
+      // Start this before React updates so mobile browsers retain the launch tap.
+      void requestFullscreenDisplay(root);
     }
+    document.body.classList.add('game-active');
     setIsPlaying(true);
   };
 
   const handleBackToGarage = () => {
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
+    void exitFullscreenDisplay();
+    document.body.classList.remove('game-active');
     setIsPlaying(false);
   };
+
+  useEffect(() => () => {
+    document.body.classList.remove('game-active');
+  }, []);
 
   // Unauthenticated landing page
   if (!session) {
@@ -207,10 +208,12 @@ export const Home: React.FC<HomeProps> = ({
 
           @media (max-width: 820px) {
             .hero-landing-container {
-              padding: 6px 12px;
+              padding: 12px;
               align-items: center;
               justify-content: center;
               box-sizing: border-box;
+              overflow-y: auto;
+              overscroll-behavior: contain;
             }
             .hero-split-grid {
               display: flex;
@@ -254,7 +257,7 @@ export const Home: React.FC<HomeProps> = ({
             }
             .hero-cta-btn, .hero-secondary-btn {
               flex: 1 1 0;
-              height: 40px;
+              min-height: 48px;
               padding: 0 8px;
               font-size: 0.78rem;
               font-weight: 700;
@@ -277,14 +280,16 @@ export const Home: React.FC<HomeProps> = ({
     <main className="home-main-content">
       <div id="game-fullscreen-root" className={isPlaying ? 'playing' : 'idle'}>
         {isPlaying ? (
-          <GameView
-            carId={selectedCarId}
-            onBackToGarage={handleBackToGarage}
-            onViewLeaderboard={() => {
-              handleBackToGarage();
-              navigate('leaderboard');
-            }}
-          />
+          <Suspense fallback={<div className="game-module-loading" role="status">Loading chase…</div>}>
+            <GameView
+              carId={selectedCarId}
+              onBackToGarage={handleBackToGarage}
+              onViewLeaderboard={() => {
+                handleBackToGarage();
+                navigate('leaderboard');
+              }}
+            />
+          </Suspense>
         ) : (
           <CarPicker
             selectedCarId={selectedCarId}
@@ -313,16 +318,28 @@ export const Home: React.FC<HomeProps> = ({
 
         #game-fullscreen-root.playing {
           position: fixed;
-          top: 0;
-          left: 0;
+          inset: 0;
           width: 100vw !important;
-          height: 100dvh !important;
+          height: var(--app-height, 100dvh) !important;
+          max-width: none !important;
+          max-height: none !important;
           z-index: 9999;
           background: #000000 !important;
           display: flex !important;
           flex-direction: column !important;
           margin: 0 !important;
           padding: 0 !important;
+        }
+
+        .game-module-loading {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: grid;
+          place-items: center;
+          background: #000000;
+          color: #ffffff;
+          font-weight: 700;
         }
 
         #game-fullscreen-root:fullscreen,
