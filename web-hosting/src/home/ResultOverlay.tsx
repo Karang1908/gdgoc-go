@@ -17,7 +17,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   onViewLeaderboard,
   onSignOut,
 }) => {
-  const { user } = useAuth();
+  const { user, userCoins, userGdgCoins, refreshCoins } = useAuth();
   const [personalBest, setPersonalBest] = useState<ScoreRow | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -35,6 +35,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
       // Confetti fallback
     }
 
+    refreshCoins();
+
     if (user) {
       fetchUserBest(user.id)
         .then((best) => {
@@ -47,7 +49,11 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
     } else {
       setLoadingRecord(false);
     }
-  }, [payload.score, user]);
+  }, [payload.score, user, refreshCoins]);
+
+  // Display accurate total bank balance (using fresh refreshed coins or fallback to run)
+  const displayTotalCoins = userCoins > 0 ? userCoins : payload.coins;
+  const displayTotalGdg = userGdgCoins > 0 ? userGdgCoins : Math.max(1, Math.floor(payload.coins / 15));
 
   return (
     <div className="result-backdrop">
@@ -62,7 +68,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             </div>
           )}
           <h2 className="result-title">POLICE CAUGHT UP!</h2>
-          <p className="result-subtitle">Run Complete — Score Verified & Saved</p>
+          <p className="result-subtitle">Run Complete — Score & Coins Banked</p>
         </div>
 
         {/* Main Score Readout */}
@@ -98,8 +104,18 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
               <Coins size={20} />
             </div>
             <div className="stat-card-details">
-              <span className="stat-name">Coins</span>
-              <span className="stat-value font-display">{payload.coins}</span>
+              <span className="stat-name">Coins Earned</span>
+              <span className="stat-value font-display">+{payload.coins}</span>
+            </div>
+          </div>
+
+          <div className="stat-card gdg-coin-card">
+            <div className="stat-icon-wrap">
+              <img src="/branding/gdg-pill.png" alt="GDG Coin" className="gdg-pill-stat-img" />
+            </div>
+            <div className="stat-card-details">
+              <span className="stat-name">GDG Coins Earned</span>
+              <span className="stat-value font-display gdg-pill-stat-val">+{Math.max(1, Math.floor(payload.coins / 15))}</span>
             </div>
           </div>
 
@@ -111,6 +127,18 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
               <span className="stat-name">Duration</span>
               <span className="stat-value font-display">{payload.duration}s</span>
             </div>
+          </div>
+        </div>
+
+        {/* Cumulative Bank Banner */}
+        <div className="banked-wallet-banner">
+          <span className="banked-label">YOUR TOTAL BANK:</span>
+          <div className="banked-chips">
+            <span className="banked-chip">🟡 {displayTotalCoins.toLocaleString()} coins</span>
+            <span className="banked-chip gdg">
+              <img src="/branding/gdg-pill.png" alt="GDG" className="banked-mini-pill" />
+              {displayTotalGdg.toLocaleString()} GDG
+            </span>
           </div>
         </div>
 
@@ -249,7 +277,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         .stats-breakdown-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 12px;
           margin: 0 28px 24px;
         }
@@ -257,12 +285,30 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         .stat-card {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           padding: 12px 14px;
           background: rgba(0, 0, 0, 0.25);
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-md);
           text-align: left;
+        }
+
+        .stat-card.gdg-coin-card {
+          background: linear-gradient(135deg, rgba(251, 188, 5, 0.12), rgba(234, 67, 53, 0.08));
+          border: 1px solid rgba(251, 188, 5, 0.35);
+          box-shadow: 0 4px 16px rgba(251, 188, 5, 0.15);
+        }
+
+        .gdg-pill-stat-img {
+          width: 28px;
+          height: 28px;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 6px rgba(251, 188, 5, 0.5));
+        }
+
+        .gdg-pill-stat-val {
+          color: var(--google-yellow) !important;
+          text-shadow: 0 0 10px rgba(251, 188, 5, 0.4);
         }
 
         .stat-icon-wrap {
@@ -286,6 +332,59 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           font-size: 1.1rem;
           font-weight: 700;
           color: var(--text-primary);
+        }
+
+        .banked-wallet-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin: 0 28px 20px;
+          padding: 10px 16px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px dashed var(--border-medium);
+          border-radius: var(--radius-md);
+          font-size: 0.85rem;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .banked-label {
+          font-family: var(--font-mono);
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          letter-spacing: 0.05em;
+        }
+
+        .banked-chips {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .banked-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 3px 8px;
+          border-radius: 12px;
+          font-weight: 800;
+          font-size: 0.82rem;
+          background: rgba(251, 188, 5, 0.12);
+          color: #FFD54F;
+          border: 1px solid rgba(251, 188, 5, 0.3);
+        }
+
+        .banked-chip.gdg {
+          background: rgba(66, 133, 244, 0.15);
+          color: #90CAF9;
+          border-color: rgba(66, 133, 244, 0.4);
+        }
+
+        .banked-mini-pill {
+          width: 14px;
+          height: 14px;
+          object-fit: contain;
         }
 
         .result-actions {
