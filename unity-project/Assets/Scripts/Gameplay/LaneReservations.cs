@@ -23,7 +23,7 @@ namespace GDGGo.Gameplay
         private static int _cursor;
 
         /// <summary>Track-distance window within which two props count as "the same place".</summary>
-        public const float BlockingWindowMetres = 9f;
+        public const float BlockingWindowMetres = 20f;
 
         /// <summary>Forgets every reservation. Call when a run starts.</summary>
         public static void Clear()
