@@ -31,8 +31,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const src = `/Build/index.html?${queryParams.toString()}`;
 
   const triggerFullscreen = () => {
-    // 1. Direct synchronous iframe requestFullscreen (Puts the pure Unity game into native fullscreen)
-    const target = iframeRef.current || containerRef.current;
+    const target = containerRef.current || iframeRef.current;
     if (target) {
       if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
         if (target.requestFullscreen) {
@@ -47,17 +46,8 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
       }
     }
 
-    // 2. Also notify Unity WebGL instance inside iframe
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
-      try {
-        const win = iframeRef.current.contentWindow as any;
-        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
-          win.unityInstance.SetFullscreen(1);
-        }
-      } catch {
-        // cross-origin safety
-      }
     }
   };
 
@@ -72,14 +62,6 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
 
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
-      try {
-        const win = iframeRef.current.contentWindow as any;
-        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
-          win.unityInstance.SetFullscreen(0);
-        }
-      } catch {
-        // cross-origin safety
-      }
     }
   };
 
@@ -106,13 +88,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   }, []);
 
   return (
-    <div
-      className="unity-embed-container"
-      ref={containerRef}
-      onClick={() => {
-        triggerFullscreen();
-      }}
-    >
+    <div className="unity-embed-container" ref={containerRef}>
       <iframe
         ref={iframeRef}
         src={src}
@@ -134,7 +110,18 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border-radius: var(--radius-lg);
           overflow: hidden;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
-          cursor: pointer;
+        }
+
+        .unity-embed-container:fullscreen,
+        .unity-embed-container:-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: #080B12 !important;
         }
 
         .unity-iframe {
@@ -146,14 +133,6 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border: none;
           display: block;
           outline: none;
-        }
-
-        .unity-iframe:fullscreen,
-        .unity-iframe:-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-          border: none !important;
-          background: #080B12 !important;
         }
 
         @media (max-width: 768px) {
