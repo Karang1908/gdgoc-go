@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, AlertCircle, Loader2, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Mail, AlertCircle, Loader2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -18,6 +18,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [tab, setTab] = useState<'signup' | 'login'>('signup');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,14 +37,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLocalError('Please enter a username');
       return false;
     }
-    if (username.length < 3) {
+    if (username.trim().length < 3) {
       setLocalError('Username must be at least 3 characters');
       return false;
     }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    if (tab === 'signup' && !/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
       setLocalError('Username can only contain letters, numbers, _, -');
       return false;
     }
+
+    if (tab === 'signup') {
+      if (!displayName.trim()) {
+        setLocalError('Please enter your display name');
+        return false;
+      }
+      if (displayName.trim().length < 2) {
+        setLocalError('Display name must be at least 2 characters');
+        return false;
+      }
+      if (!email.trim()) {
+        setLocalError('Please enter your email address');
+        return false;
+      }
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(email.trim())) {
+        setLocalError('Please enter a valid email address (e.g. name@example.com)');
+        return false;
+      }
+    }
+
     if (!password) {
       setLocalError('Please enter a password');
       return false;
@@ -65,7 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
     try {
       if (tab === 'signup') {
-        await signUp(username.trim(), password, displayName.trim() || '');
+        await signUp(username.trim(), email.trim(), password, displayName.trim());
       } else {
         await signIn(username.trim(), password);
       }
@@ -148,7 +170,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="field">
             <label className="field-label" htmlFor="auth-username">
-              Username
+              {tab === 'signup' ? 'Username' : 'Username or Email'}
             </label>
             <div className="input-wrap">
               <User size={16} className="input-icon" />
@@ -156,35 +178,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 id="auth-username"
                 type="text"
                 className="input-field with-icon"
-                placeholder="e.g. speedster99"
+                placeholder={tab === 'signup' ? 'e.g. speedster99' : 'e.g. speedster99 or alex@example.com'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
+                autoComplete={tab === 'signup' ? 'username' : 'username email'}
                 required
               />
             </div>
-            <span className="input-hint">3–24 chars (letters, numbers, _, -)</span>
+            <span className="input-hint">
+              {tab === 'signup' ? '3–24 chars (letters, numbers, _, -)' : 'Your registered handle or email'}
+            </span>
           </div>
 
           {tab === 'signup' && (
-            <div className="field animate-fade-in">
-              <label className="field-label" htmlFor="auth-display-name">
-                Display Name (Optional)
-              </label>
-              <div className="input-wrap">
-                <User size={16} className="input-icon" />
-                <input
-                  id="auth-display-name"
-                  type="text"
-                  className="input-field with-icon"
-                  placeholder="e.g. Alex Rivera"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  maxLength={24}
-                />
+            <>
+              <div className="field animate-fade-in">
+                <label className="field-label" htmlFor="auth-display-name">
+                  Display Name
+                </label>
+                <div className="input-wrap">
+                  <User size={16} className="input-icon" />
+                  <input
+                    id="auth-display-name"
+                    type="text"
+                    className="input-field with-icon"
+                    placeholder="e.g. Alex Rivera"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    maxLength={24}
+                    required
+                  />
+                </div>
+                <span className="input-hint">Shown publicly on the leaderboard</span>
               </div>
-              <span className="input-hint">Shown publicly on leaderboard</span>
-            </div>
+
+              <div className="field animate-fade-in">
+                <label className="field-label" htmlFor="auth-email">
+                  Email Address
+                </label>
+                <div className="input-wrap">
+                  <Mail size={16} className="input-icon" />
+                  <input
+                    id="auth-email"
+                    type="email"
+                    className="input-field with-icon"
+                    placeholder="e.g. alex@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+                <span className="input-hint">Used for account recovery & score verification</span>
+              </div>
+            </>
           )}
 
           <div className="field">

@@ -7,6 +7,7 @@ export interface UserProfile {
   id: string;
   username: string;
   display_name: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -18,8 +19,8 @@ interface AuthContextType {
   userStats: DriverStats | null;
   loading: boolean;
   error: string | null;
-  signUp: (username: string, password: string, displayName: string) => Promise<void>;
-  signIn: (username: string, password: string) => Promise<void>;
+  signUp: (username: string, email: string, password: string, displayName: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshCoins: () => Promise<void>;
   clearError: () => void;
@@ -68,13 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error: profileErr } = await supabase
         .from('users')
-        .select('id, username, display_name')
+        .select('id, username, display_name, email')
         .eq('id', userId)
         .maybeSingle();
 
       if (profileErr) {
-        console.warn('[Auth] Profile fetch warning:', profileErr.message);
-        return null;
+        // Fallback without email column if table doesn't have it yet
+        const { data: fallbackData } = await supabase
+          .from('users')
+          .select('id, username, display_name')
+          .eq('id', userId)
+          .maybeSingle();
+        return fallbackData as UserProfile;
       }
       return data as UserProfile;
     } catch (e) {
@@ -91,11 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         let userProfile = await fetchProfile(session.user.id);
         if (!userProfile) {
-          const fallbackUsername = session.user.email?.split('@')[0] || 'driver';
+          const fallbackUsername = session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'driver';
           userProfile = {
             id: session.user.id,
             username: fallbackUsername,
-            display_name: fallbackUsername,
+            display_name: session.user.user_metadata?.display_name || fallbackUsername,
+            email: session.user.email || undefined,
           };
           await supabase.from('users').upsert(userProfile);
         }
@@ -118,11 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newSession?.user) {
         let userProfile = await fetchProfile(newSession.user.id);
         if (!userProfile) {
-          const fallbackUsername = newSession.user.email?.split('@')[0] || 'driver';
+          const fallbackUsername = newSession.user.user_metadata?.username || newSession.user.email?.split('@')[0] || 'driver';
           userProfile = {
             id: newSession.user.id,
             username: fallbackUsername,
-            display_name: fallbackUsername,
+            display_name: newSession.user.user_metadata?.display_name || fallbackUsername,
           };
         }
         setProfile(userProfile);
@@ -144,13 +151,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp = async (username: string, password: string, displayName: string) => {
+  const signUp = async (username: string, userEmail: string, password: string, displayName: string) => {
     setError(null);
     setLoading(true);
 
     const cleanUsername = username.trim().toLowerCase();
     const cleanDisplayName = displayName.trim();
-    const email = usernameToEmail(cleanUsername);
+    const cleanEmail = userEmail.trim().toLowerCase();
 
     try {
       // 1. Check if username is already taken in public.users
@@ -164,10 +171,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('This username is already taken. Please choose another one.');
       }
 
-      // 2. Auth Sign Up
+      // 2. Auth Sign Up with user's validated email
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
+        options: {
+          data: {
+            username: cleanUsername,
+            display_name: cleanDisplayName || cleanUsername,
+          },
+        },
       });
 
       if (authError) {
@@ -181,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If signUp didn't automatically establish a session, sign in immediately
       if (!authData.session) {
         const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email,
+          email: cleanEmail,
           password,
         });
         if (signInErr) {
@@ -189,11 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 3. Upsert public.users profile row
+      // 3. Upsert public.users profile row (including email)
       const newProfile: UserProfile = {
         id: authData.user.id,
         username: cleanUsername,
         display_name: cleanDisplayName || cleanUsername,
+        email: cleanEmail,
       };
 
       const { error: profileError } = await supabase
@@ -201,7 +215,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .upsert(newProfile);
 
       if (profileError) {
-        console.warn('[Auth] Profile creation warning:', profileError.message);
+        console.warn('[Auth] Profile creation with email warning:', profileError.message);
+        // Fallback without email column in case migration hasn't run yet
+        const fallbackProfile = {
+          id: authData.user.id,
+          username: cleanUsername,
+          display_name: cleanDisplayName || cleanUsername,
+        };
+        await supabase.from('users').upsert(fallbackProfile);
       }
 
       setProfile(newProfile);
@@ -214,22 +235,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
     setError(null);
     setLoading(true);
 
-    const cleanUsername = username.trim().toLowerCase();
-    const email = usernameToEmail(cleanUsername);
+    const cleanInput = identifier.trim();
+    const isEmail = cleanInput.includes('@');
+    const primaryEmail = isEmail ? cleanInput.toLowerCase() : usernameToEmail(cleanInput.toLowerCase());
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: primaryEmail,
         password,
       });
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
-          throw new Error('Incorrect username or password.');
+          throw new Error('Incorrect username/email or password.');
         }
         throw new Error(authError.message);
       }
@@ -237,10 +259,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user) {
         let userProfile = await fetchProfile(data.user.id);
         if (!userProfile) {
+          const fallbackUsername = data.user.user_metadata?.username || cleanInput.toLowerCase();
           userProfile = {
             id: data.user.id,
-            username: cleanUsername,
-            display_name: cleanUsername,
+            username: fallbackUsername,
+            display_name: data.user.user_metadata?.display_name || fallbackUsername,
           };
           await supabase.from('users').upsert(userProfile);
         }
