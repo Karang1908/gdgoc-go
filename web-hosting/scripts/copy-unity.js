@@ -11,89 +11,141 @@ const destDir = path.resolve(rootDir, 'public/Build');
 
 console.log('[unity:copy] Checking Unity WebGL build directory...');
 
+const cleanIndexHtml = `<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>GDG Go - Web Player</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #080B12;
+      }
+      #unity-container {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        background: #080B12;
+        display: block;
+      }
+      #unity-footer, #unity-fullscreen-button, #unity-build-title, #unity-logo-title-footer {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+    </div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Build.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Build.data.unityweb",
+        frameworkUrl: buildUrl + "/Build.framework.js.unityweb",
+        codeUrl: buildUrl + "/Build.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "GDG",
+        productName: "GDG Go",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
+
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+
+      document.querySelector("#unity-loading-bar").style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+        }).then((unityInstance) => {
+          window.unityInstance = unityInstance;
+          document.querySelector("#unity-loading-bar").style.display = "none";
+
+          window.addEventListener("message", (event) => {
+            if (event.data && event.data.type === "unityFullscreen") {
+              try { unityInstance.SetFullscreen(1); } catch(e) {}
+            } else if (event.data && event.data.type === "unityExitFullscreen") {
+              try { unityInstance.SetFullscreen(0); } catch (e) {}
+              if (document.fullscreenElement) {
+                document.exitFullscreen().catch(function() {});
+              }
+            }
+          });
+        }).catch((message) => {
+          console.error(message);
+        });
+      };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
+`;
+
 if (fs.existsSync(srcDir) && fs.readdirSync(srcDir).length > 0) {
   console.log(`[unity:copy] Copying from ${srcDir} to ${destDir}...`);
   fs.rmSync(destDir, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(destDir), { recursive: true });
   fs.cpSync(srcDir, destDir, { recursive: true });
-  console.log('[unity:copy] Successfully copied Unity WebGL build to public/Build.');
+
+  // Overwrite index.html with clean template (no footer, responsive canvas, postMessage handlers)
+  fs.writeFileSync(path.join(destDir, 'index.html'), cleanIndexHtml, 'utf8');
+
+  // Also patch style.css to permanently hide footer
+  const styleCssPath = path.join(destDir, 'TemplateData/style.css');
+  if (fs.existsSync(styleCssPath)) {
+    let styleCss = fs.readFileSync(styleCssPath, 'utf8');
+    styleCss += `\n#unity-footer, #unity-fullscreen-button, #unity-build-title, #unity-logo-title-footer { display: none !important; }\n#unity-container.unity-desktop { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; transform: none !important; }\n#unity-canvas { width: 100% !important; height: 100% !important; }\n`;
+    fs.writeFileSync(styleCssPath, styleCss, 'utf8');
+  }
+
+  console.log('[unity:copy] Successfully copied Unity WebGL build to public/Build with clean template.');
 } else {
   console.log('[unity:copy] No Unity build found in unity-project/Build.');
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-    // Write a placeholder HTML for development if Unity WebGL is not yet built
-    const placeholderHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>GDG Go - WebGL Game</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #0d1117;
-      color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
-    }
-    .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 32px;
-      max-width: 480px;
-    }
-    h2 { color: #4285f4; margin-top: 0; }
-    p { color: #8b949e; line-height: 1.5; }
-    .btn {
-      margin-top: 16px;
-      background: #4285f4;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn:hover { background: #3367d6; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>🎮 Unity WebGL Placeholder</h2>
-    <p>Unity build not yet exported to <code>unity-project/Build</code>.</p>
-    <p>Simulate Game Over message to test the React wrapper:</p>
-    <button class="btn" onclick="simulateGameOver()">Simulate Game Over (1,250 pts)</button>
-  </div>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    console.log('[Unity Placeholder] Query params received:', {
-      token: params.get('token') ? 'present' : 'none',
-      username: params.get('u'),
-      displayName: params.get('dn'),
-      car: params.get('car')
-    });
-
-    function simulateGameOver() {
-      const payload = {
-        type: 'gameover',
-        score: 1250,
-        coins: 42,
-        distance: 500,
-        duration: 35
-      };
-      console.log('[Unity Placeholder] Sending gameover postMessage:', payload);
-      window.parent.postMessage(payload, '*');
-    }
-  </script>
-</body>
-</html>`;
-    fs.writeFileSync(path.join(destDir, 'index.html'), placeholderHtml, 'utf8');
-    console.log('[unity:copy] Created placeholder public/Build/index.html for development & testing.');
-  }
 }

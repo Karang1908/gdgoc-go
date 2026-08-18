@@ -19,6 +19,33 @@ export const Home: React.FC<HomeProps> = ({
   const [selectedCarId, setSelectedCarId] = useState<string>('sports');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
+  const handleStartGame = () => {
+    // 1. Immediately request fullscreen on the game iframe in the synchronous user click event
+    const iframe = document.querySelector('.unity-iframe') as HTMLIFrameElement;
+    if (iframe) {
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen().catch((err) => {
+          console.warn('[Home] Fullscreen request warning:', err);
+        });
+      } else if ((iframe as any).webkitRequestFullscreen) {
+        (iframe as any).webkitRequestFullscreen();
+      }
+    }
+    // 2. Set active game state
+    setIsPlaying(true);
+  };
+
+  const handleBackToGarage = () => {
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+    setIsPlaying(false);
+  };
+
   if (loading) {
     return (
       <div className="home-loading">
@@ -168,22 +195,36 @@ export const Home: React.FC<HomeProps> = ({
     );
   }
 
-  // Signed in -> Show Game View if playing, or Car Picker if selecting
+  // Signed in -> Render both CarPicker and GameView cleanly so GameView iframe is ready for click-based fullscreen
   return (
     <main className="home-main-content">
-      {isPlaying ? (
-        <GameView
-          carId={selectedCarId}
-          onBackToGarage={() => setIsPlaying(false)}
-          onViewLeaderboard={() => navigate('leaderboard')}
-        />
-      ) : (
+      {!isPlaying && (
         <CarPicker
           selectedCarId={selectedCarId}
           onSelectCar={(id) => setSelectedCarId(id)}
-          onStartGame={() => setIsPlaying(true)}
+          onStartGame={handleStartGame}
         />
       )}
+
+      <div
+        style={{
+          visibility: isPlaying ? 'visible' : 'hidden',
+          pointerEvents: isPlaying ? 'auto' : 'none',
+          position: isPlaying ? 'relative' : 'fixed',
+          top: isPlaying ? 'auto' : '-9999px',
+          left: 0,
+          width: '100%',
+        }}
+      >
+        <GameView
+          carId={selectedCarId}
+          onBackToGarage={handleBackToGarage}
+          onViewLeaderboard={() => {
+            handleBackToGarage();
+            navigate('leaderboard');
+          }}
+        />
+      </div>
     </main>
   );
 };
