@@ -36,7 +36,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
       if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
         if (target.requestFullscreen) {
           target.requestFullscreen().catch((err) => {
-            console.warn('[UnityEmbed] Fullscreen request error:', err);
+            console.warn('[UnityEmbed] Fullscreen request warning:', err);
           });
         } else if ((target as any).webkitRequestFullscreen) {
           (target as any).webkitRequestFullscreen();
@@ -70,7 +70,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
     exitFullscreen,
   }));
 
-  // Automatically focus the iframe on mount so keyboard controls (WASD, Arrows, Space) work immediately
+  // Automatically focus the iframe on mount so keyboard and touch controls work immediately
   useEffect(() => {
     const focusIframe = () => {
       if (iframeRef.current && iframeRef.current.contentWindow) {
@@ -80,10 +80,12 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
 
     const timer = setTimeout(focusIframe, 300);
     window.addEventListener('click', focusIframe);
+    window.addEventListener('touchstart', focusIframe, { passive: true });
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('click', focusIframe);
+      window.removeEventListener('touchstart', focusIframe);
     };
   }, []);
 
@@ -103,25 +105,11 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
         .unity-embed-container {
           position: relative;
           width: 100%;
-          aspect-ratio: 16 / 9;
-          min-height: 480px;
-          max-height: calc(100vh - 140px);
+          height: 100%;
+          min-height: 0;
           background: #000000;
-          border-radius: var(--r-lg);
           overflow: hidden;
-          box-shadow: var(--shadow-2);
-        }
-
-        .unity-embed-container:fullscreen,
-        .unity-embed-container:-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-          max-height: none !important;
-          aspect-ratio: auto !important;
-          border-radius: 0 !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          background: #000000 !important;
+          box-shadow: none;
         }
 
         .unity-iframe {
@@ -134,14 +122,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           display: block;
           outline: none;
           background: #000000;
-        }
-
-        @media (max-width: 768px) {
-          .unity-embed-container {
-            aspect-ratio: 16 / 9;
-            min-height: 380px;
-            border-radius: var(--r-md);
-          }
+          touch-action: none;
         }
       `}</style>
     </div>

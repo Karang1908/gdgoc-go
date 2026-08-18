@@ -55,102 +55,63 @@ export const GameView: React.FC<GameViewProps> = ({
       bgmEngine.start();
       window.removeEventListener('keydown', handleFirstInteraction);
       window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
     };
 
     bgmEngine.start();
     window.addEventListener('keydown', handleFirstInteraction);
     window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
 
     return () => {
       bgmEngine.stop();
       window.removeEventListener('keydown', handleFirstInteraction);
       window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
     };
   }, []);
 
-  const hasSubmittedRef = React.useRef<boolean>(false);
-
-  const processGameOver = useCallback(
-    async (data: any) => {
-      if (hasSubmittedRef.current) {
-        console.log('[GameView] Duplicate gameover event ignored.');
-        return;
-      }
-      hasSubmittedRef.current = true;
-
-      console.log('[GameView] Processing verified gameover event from Unity:', data);
-      bgmEngine.stop();
-
-      const payload: GameOverPayload = {
-        type: 'gameover',
-        score: Number(data.score) || 0,
-        coins: Number(data.coins) || 0,
-        pills: Number(data.pills) || 0,
-        distance: Number(data.distance) || 0,
-        duration: Number(data.duration) || 0,
-        reason: (data.reason === 'fuel' ? 'fuel' : 'police'),
-      };
-
-      try {
-        await submitScore(payload);
-        console.log('[GameView] Score successfully submitted and saved in Supabase.');
-        await refreshCoins();
-      } catch (err: any) {
-        console.error('[GameView] Error auto-submitting score:', err);
-      }
-
-      // Wait exactly 2 seconds as requested, then exit fullscreen and display Result Overlay
-      setTimeout(() => {
-        try {
-          handleExitFullscreen();
-        } catch (err) {
-          console.warn('[GameView] Auto exit fullscreen error:', err);
-        }
-        setGameOverPayload(payload);
-      }, 2000);
-    },
-    [refreshCoins, handleExitFullscreen]
-  );
-
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
-      let data = event.data;
-      if (!data) return;
-
-      if (typeof data === 'string') {
-        try {
-          data = JSON.parse(data);
-        } catch {
-          return;
-        }
-      }
-
-      if (typeof data !== 'object' || data.type !== 'gameover') {
-        return;
-      }
-
-      processGameOver(data);
-    },
-    [processGameOver]
-  );
-
+  // Handle postMessage events sent from Unity WebGL inside iframe
   useEffect(() => {
-    (window as any).onUnityGameOver = (data: any) => {
-      processGameOver(data);
+    const handleMessage = async (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'gameStart') {
+        setGameOverPayload(null);
+      }
+
+      if (data.type === 'gameOver') {
+        const payload: GameOverPayload = {
+          type: 'gameover',
+          score: Number(data.score) || 0,
+          coins: Number(data.coins) || 0,
+          distance: Number(data.distance) || 0,
+          duration: Number(data.duration) || 0,
+          reason: data.reason || 'police',
+        };
+
+        setGameOverPayload(payload);
+        bgmEngine.stop();
+
+        // Submit score to Supabase
+        try {
+          await submitScore(payload);
+          await refreshCoins();
+        } catch (err) {
+          console.error('[GameView] Failed to submit score:', err);
+        }
+      }
     };
+
     window.addEventListener('message', handleMessage);
-    return () => {
-      delete (window as any).onUnityGameOver;
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [handleMessage, processGameOver]);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [carId, refreshCoins]);
 
   const handlePlayAgain = () => {
-    hasSubmittedRef.current = false;
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
-    // Trigger Unity fullscreen for the new run
     handleFullscreen();
   };
 
@@ -182,18 +143,6 @@ export const GameView: React.FC<GameViewProps> = ({
             <img src={selectedCar.image} alt="" className="car-pill-img" />
             <span className="car-pill-name">{selectedCar.name}</span>
           </div>
-        </div>
-
-        {/* Fullscreen Recommendation Banner */}
-        <div
-          className="fullscreen-recommendation-pill"
-          onClick={handleFullscreen}
-          title="Click to trigger full screen"
-          role="button"
-          tabIndex={0}
-        >
-          <Maximize2 size={13} className="sparkle-icon" />
-          <span>For the best experience, play in full screen</span>
         </div>
 
         <div className="top-bar-right-controls">
@@ -249,9 +198,10 @@ export const GameView: React.FC<GameViewProps> = ({
               handleExitFullscreen();
               onViewLeaderboard();
             }}
-            onSignOut={() => {
+            onSignOut={async () => {
               handleExitFullscreen();
-              signOut();
+              await signOut();
+              onBackToGarage();
             }}
           />
         )}
@@ -259,138 +209,96 @@ export const GameView: React.FC<GameViewProps> = ({
 
       <style>{`
         .game-view-container {
-          max-width: 1320px;
-          margin: 0 auto;
-          padding: 16px clamp(16px, 3vw, 32px) 40px;
+          width: 100vw;
+          height: 100dvh;
+          max-width: 100vw;
+          margin: 0;
+          padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          width: 100%;
+          gap: 8px;
+          background: #000000;
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
         .game-top-bar {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 4px 0;
-          gap: 10px;
-          flex-wrap: wrap;
+          padding: 2px 0;
+          gap: 8px;
+          flex-shrink: 0;
         }
 
         .top-bar-left {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
         .back-btn {
-          height: 38px;
-          padding: 0 16px;
-          font-size: 0.875rem;
+          height: 36px;
+          padding: 0 14px;
+          font-size: 0.85rem;
+          touch-action: manipulation;
         }
 
         .active-car-pill {
           display: flex;
           align-items: center;
-          gap: 8px;
-          height: 38px;
-          padding: 0 14px;
+          gap: 6px;
+          height: 36px;
+          padding: 0 12px;
           background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--pill);
         }
 
         .car-pill-img {
-          width: 32px;
-          height: 22px;
+          width: 28px;
+          height: 20px;
           object-fit: contain;
         }
 
         .car-pill-name {
           font-family: var(--font-display);
-          font-size: 0.88rem;
+          font-size: 0.84rem;
           font-weight: 700;
           color: var(--text);
-        }
-
-        .fullscreen-recommendation-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          height: 38px;
-          padding: 0 16px;
-          background: var(--surface-2);
-          border: 1px solid var(--border);
-          border-radius: var(--pill);
-          font-size: 0.8125rem;
-          font-weight: 500;
-          color: var(--text-2);
-          cursor: pointer;
-          transition: all 0.15s var(--ease);
-          user-select: none;
-        }
-
-        .fullscreen-recommendation-pill:hover {
-          background: var(--accent-soft);
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-
-        .sparkle-icon {
-          color: var(--g-yellow);
         }
 
         .top-bar-right-controls {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
 
-        .fullscreen-hud-btn {
-          height: 38px;
-          padding: 0 16px;
-          font-size: 0.875rem;
-        }
-
+        .fullscreen-hud-btn,
         .music-toggle-btn,
         .restart-btn {
-          height: 38px;
-          padding: 0 14px;
-          font-size: 0.875rem;
+          height: 36px;
+          padding: 0 12px;
+          font-size: 0.84rem;
+          touch-action: manipulation;
         }
 
         .game-canvas-wrapper {
+          flex: 1;
           position: relative;
           width: 100%;
-          border-radius: var(--r-xl);
+          height: 100%;
+          min-height: 0;
+          border-radius: var(--r-md);
           overflow: hidden;
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           box-shadow: var(--shadow-2);
           background: #000000;
         }
 
-        .game-view-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 16px clamp(12px, 3vw, 24px) 40px;
-          padding-bottom: max(40px, env(safe-area-inset-bottom, 0px) + 20px);
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        @media (max-width: 880px) {
-          .fullscreen-recommendation-pill {
-            display: none;
-          }
-        }
-
         @media (max-width: 640px) {
           .game-view-container {
-            padding: 8px 10px 24px;
-            gap: 8px;
-          }
-          .game-top-bar {
+            padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
             gap: 6px;
           }
           .back-btn span {
@@ -400,19 +308,14 @@ export const GameView: React.FC<GameViewProps> = ({
             display: none;
           }
           .fullscreen-hud-btn, .music-toggle-btn, .restart-btn, .back-btn {
-            height: 36px;
-            padding: 0 10px;
+            padding: 0 8px;
             min-width: 36px;
           }
           .active-car-pill {
-            height: 36px;
-            padding: 0 10px;
+            padding: 0 8px;
           }
           .car-pill-name {
-            font-size: 0.8rem;
-          }
-          .game-canvas-wrapper {
-            border-radius: var(--r-md);
+            font-size: 0.78rem;
           }
         }
       `}</style>
