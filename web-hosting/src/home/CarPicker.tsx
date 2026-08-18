@@ -284,36 +284,40 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
       <style>{`
         .car-picker-container {
-          max-width: 1080px;
+          max-width: 1040px;
           margin: 0 auto;
-          padding: 20px clamp(12px, 3vw, 24px) 40px;
-          padding-bottom: max(40px, env(safe-area-inset-bottom, 0px) + 20px);
+          padding: 8px clamp(10px, 2.5vw, 20px) 14px;
+          min-height: calc(100dvh - 68px);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          box-sizing: border-box;
         }
 
         .picker-header {
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 6px;
         }
 
         .picker-header-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
 
         .garage-badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 4px 12px;
+          padding: 3px 10px;
           background: var(--surface-3);
           border: 1px solid var(--border);
           border-radius: var(--pill);
           font-family: var(--font-display);
-          font-size: 0.72rem;
+          font-size: 0.7rem;
           font-weight: 700;
           color: var(--text-2);
           letter-spacing: 0.04em;
@@ -328,11 +332,11 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .wallet-chip {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          height: 30px;
-          padding: 0 10px;
+          gap: 4px;
+          height: 28px;
+          padding: 0 8px;
           border-radius: var(--pill);
-          font-size: 0.78rem;
+          font-size: 0.75rem;
           font-weight: 700;
           background: var(--surface-2);
           border: 1px solid var(--border);
@@ -361,42 +365,44 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .inline-gdg-pill-icon {
-          width: 13px;
-          height: 13px;
+          width: 12px;
+          height: 12px;
           object-fit: contain;
         }
 
         .wallet-chip-lbl {
-          font-size: 0.62rem;
+          font-size: 0.6rem;
           font-weight: 800;
           opacity: 0.8;
           letter-spacing: 0.04em;
         }
 
         .picker-title {
-          font-size: clamp(1.75rem, 3.8vw, 2.5rem);
-          margin-bottom: 6px;
+          font-size: clamp(1.4rem, 2.8vw, 2rem);
+          margin-bottom: 2px;
+          line-height: 1.2;
         }
 
         .picker-lede {
           margin: 0 auto;
-          max-width: 640px;
-          font-size: clamp(0.85rem, 2vw, 0.95rem);
+          max-width: 580px;
+          font-size: clamp(0.78rem, 1.8vw, 0.86rem);
+          line-height: 1.35;
         }
 
         /* Carousel Navigation Wrapper */
         .carousel-wrapper {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
+          gap: 10px;
+          margin-bottom: 6px;
           position: relative;
         }
 
         .carousel-arrow-btn {
-          width: 48px;
-          height: 48px;
-          min-width: 48px;
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
           border-radius: 50%;
           background: var(--surface);
           border: 2px solid var(--border);
@@ -420,8 +426,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           flex: 1;
           display: grid;
           grid-template-columns: 1.15fr 1fr;
-          gap: 24px;
-          padding: 24px;
+          gap: 16px;
+          padding: 16px 20px;
           background: var(--surface);
           border: 2px solid var(--border);
           border-radius: var(--r-xl);
@@ -433,14 +439,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .showcase-stage {
           width: 100%;
-          height: 320px;
+          height: clamp(180px, 25vh, 260px);
           border-radius: var(--r-lg);
           background: radial-gradient(circle at center, var(--surface-2) 0%, var(--surface-3) 100%);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 8px;
+          padding: 6px;
           overflow: hidden;
           pointer-events: none;
           user-select: none;
@@ -450,64 +456,64 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .showcase-details {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
 
         .showcase-header-row {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 10px;
+          gap: 8px;
         }
 
         .showcase-type-tag {
           display: inline-block;
           font-family: var(--font-mono);
-          font-size: 0.68rem;
+          font-size: 0.65rem;
           font-weight: 700;
-          padding: 2px 8px;
+          padding: 1px 6px;
           border-radius: 4px;
           border: 1px solid;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
         }
 
         .showcase-car-name {
           font-family: var(--font-display);
-          font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+          font-size: clamp(1.3rem, 2.2vw, 1.7rem);
           font-weight: 700;
           color: var(--text);
-          margin-bottom: 2px;
+          margin-bottom: 1px;
           line-height: 1.2;
         }
 
         .showcase-subtitle {
-          font-size: 0.84rem;
+          font-size: 0.8rem;
           font-weight: 500;
           color: var(--accent);
         }
 
         .showcase-index-pill {
-          padding: 3px 8px;
+          padding: 2px 6px;
           background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--pill);
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
           color: var(--text-2);
           flex-shrink: 0;
         }
 
         .showcase-desc {
-          font-size: 0.84rem;
+          font-size: 0.8rem;
           color: var(--text-2);
-          line-height: 1.4;
+          line-height: 1.35;
         }
 
         .showcase-stats-grid {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          padding: 12px;
+          gap: 5px;
+          padding: 10px 12px;
           background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--r-md);
@@ -523,7 +529,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 500;
           color: var(--text-2);
         }
@@ -531,17 +537,17 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .stat-name-label {
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
         }
 
         .stat-num {
-          font-size: 0.78rem;
+          font-size: 0.75rem;
           font-weight: 700;
           color: var(--text);
         }
 
         .stat-track {
-          height: 6px;
+          height: 5px;
           width: 100%;
           background: var(--surface-3);
           border-radius: var(--pill);
@@ -555,13 +561,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .showcase-actions {
-          margin-top: 4px;
+          margin-top: 2px;
         }
 
         .launch-showcase-btn {
           width: 100%;
-          height: 50px;
+          height: 46px;
           font-weight: 700;
+          font-size: 0.9rem;
           letter-spacing: 0.03em;
           touch-action: manipulation;
         }
@@ -570,16 +577,16 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .thumbnails-dock {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
+          gap: 8px;
         }
 
         .thumbnail-chip {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          min-height: 48px;
-          border-radius: var(--r-lg);
+          gap: 6px;
+          padding: 6px 10px;
+          min-height: 40px;
+          border-radius: var(--r-md);
           background: var(--surface);
           border: 2px solid var(--border);
           cursor: pointer;
@@ -599,15 +606,15 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .thumb-preview-box {
-          width: 40px;
-          height: 28px;
-          border-radius: 6px;
+          width: 36px;
+          height: 24px;
+          border-radius: 4px;
           background: var(--surface-2);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 2px;
+          padding: 1px;
           flex-shrink: 0;
         }
 
@@ -628,7 +635,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .thumb-name {
           font-family: var(--font-display);
-          font-size: 0.82rem;
+          font-size: 0.78rem;
           font-weight: 700;
           color: var(--text);
           white-space: nowrap;
@@ -637,7 +644,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .thumb-stats {
-          font-size: 0.65rem;
+          font-size: 0.62rem;
           color: var(--text-2);
           white-space: nowrap;
           overflow: hidden;
@@ -650,56 +657,36 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         @media (max-width: 860px) {
+          .car-picker-container {
+            min-height: calc(100dvh - 64px);
+            padding: 6px 10px 10px;
+          }
           .showcase-card {
             grid-template-columns: 1fr;
-            gap: 16px;
-            padding: 16px;
+            gap: 10px;
+            padding: 12px 14px;
           }
           .showcase-stage {
-            height: 230px;
+            height: clamp(140px, 20vh, 180px);
+          }
+          .showcase-desc {
+            display: none;
           }
           .thumbnails-dock {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .carousel-arrow-btn {
-            width: 42px;
-            height: 42px;
-            min-width: 42px;
-          }
-        }
-
-        @media (max-width: 540px) {
-          .carousel-wrapper {
-            position: relative;
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
           }
+          .thumb-stats {
+            display: none;
+          }
+          .thumbnail-chip {
+            padding: 4px 6px;
+            min-height: 36px;
+          }
           .carousel-arrow-btn {
-            position: absolute;
-            top: 110px;
-            z-index: 10;
             width: 36px;
             height: 36px;
             min-width: 36px;
-            background: var(--bg-overlay);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-          }
-          .carousel-arrow-btn.prev-btn {
-            left: 6px;
-          }
-          .carousel-arrow-btn.next-btn {
-            right: 6px;
-          }
-          .showcase-stage {
-            height: 200px;
-          }
-          .thumbnails-dock {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-          }
-          .thumbnail-chip {
-            padding: 6px 10px;
-            min-height: 44px;
           }
         }
       `}</style>

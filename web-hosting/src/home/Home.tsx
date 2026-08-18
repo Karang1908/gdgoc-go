@@ -148,17 +148,17 @@ export const Home: React.FC<HomeProps> = ({
         <style>{`
           .hero-landing-container {
             position: relative;
-            min-height: calc(100dvh - 140px);
+            min-height: calc(100dvh - 68px);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: clamp(24px, 5vh, 64px) clamp(16px, 4vw, 40px);
-            padding-bottom: max(32px, env(safe-area-inset-bottom, 0px) + 20px);
+            padding: 12px clamp(12px, 3vw, 24px) 16px;
+            box-sizing: border-box;
           }
 
           .hero-content {
             position: relative;
-            max-width: 960px;
+            max-width: 920px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -169,25 +169,23 @@ export const Home: React.FC<HomeProps> = ({
           .hero-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 18px;
+            gap: 6px;
+            padding: 4px 14px;
             background: var(--surface-3);
             border: 1px solid var(--border);
             border-radius: var(--pill);
             font-family: var(--font-display);
-            font-size: 0.8125rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-2);
-            margin-bottom: 24px;
-            letter-spacing: 0.04em;
-          }
-
-          .hero-badge-icon {
-            color: var(--g-yellow);
+            margin-bottom: 12px;
+            letter-spacing: 0.03em;
           }
 
           .hero-title {
-            margin-bottom: 20px;
+            font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+            line-height: 1.15;
+            margin-bottom: 10px;
           }
 
           .accent-word {
@@ -195,55 +193,73 @@ export const Home: React.FC<HomeProps> = ({
           }
 
           .hero-lede {
-            margin-bottom: 36px;
+            font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+            line-height: 1.4;
+            max-width: 600px;
+            margin-bottom: 18px;
           }
 
           .hero-actions {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 56px;
+            margin-bottom: 24px;
+          }
+
+          .hero-cta-btn {
+            height: 46px;
+            padding: 0 22px;
+            font-size: 0.9rem;
           }
 
           .hero-pillars {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            gap: 12px;
             width: 100%;
             text-align: left;
           }
 
           .pillar-card {
-            padding: 24px;
-            border-radius: var(--r-lg);
+            padding: 14px 16px;
+            border-radius: var(--r-md);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
           }
 
           .pillar-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
           }
 
           .pillar-card h3 {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 700;
           }
 
           .pillar-card p {
-            font-size: 0.88rem;
+            font-size: 0.78rem;
             color: var(--text-2);
-            line-height: 1.5;
+            line-height: 1.35;
           }
 
-          @media (max-width: 820px) {
+          @media (max-width: 768px) {
+            .hero-landing-container {
+              min-height: calc(100dvh - 60px);
+              padding: 8px 10px 14px;
+            }
             .hero-pillars {
               grid-template-columns: 1fr;
+              gap: 8px;
+            }
+            .pillar-card {
+              padding: 10px 12px;
+              gap: 4px;
             }
           }
         `}</style>
