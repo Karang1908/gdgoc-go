@@ -5,12 +5,10 @@ namespace GDGGo.Police
 {
     /// <summary>
     /// Renders <see cref="Core.GameSession.Heat"/> — how much road is left between the
-    /// player and the police — as a filled bar.
+    /// player and the police — as a clean filled bar.
     ///
     /// The colour ramp is Google green to Google red, and the pulse only kicks in below
-    /// the panic threshold. A bar that pulses constantly stops carrying information;
-    /// keeping it still until things are actually bad is what makes the pulse mean
-    /// something.
+    /// the panic threshold.
     /// </summary>
     public sealed class HeatBar : MonoBehaviour
     {
@@ -33,7 +31,14 @@ namespace GDGGo.Police
                  "snapping the bar and makes the loss of ground legible.")]
         public float followSpeed = 6f;
 
+        [System.NonSerialized] public TMPro.TMP_Text captionLabel;
+
         private float _displayed = 1f;
+
+        private void Awake()
+        {
+            if (captionLabel == null) captionLabel = transform.Find("Caption")?.GetComponent<TMPro.TMP_Text>();
+        }
 
         private void Update()
         {
@@ -45,7 +50,26 @@ namespace GDGGo.Police
             _displayed = Mathf.Lerp(_displayed, heat, 1f - Mathf.Exp(-followSpeed * Time.deltaTime));
             fillImage.fillAmount = _displayed;
 
-            fillImage.color = ColorForHeat(_displayed);
+            Color heatCol = ColorForHeat(_displayed);
+            fillImage.color = heatCol;
+
+            if (_displayed < panicThreshold)
+            {
+                if (captionLabel != null)
+                {
+                    float flash = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseHz * Mathf.PI * 2f);
+                    captionLabel.text = "PURSUIT IMMINENT!";
+                    captionLabel.color = Color.Lerp(dangerColor, Color.white, flash);
+                }
+            }
+            else
+            {
+                if (captionLabel != null)
+                {
+                    captionLabel.text = "POLICE PURSUIT";
+                    captionLabel.color = new Color(1f, 1f, 1f, 0.85f);
+                }
+            }
         }
 
         private Color ColorForHeat(float heat)
