@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import { UnityEmbed } from '../components/UnityEmbed';
 import { ResultOverlay } from './ResultOverlay';
 import { GameOverPayload, submitScore } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { CARS } from '../data/cars';
+import { bgmEngine } from '../lib/bgm';
 
 interface GameViewProps {
   carId: string;
@@ -17,14 +18,69 @@ export const GameView: React.FC<GameViewProps> = ({
   onBackToGarage,
   onViewLeaderboard,
 }) => {
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, signOut, refreshCoins } = useAuth();
   const [runKey, setRunKey] = useState<number>(1);
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
+  const [isMuted, setIsMuted] = useState<boolean>(bgmEngine.getMuted());
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
+  // Start background music on mount / user interaction
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      bgmEngine.start();
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+
+    bgmEngine.start();
+    window.addEventListener('keydown', handleFirstInteraction);
+    window.addEventListener('click', handleFirstInteraction);
+
+    return () => {
+      bgmEngine.stop();
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+  }, []);
+
+  const hasSubmittedRef = React.useRef<boolean>(false);
+
+  const processGameOver = useCallback(
+    async (data: any) => {
+      if (hasSubmittedRef.current) {
+        console.log('[GameView] Duplicate gameover event ignored.');
+        return;
+      }
+      hasSubmittedRef.current = true;
+
+      console.log('[GameView] Processing verified gameover event from Unity:', data);
+      bgmEngine.stop();
+
+      const payload: GameOverPayload = {
+        type: 'gameover',
+        score: Number(data.score) || 0,
+        coins: Number(data.coins) || 0,
+        pills: Number(data.pills) || 0,
+        distance: Number(data.distance) || 0,
+        duration: Number(data.duration) || 0,
+      };
+
+      try {
+        await submitScore(payload);
+        console.log('[GameView] Score successfully submitted and saved in Supabase.');
+        await refreshCoins();
+      } catch (err: any) {
+        console.error('[GameView] Error auto-submitting score:', err);
+      } finally {
+        setGameOverPayload(payload);
+      }
+    },
+    [refreshCoins]
+  );
+
   const handleMessage = useCallback(
-    async (event: MessageEvent) => {
+    (event: MessageEvent) => {
       let data = event.data;
       if (!data) return;
 
@@ -40,37 +96,32 @@ export const GameView: React.FC<GameViewProps> = ({
         return;
       }
 
-      console.log('[GameView] Received gameover postMessage from Unity:', data);
-      const payload: GameOverPayload = {
-        type: 'gameover',
-        score: Number(data.score) || 0,
-        coins: Number(data.coins) || 0,
-        distance: Number(data.distance) || 0,
-        duration: Number(data.duration) || 0,
-      };
-
-      try {
-        await submitScore(payload);
-        console.log('[GameView] Score successfully submitted and saved in Supabase.');
-      } catch (err: any) {
-        console.error('[GameView] Error auto-submitting score:', err);
-      } finally {
-        setGameOverPayload(payload);
-      }
+      processGameOver(data);
     },
-    []
+    [processGameOver]
   );
 
   useEffect(() => {
+    (window as any).onUnityGameOver = (data: any) => {
+      processGameOver(data);
+    };
     window.addEventListener('message', handleMessage);
     return () => {
+      delete (window as any).onUnityGameOver;
       window.removeEventListener('message', handleMessage);
     };
-  }, [handleMessage]);
+  }, [handleMessage, processGameOver]);
 
   const handlePlayAgain = () => {
+    hasSubmittedRef.current = false;
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
+    bgmEngine.start();
+  };
+
+  const handleToggleMusic = () => {
+    const muted = bgmEngine.toggleMute();
+    setIsMuted(muted);
   };
 
   return (
@@ -80,7 +131,10 @@ export const GameView: React.FC<GameViewProps> = ({
         <button
           id="back-to-garage-btn"
           className="btn btn-secondary back-btn"
-          onClick={onBackToGarage}
+          onClick={() => {
+            bgmEngine.stop();
+            onBackToGarage();
+          }}
         >
           <ArrowLeft size={18} />
           <span>Change Car</span>
@@ -91,15 +145,27 @@ export const GameView: React.FC<GameViewProps> = ({
           <span className="car-pill-name">{selectedCar.name}</span>
         </div>
 
-        <button
-          id="restart-run-btn"
-          className="btn btn-secondary restart-btn"
-          onClick={handlePlayAgain}
-          title="Restart Run"
-        >
-          <RefreshCw size={16} />
-          <span className="restart-label">Restart</span>
-        </button>
+        <div className="top-bar-right-controls">
+          <button
+            id="toggle-music-btn"
+            className="btn btn-secondary music-toggle-btn"
+            onClick={handleToggleMusic}
+            title={isMuted ? 'Unmute Background Music' : 'Mute Background Music'}
+          >
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            <span className="music-toggle-label">{isMuted ? 'Music OFF' : 'Music ON'}</span>
+          </button>
+
+          <button
+            id="restart-run-btn"
+            className="btn btn-secondary restart-btn"
+            onClick={handlePlayAgain}
+            title="Restart Run"
+          >
+            <RefreshCw size={16} />
+            <span className="restart-label">Restart</span>
+          </button>
+        </div>
       </div>
 
       {/* Unity Canvas Container */}
@@ -167,6 +233,24 @@ export const GameView: React.FC<GameViewProps> = ({
           color: var(--text-primary);
         }
 
+        .top-bar-right-controls {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .music-toggle-btn {
+          padding: 8px 12px;
+          font-size: 0.88rem;
+          background: rgba(255, 255, 255, 0.06);
+          color: var(--text-secondary);
+        }
+
+        .music-toggle-btn:hover {
+          color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.12);
+        }
+
         .restart-btn {
           padding: 8px 12px;
           font-size: 0.88rem;
@@ -180,7 +264,7 @@ export const GameView: React.FC<GameViewProps> = ({
         }
 
         @media (max-width: 640px) {
-          .restart-label {
+          .restart-label, .music-toggle-label {
             display: none;
           }
           .game-view-container {
