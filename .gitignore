@@ -49,9 +49,6 @@ unity-project/**/*.tss
 Builds/
 web-hosting/dist/
 web-hosting/node_modules/
-web-hosting/public/Build/
-web-hosting/public/TemplateData/
-web-hosting/public/index.html
 unity-project/Build/
 
 # Build report

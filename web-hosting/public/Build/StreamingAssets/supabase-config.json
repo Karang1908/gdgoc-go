@@ -1,0 +1,5 @@
+{
+  "_comment": "Fill url and anonKey from Supabase Project Settings -> API. This file is safe to ship in WebGL builds (anon key is public; RLS authorizes requests).",
+  "url": "https://YOUR-PROJECT-REF.supabase.co",
+  "anonKey": "YOUR-ANON-PUBLIC-KEY"
+}
