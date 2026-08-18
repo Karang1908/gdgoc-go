@@ -60,9 +60,9 @@ namespace GDGGo.Core
         [Tooltip("Extra Heat drain per second once difficulty is maxed.")]
         public float difficultyDrain = 0.009f;
         [Tooltip("Heat lost when the player crashes into an obstacle or traffic.")]
-        public float crashHeatPenalty = 0.18f;
+        public float crashHeatPenalty = 0.28f;
         [Tooltip("Heat lost for clipping a pedestrian.")]
-        public float pedestrianHeatPenalty = 0.05f;
+        public float pedestrianHeatPenalty = 0.08f;
         [Tooltip("Heat regained per coin — rewards taking the risky line.")]
         public float heatPerCoin = 0.009f;
 
