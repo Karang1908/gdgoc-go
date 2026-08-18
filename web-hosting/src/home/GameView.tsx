@@ -66,13 +66,6 @@ export const GameView: React.FC<GameViewProps> = ({
       console.log('[GameView] Processing verified gameover event from Unity:', data);
       bgmEngine.stop();
 
-      // Automatically exit Unity fullscreen when player dies
-      try {
-        handleExitFullscreen();
-      } catch (err) {
-        console.warn('[GameView] Auto exit fullscreen error:', err);
-      }
-
       const payload: GameOverPayload = {
         type: 'gameover',
         score: Number(data.score) || 0,
@@ -89,9 +82,17 @@ export const GameView: React.FC<GameViewProps> = ({
         await refreshCoins();
       } catch (err: any) {
         console.error('[GameView] Error auto-submitting score:', err);
-      } finally {
-        setGameOverPayload(payload);
       }
+
+      // Wait exactly 2 seconds as requested, then exit fullscreen and display Result Overlay
+      setTimeout(() => {
+        try {
+          handleExitFullscreen();
+        } catch (err) {
+          console.warn('[GameView] Auto exit fullscreen error:', err);
+        }
+        setGameOverPayload(payload);
+      }, 2000);
     },
     [refreshCoins, handleExitFullscreen]
   );
