@@ -31,45 +31,38 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const src = `/Build/index.html?${queryParams.toString()}`;
 
   const triggerFullscreen = () => {
-    // 1. Post message to iframe for Unity instance SetFullscreen(1)
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
-      try {
-        const win = iframeRef.current.contentWindow as any;
-        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
-          win.unityInstance.SetFullscreen(1);
-          return;
+    const container = containerRef.current;
+    if (container) {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        if (container.requestFullscreen) {
+          container.requestFullscreen().catch((err) => {
+            console.warn('[UnityEmbed] Fullscreen request error:', err);
+          });
+        } else if ((container as any).webkitRequestFullscreen) {
+          (container as any).webkitRequestFullscreen();
+        } else if ((container as any).msRequestFullscreen) {
+          (container as any).msRequestFullscreen();
         }
-      } catch {
-        // cross-origin safety
       }
     }
 
-    // 2. Fallback to HTML5 fullscreen API on container or iframe
-    if (containerRef.current) {
-      if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch(() => {});
-      }
+    // Also notify iframe
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
     }
   };
 
   const exitFullscreen = () => {
-    // 1. Post message to iframe for Unity instance SetFullscreen(0)
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
-      try {
-        const win = iframeRef.current.contentWindow as any;
-        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
-          win.unityInstance.SetFullscreen(0);
-        }
-      } catch {
-        // cross-origin safety
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
       }
     }
 
-    // 2. Exit document fullscreen if active
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
     }
   };
 
@@ -96,13 +89,22 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   }, []);
 
   return (
-    <div className="unity-embed-container" ref={containerRef}>
+    <div
+      className="unity-embed-container"
+      ref={containerRef}
+      onClick={() => {
+        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+          triggerFullscreen();
+        }
+      }}
+    >
       <iframe
         ref={iframeRef}
         src={src}
         title="GDG Go Game View"
         className="unity-iframe"
-        allow="autoplay; fullscreen; focus-without-user-activation; gamepad"
+        allow="autoplay; fullscreen *; focus-without-user-activation; gamepad"
+        allowFullScreen={true}
         tabIndex={0}
       />
 
@@ -117,6 +119,18 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border-radius: var(--radius-lg);
           overflow: hidden;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
+          cursor: pointer;
+        }
+
+        .unity-embed-container:fullscreen,
+        .unity-embed-container:-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
         }
 
         .unity-iframe {

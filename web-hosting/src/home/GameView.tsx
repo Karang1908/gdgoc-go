@@ -26,12 +26,22 @@ export const GameView: React.FC<GameViewProps> = ({
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
-  // Auto-fullscreen on first gameplay key press / interaction
+  const handleFullscreen = useCallback(() => {
+    unityEmbedRef.current?.triggerFullscreen();
+  }, []);
+
+  const handleExitFullscreen = useCallback(() => {
+    unityEmbedRef.current?.exitFullscreen();
+  }, []);
+
+  // Auto-enter fullscreen on any keypress (Space, WASD, Arrow keys) while playing
   useEffect(() => {
     const handleGameplayInput = (e: KeyboardEvent) => {
       const keys = ['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
       if (keys.includes(e.code) && !gameOverPayload) {
-        unityEmbedRef.current?.triggerFullscreen();
+        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+          handleFullscreen();
+        }
       }
     };
 
@@ -39,7 +49,7 @@ export const GameView: React.FC<GameViewProps> = ({
     return () => {
       window.removeEventListener('keydown', handleGameplayInput);
     };
-  }, [gameOverPayload]);
+  }, [gameOverPayload, handleFullscreen]);
 
   // Start background music on mount / user interaction
   useEffect(() => {
@@ -73,12 +83,9 @@ export const GameView: React.FC<GameViewProps> = ({
       console.log('[GameView] Processing verified gameover event from Unity:', data);
       bgmEngine.stop();
 
-      // Automatically exit fullscreen when player dies
+      // Automatically exit fullscreen immediately when player dies
       try {
-        unityEmbedRef.current?.exitFullscreen();
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
+        handleExitFullscreen();
       } catch (err) {
         console.warn('[GameView] Auto exit fullscreen error:', err);
       }
@@ -102,7 +109,7 @@ export const GameView: React.FC<GameViewProps> = ({
         setGameOverPayload(payload);
       }
     },
-    [refreshCoins]
+    [refreshCoins, handleExitFullscreen]
   );
 
   const handleMessage = useCallback(
@@ -143,19 +150,13 @@ export const GameView: React.FC<GameViewProps> = ({
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
-    // Auto-enter fullscreen when starting new run
-    setTimeout(() => {
-      unityEmbedRef.current?.triggerFullscreen();
-    }, 150);
+    // Re-enter fullscreen synchronously on click
+    handleFullscreen();
   };
 
   const handleToggleMusic = () => {
     const muted = bgmEngine.toggleMute();
     setIsMuted(muted);
-  };
-
-  const handleFullscreen = () => {
-    unityEmbedRef.current?.triggerFullscreen();
   };
 
   return (
@@ -168,7 +169,7 @@ export const GameView: React.FC<GameViewProps> = ({
             className="btn btn-secondary back-btn"
             onClick={() => {
               bgmEngine.stop();
-              unityEmbedRef.current?.exitFullscreen();
+              handleExitFullscreen();
               onBackToGarage();
             }}
             title="Back to Car Selection"
@@ -245,11 +246,11 @@ export const GameView: React.FC<GameViewProps> = ({
             payload={gameOverPayload}
             onPlayAgain={handlePlayAgain}
             onViewLeaderboard={() => {
-              unityEmbedRef.current?.exitFullscreen();
+              handleExitFullscreen();
               onViewLeaderboard();
             }}
             onSignOut={() => {
-              unityEmbedRef.current?.exitFullscreen();
+              handleExitFullscreen();
               signOut();
             }}
           />
