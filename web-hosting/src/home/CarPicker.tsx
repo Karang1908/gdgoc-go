@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Gauge, Shield, Zap, Sparkles } from 'lucide-react';
+import { Play, Gauge, Shield, Zap, Sparkles, Check, Coins } from 'lucide-react';
 import { CARS, CarOption } from '../data/cars';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,13 +24,13 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         <div className="picker-header-top">
           <div className="garage-badge">
             <Sparkles size={14} className="badge-icon" />
-            <span>VEHICLE GARAGE</span>
+            <span>VEHICLE SELECTOR</span>
           </div>
 
           {session && (
             <div className="picker-wallet-group">
-              <div className="wallet-chip standard" title={`Cumulative Coins: ${userCoins.toLocaleString()}`}>
-                <span>🟡</span>
+              <div className="wallet-chip standard" title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}>
+                <Coins size={14} className="coin-svg" />
                 <span className="font-mono">{userCoins.toLocaleString()}</span>
                 <span className="wallet-chip-lbl">COINS</span>
               </div>
@@ -45,7 +45,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         <h1 className="picker-title">Choose your vehicle</h1>
         <p className="lede picker-lede">
-          Select a tuned getaway chassis for high-speed police evasion. Each vehicle features tailored handling, top speed, and impact durability.
+          Select a tuned getaway chassis for high-speed police evasion. Each vehicle features distinct handling, top speed, and collision durability.
         </p>
       </div>
 
@@ -72,12 +72,19 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             >
               {isSelected && (
                 <div className="active-pill-badge">
+                  <Check size={12} strokeWidth={3} />
                   <span>ACTIVE CHASSIS</span>
                 </div>
               )}
 
-              <div className="car-avatar-box">
-                <span className="car-emoji">{car.icon}</span>
+              {/* 3D Model Render Preview */}
+              <div className="car-preview-stage">
+                <img
+                  src={car.image}
+                  alt={car.name}
+                  className="car-model-image"
+                  loading="eager"
+                />
               </div>
 
               <div className="car-info">
@@ -162,7 +169,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
                   onSelectCar(car.id);
                 }}
               >
-                {isSelected ? '✓ Selected' : 'Select'}
+                {isSelected ? (
+                  <>
+                    <Check size={16} strokeWidth={2.5} />
+                    <span>Selected</span>
+                  </>
+                ) : (
+                  <span>Select Car</span>
+                )}
               </button>
             </div>
           );
@@ -172,10 +186,15 @@ export const CarPicker: React.FC<CarPickerProps> = ({
       {/* Launch Section Bar */}
       <div className="launch-card card">
         <div className="launch-summary">
-          <span className="summary-icon">{selectedCar.icon}</span>
+          <div className="summary-thumb-box">
+            <img src={selectedCar.image} alt={selectedCar.name} className="summary-thumb-img" />
+          </div>
           <div className="summary-details">
-            <span className="summary-overline">READY ON THE GRID</span>
+            <span className="summary-overline">READY ON THE STARTING LINE</span>
             <h3 className="summary-car-name">{selectedCar.name}</h3>
+            <span className="summary-specs">
+              Speed: {selectedCar.stats.speed} • Handling: {selectedCar.stats.handling} • Durability: {selectedCar.stats.durability}
+            </span>
           </div>
         </div>
 
@@ -260,6 +279,10 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           background: rgba(251, 188, 4, 0.12);
         }
 
+        .coin-svg {
+          color: var(--g-yellow);
+        }
+
         .wallet-chip.gdg {
           color: var(--accent);
           border-color: rgba(66, 133, 244, 0.35);
@@ -331,27 +354,40 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           border-radius: var(--pill);
           letter-spacing: 0.04em;
           box-shadow: var(--shadow-1);
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
 
-        .car-avatar-box {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--r-md);
+        .car-preview-stage {
+          width: 100%;
+          height: 140px;
+          border-radius: var(--r-lg);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 12px;
-          background: var(--surface-3);
+          margin-bottom: 14px;
+          background: radial-gradient(circle at center, var(--surface-2) 0%, var(--surface-3) 100%);
           border: 1px solid var(--border);
+          overflow: hidden;
+          padding: 8px;
         }
 
-        .car-emoji {
-          font-size: 30px;
+        .car-model-image {
+          max-width: 90%;
+          max-height: 90%;
+          object-fit: contain;
+          transition: transform 0.25s var(--ease);
+          filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+        }
+
+        .car-card:hover .car-model-image {
+          transform: scale(1.06);
         }
 
         .car-info {
           flex-grow: 1;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         .car-name-row {
@@ -460,7 +496,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .launch-card {
-          padding: 20px 28px;
+          padding: 18px 24px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -472,11 +508,25 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .launch-summary {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 18px;
         }
 
-        .summary-icon {
-          font-size: 32px;
+        .summary-thumb-box {
+          width: 72px;
+          height: 52px;
+          border-radius: var(--r-md);
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+        }
+
+        .summary-thumb-img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
         }
 
         .summary-details {
@@ -487,7 +537,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .summary-overline {
           font-family: var(--font-display);
-          font-size: 0.72rem;
+          font-size: 0.7rem;
           font-weight: 700;
           color: var(--text-3);
           letter-spacing: 0.06em;
@@ -498,6 +548,12 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           font-size: 1.35rem;
           font-weight: 700;
           color: var(--text);
+        }
+
+        .summary-specs {
+          font-size: 0.78rem;
+          color: var(--text-2);
+          font-family: var(--font-mono);
         }
 
         .launch-btn {
