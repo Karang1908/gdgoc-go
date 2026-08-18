@@ -33,10 +33,10 @@ namespace GDGGo.Traffic
 
         [Header("Density")]
         [Tooltip("Metres between traffic spawns at the start of a run.")]
-        public float intervalAtStart = 46f;
+        public float intervalAtStart = 68f;
 
         [Tooltip("Metres between traffic spawns once difficulty is maxed.")]
-        public float intervalAtMaxDifficulty = 22f;
+        public float intervalAtMaxDifficulty = 48f;
 
         [Tooltip("Fallback speed when an entry leaves forwardSpeed at zero.")]
         public float defaultForwardSpeed = 9f;
