@@ -212,9 +212,37 @@ export interface DriverStats {
 }
 
 /**
+/**
  * Fetches the global leaderboard with aggregated cumulative coins & GDG coins.
  */
 export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[]> {
+  // 1. First attempt: Query precomputed public.leaderboard table
+  try {
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('user_id, username, display_name, best_score, total_coins, total_gdg_coins, best_distance, total_games, rank, last_played')
+      .order('best_score', { ascending: false })
+      .limit(limit);
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data.map((row: any, idx: number) => ({
+        userId: row.user_id || undefined,
+        username: row.username || 'driver',
+        displayName: row.display_name || row.username || 'Driver',
+        bestScore: Number(row.best_score) || 0,
+        totalCoins: Number(row.total_coins) || 0,
+        totalGdgCoins: Number(row.total_gdg_coins) || 0,
+        bestDistance: Number(row.best_distance) || 0,
+        totalGames: Number(row.total_games) || 1,
+        rank: Number(row.rank) || (idx + 1),
+        lastPlayed: row.last_played || new Date().toISOString(),
+      }));
+    }
+  } catch (err) {
+    console.warn('[API] Query from leaderboard table warning:', err);
+  }
+
+  // 2. Fallback attempt: Query scores table and aggregate
   const fetchLimit = 1000;
   let allRows: ScoreRow[] = [];
 
@@ -260,30 +288,30 @@ export async function fetchLeaderboardDrivers(limit = 100): Promise<DriverStats[
     if (!userMap.has(key)) {
       userMap.set(key, {
         userId: row.user_id,
-        username: row.username,
-        displayName: row.display_name || row.username,
-        bestScore: row.score || 0,
+        username: row.username || 'driver',
+        displayName: row.display_name || row.username || 'Driver',
+        bestScore: Number(row.score) || 0,
         totalCoins: 0,
         totalGdgCoins: 0,
-        bestDistance: row.distance || 0,
+        bestDistance: Number(row.distance) || 0,
         totalGames: 0,
-        lastPlayed: row.created_at,
+        lastPlayed: row.created_at || new Date().toISOString(),
       });
     }
 
     const driver = userMap.get(key)!;
     driver.totalGames += 1;
-    driver.totalCoins += (row.coins || 0);
+    driver.totalCoins += (Number(row.coins) || 0);
 
     // Cumulative GDG Coins computed from total coins & runs
-    const gdgEarned = Math.max(1, Math.floor((row.coins || 0) / 15));
+    const gdgEarned = Math.max(1, Math.floor((Number(row.coins) || 0) / 15));
     driver.totalGdgCoins += gdgEarned;
 
     if (row.score > driver.bestScore) {
-      driver.bestScore = row.score;
+      driver.bestScore = Number(row.score) || 0;
     }
     if (row.distance > driver.bestDistance) {
-      driver.bestDistance = row.distance;
+      driver.bestDistance = Number(row.distance) || 0;
     }
     if (new Date(row.created_at) > new Date(driver.lastPlayed)) {
       driver.lastPlayed = row.created_at;
@@ -315,6 +343,31 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
   let displayName = username || 'Driver';
 
   try {
+    // 1. Try public.leaderboard table first
+    if (userId) {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        return {
+          userId: data.user_id,
+          username: data.username || username || 'driver',
+          displayName: data.display_name || username || 'Driver',
+          bestScore: Number(data.best_score) || 0,
+          totalCoins: Number(data.total_coins) || 0,
+          totalGdgCoins: Number(data.total_gdg_coins) || 0,
+          bestDistance: Number(data.best_distance) || 0,
+          totalGames: Number(data.total_games) || 0,
+          rank: Number(data.rank) || 1,
+          lastPlayed: data.last_played || lastPlayed,
+        };
+      }
+    }
+
+    // 2. Fallback to scores table
     const query = supabase
       .from('scores')
       .select('id, user_id, username, display_name, score, coins, distance, created_at');
@@ -326,11 +379,11 @@ export async function fetchUserCumulativeStats(userId: string, username?: string
     if (!error && Array.isArray(data)) {
       for (const row of data) {
         totalGames += 1;
-        totalCoins += (row.coins || 0);
-        const gdgEarned = Math.max(1, Math.floor((row.coins || 0) / 15));
+        totalCoins += (Number(row.coins) || 0);
+        const gdgEarned = Math.max(1, Math.floor((Number(row.coins) || 0) / 15));
         totalGdgCoins += gdgEarned;
-        if (row.score > bestScore) bestScore = row.score;
-        if (row.distance > bestDistance) bestDistance = row.distance;
+        if (Number(row.score) > bestScore) bestScore = Number(row.score);
+        if (Number(row.distance) > bestDistance) bestDistance = Number(row.distance);
         if (row.display_name) displayName = row.display_name;
         lastPlayed = row.created_at;
       }
