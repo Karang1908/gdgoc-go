@@ -179,7 +179,7 @@ export const GameView: React.FC<GameViewProps> = ({
           </button>
 
           <div className="active-car-pill">
-            <span className="car-pill-icon">{selectedCar.icon}</span>
+            <img src={selectedCar.image} alt="" className="car-pill-img" />
             <span className="car-pill-name">{selectedCar.name}</span>
           </div>
         </div>
@@ -300,8 +300,10 @@ export const GameView: React.FC<GameViewProps> = ({
           border-radius: var(--pill);
         }
 
-        .car-pill-icon {
-          font-size: 16px;
+        .car-pill-img {
+          width: 32px;
+          height: 22px;
+          object-fit: contain;
         }
 
         .car-pill-name {

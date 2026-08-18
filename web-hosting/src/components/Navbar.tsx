@@ -1,5 +1,4 @@
-import React from 'react';
-import { Trophy, LogOut, User, Gamepad2, Sun, Moon } from 'lucide-react';
+import { Trophy, LogOut, User, Gamepad2, Sun, Moon, Coins } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -68,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
                 className="wallet-chip standard"
                 title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}
               >
-                <span className="coin-icon">🟡</span>
+                <Coins size={14} className="coin-svg" style={{ color: 'var(--g-yellow)' }} />
                 <span className="coin-count font-mono">{userCoins.toLocaleString()}</span>
               </div>
 
