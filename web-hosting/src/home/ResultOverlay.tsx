@@ -8,14 +8,12 @@ interface ResultOverlayProps {
   payload: GameOverPayload;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
-  onSignOut?: () => void;
 }
 
 export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   payload,
   onPlayAgain,
   onViewLeaderboard,
-  onSignOut,
 }) => {
   const { userStats, userCoins, userGdgCoins } = useAuth();
   const isBusted = payload.reason === 'police';
@@ -157,16 +155,6 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             <ArrowRight size={14} />
           </button>
         </div>
-
-        {onSignOut && (
-          <button
-            type="button"
-            className="signout-link btn-text"
-            onClick={onSignOut}
-          >
-            Sign Out
-          </button>
-        )}
       </div>
 
       <style>{`
@@ -388,22 +376,6 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           letter-spacing: 0.03em;
           padding: 0 12px;
           touch-action: manipulation;
-        }
-
-        .signout-link {
-          display: block;
-          width: 100%;
-          text-align: center;
-          padding: 4px;
-          margin-top: -6px;
-          margin-bottom: 8px;
-          font-size: 0.75rem;
-          color: var(--text-3);
-          cursor: pointer;
-        }
-
-        .signout-link:hover {
-          color: var(--danger);
         }
       `}</style>
     </div>

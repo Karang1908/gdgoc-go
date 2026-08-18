@@ -18,7 +18,7 @@ export const GameView: React.FC<GameViewProps> = ({
   onBackToGarage,
   onViewLeaderboard,
 }) => {
-  const { session, profile, signOut, refreshCoins } = useAuth();
+  const { session, profile, refreshCoins } = useAuth();
   const [runKey, setRunKey] = useState<number>(1);
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(bgmEngine.getMuted());
@@ -173,11 +173,6 @@ export const GameView: React.FC<GameViewProps> = ({
             onViewLeaderboard={() => {
               handleExitFullscreen();
               onViewLeaderboard();
-            }}
-            onSignOut={async () => {
-              handleExitFullscreen();
-              await signOut();
-              onBackToGarage();
             }}
           />
         )}
