@@ -25,7 +25,7 @@ export interface ScoreRow {
 
 /**
  * Submits the completed run score to Supabase scores table.
- * Uses both supabase-js and REST fallback to guarantee 100% reliable connection.
+ * Accurately calculates and synchronizes exact cumulative GDG coins to the leaderboard table.
  */
 export async function submitScore(payload: GameOverPayload): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -34,7 +34,22 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
     return;
   }
 
-  // 1. Ensure user profile exists in public.users to satisfy stamp_score_identity trigger
+  // 1. Query current total GDG coins prior to trigger recomputation
+  let currentGdgCoins = 0;
+  try {
+    const { data: currentLead } = await supabase
+      .from('leaderboard')
+      .select('total_gdg_coins')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (currentLead && typeof currentLead.total_gdg_coins === 'number') {
+      currentGdgCoins = currentLead.total_gdg_coins;
+    }
+  } catch (leadErr) {
+    console.warn('[API] Current leaderboard GDG coins query warning:', leadErr);
+  }
+
+  // 2. Ensure user profile exists in public.users to satisfy stamp_score_identity trigger
   const fallbackName = session.user.email?.split('@')[0] || 'driver';
   let username = fallbackName;
   let displayName = fallbackName;
@@ -60,7 +75,7 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
     console.warn('[API] Profile verification warning:', profileErr);
   }
 
-  // 2. Sanitize and bound parameters to satisfy PostgreSQL check constraints
+  // 3. Sanitize and bound parameters to satisfy PostgreSQL check constraints
   const distance = Math.max(0, Math.round(payload.distance));
   const coins = Math.max(0, Math.round(payload.coins));
   const pills = Math.max(0, Math.round(payload.pills || 0));
@@ -78,14 +93,14 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
     display_name: displayName,
     score,
     coins,
-    pills,
     distance,
     duration_seconds,
   };
 
-  console.log('[API] Committing verified score with GDG coins:', scorePayload);
+  console.log('[API] Committing verified score:', scorePayload);
 
-  // 3. First attempt: Use official Supabase client
+  // 4. First attempt: Use official Supabase client
+  let inserted = false;
   try {
     const { data, error } = await supabase
       .from('scores')
@@ -94,47 +109,56 @@ export async function submitScore(payload: GameOverPayload): Promise<void> {
 
     if (!error && data) {
       console.log('[API] Score committed successfully via Supabase client:', data);
-      return;
-    }
-    if (error) {
-      console.warn('[API] Supabase client insert returned error, attempting fallback without pills or with REST:', error.message);
-      // If pills column doesn't exist yet, retry insert without pills field
-      if (error.message?.includes('column "pills"') || error.message?.includes('pills')) {
-        const { pills: _, ...payloadWithoutPills } = scorePayload;
-        const retryRes = await supabase.from('scores').insert([payloadWithoutPills]).select();
-        if (!retryRes.error) {
-          console.log('[API] Score committed successfully via retry without pills column:', retryRes.data);
-          return;
-        }
-      }
+      inserted = true;
+    } else if (error) {
+      console.warn('[API] Supabase client insert returned error, attempting REST fallback:', error.message);
     }
   } catch (clientErr) {
     console.warn('[API] Supabase client insert threw exception, attempting REST fallback:', clientErr);
   }
 
-  // 4. Fallback attempt: Direct authenticated REST endpoint fetch
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify(scorePayload),
-    });
+  // 5. Fallback attempt: Direct authenticated REST endpoint fetch
+  if (!inserted) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify(scorePayload),
+      });
 
-    if (res.ok) {
-      const result = await res.json();
-      console.log('[API] Score committed successfully via REST fallback:', result);
-      return;
-    } else {
-      const errorText = await res.text();
-      console.warn('[API] Score submission REST fallback status ' + res.status + ':', errorText);
+      if (res.ok) {
+        const result = await res.json();
+        console.log('[API] Score committed successfully via REST fallback:', result);
+        inserted = true;
+      } else {
+        const errorText = await res.text();
+        console.warn('[API] Score submission REST fallback status ' + res.status + ':', errorText);
+      }
+    } catch (fetchErr) {
+      console.warn('[API] Score submission REST request failed:', fetchErr);
     }
-  } catch (fetchErr) {
-    console.warn('[API] Score submission REST request failed:', fetchErr);
+  }
+
+  // 6. Synchronize exact cumulative GDG Coins onto public.leaderboard
+  try {
+    const exactGdgCoins = currentGdgCoins + pills;
+    const { error: updateErr } = await supabase
+      .from('leaderboard')
+      .update({ total_gdg_coins: exactGdgCoins })
+      .eq('user_id', session.user.id);
+
+    if (!updateErr) {
+      console.log(`[API] Successfully synced leaderboard total_gdg_coins to ${exactGdgCoins}`);
+    } else {
+      console.warn('[API] Warning syncing leaderboard total_gdg_coins:', updateErr.message);
+    }
+  } catch (syncErr) {
+    console.warn('[API] Exception updating leaderboard total_gdg_coins:', syncErr);
   }
 }
 
