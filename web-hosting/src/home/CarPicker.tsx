@@ -107,12 +107,13 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         {/* Focused Hero Vehicle Card */}
         <div className="showcase-card card">
-          <div className="showcase-stage">
+          <div className="showcase-stage" onContextMenu={(e) => e.preventDefault()}>
             <img
               key={activeCar.id}
-              src={activeCar.image}
+              src={activeCar.spinImage || activeCar.image}
               alt={activeCar.name}
-              className="showcase-car-img animate-fade-in"
+              className="showcase-car-img"
+              draggable={false}
               loading="eager"
             />
           </div>
@@ -236,7 +237,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               aria-label={`Select ${car.name}`}
             >
               <div className="thumb-preview-box">
-                <img src={car.image} alt={car.name} className="thumb-img" />
+                <img src={car.image} alt={car.name} className="thumb-img" draggable={false} />
               </div>
               <div className="thumb-info">
                 <span className="thumb-name">{car.name}</span>
@@ -256,7 +257,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
       <style>{`
         .car-picker-container {
-          max-width: 1040px;
+          max-width: 1080px;
           margin: 0 auto;
           padding: 24px clamp(16px, 3vw, 24px) 50px;
         }
@@ -390,7 +391,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .showcase-card {
           flex: 1;
           display: grid;
-          grid-template-columns: 1.15fr 1fr;
+          grid-template-columns: 1.2fr 1fr;
           gap: 28px;
           padding: 28px;
           background: var(--surface);
@@ -402,27 +403,30 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .showcase-stage {
           width: 100%;
-          height: 280px;
+          height: 330px;
           border-radius: var(--r-lg);
           background: radial-gradient(circle at center, var(--surface-2) 0%, var(--surface-3) 100%);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 16px;
+          padding: 12px;
           overflow: hidden;
+          pointer-events: none;
+          user-select: none;
+          -webkit-user-select: none;
         }
 
         .showcase-car-img {
-          max-width: 95%;
-          max-height: 95%;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
           object-fit: contain;
-          filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.4));
-          transition: transform 0.3s var(--ease);
-        }
-
-        .showcase-card:hover .showcase-car-img {
-          transform: scale(1.04);
+          filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.45));
+          pointer-events: none;
+          user-select: none;
+          -webkit-user-drag: none;
         }
 
         .showcase-details {
@@ -451,7 +455,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .showcase-car-name {
           font-family: var(--font-display);
-          font-size: 1.75rem;
+          font-size: 1.85rem;
           font-weight: 700;
           color: var(--text);
           margin-bottom: 2px;
@@ -532,7 +536,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .showcase-actions {
-          margin-top: 4px;
+          margin-top: 6px;
         }
 
         .launch-showcase-btn {
@@ -589,6 +593,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           max-width: 100%;
           max-height: 100%;
           object-fit: contain;
+          pointer-events: none;
+          user-select: none;
         }
 
         .thumb-info {
@@ -628,7 +634,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             padding: 20px;
           }
           .showcase-stage {
-            height: 200px;
+            height: 240px;
           }
           .thumbnails-dock {
             grid-template-columns: repeat(2, 1fr);
