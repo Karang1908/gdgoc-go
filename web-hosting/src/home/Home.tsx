@@ -19,6 +19,32 @@ export const Home: React.FC<HomeProps> = ({
   const [selectedCarId, setSelectedCarId] = useState<string>('sports');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
+  const handleStartGame = () => {
+    // Synchronously request iframe fullscreen directly in the button click handler
+    const iframe = document.querySelector('.unity-iframe') as HTMLIFrameElement;
+    if (iframe) {
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen().catch((err) => {
+          console.warn('[Home] Fullscreen request error:', err);
+        });
+      } else if ((iframe as any).webkitRequestFullscreen) {
+        (iframe as any).webkitRequestFullscreen();
+      }
+    }
+    setIsPlaying(true);
+  };
+
+  const handleBackToGarage = () => {
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+    setIsPlaying(false);
+  };
+
   if (loading) {
     return (
       <div className="home-loading">
@@ -168,22 +194,27 @@ export const Home: React.FC<HomeProps> = ({
     );
   }
 
-  // Signed in -> Show Game View if playing, or Car Picker if selecting
+  // Signed in -> Keep GameView initialized so iframe is immediately available for click-based fullscreen
   return (
     <main className="home-main-content">
-      {isPlaying ? (
-        <GameView
-          carId={selectedCarId}
-          onBackToGarage={() => setIsPlaying(false)}
-          onViewLeaderboard={() => navigate('leaderboard')}
-        />
-      ) : (
+      <div style={{ display: isPlaying ? 'none' : 'block' }}>
         <CarPicker
           selectedCarId={selectedCarId}
           onSelectCar={(id) => setSelectedCarId(id)}
-          onStartGame={() => setIsPlaying(true)}
+          onStartGame={handleStartGame}
         />
-      )}
+      </div>
+
+      <div style={{ display: isPlaying ? 'block' : 'none' }}>
+        <GameView
+          carId={selectedCarId}
+          onBackToGarage={handleBackToGarage}
+          onViewLeaderboard={() => {
+            handleBackToGarage();
+            navigate('leaderboard');
+          }}
+        />
+      </div>
     </main>
   );
 };
