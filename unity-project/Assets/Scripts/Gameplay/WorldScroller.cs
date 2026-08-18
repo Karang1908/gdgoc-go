@@ -28,13 +28,13 @@ namespace GDGGo.Gameplay
 
         [Header("Speed ramp")]
         [Tooltip("Forward speed at the start of a run (world units / sec).")]
-        public float startSpeed = 16f;
+        public float startSpeed = 19f;
 
         [Tooltip("Speed the run asymptotes to once fully ramped.")]
-        public float maxSpeed = 42f;
+        public float maxSpeed = 38f;
 
         [Tooltip("Track distance (m) over which speed climbs from startSpeed to maxSpeed.")]
-        public float rampDistance = 2200f;
+        public float rampDistance = 3000f;
 
         [Header("Player speed modifiers")]
         [Tooltip("Multiplier applied while the player holds boost / has Nitro.")]
