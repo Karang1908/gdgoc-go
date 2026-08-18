@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAuth }) => {
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, userCoins, userGdgCoins, signOut } = useAuth();
 
   return (
     <header className="navbar-container">
@@ -53,15 +53,36 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
             <span>Leaderboard</span>
           </button>
 
+          {/* Cumulative Coins & GDG Coins Wallet Badges */}
+          {session && (
+            <div className="nav-wallet-group animate-fade-in">
+              <div className="coin-badge standard-coin" title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}>
+                <span className="coin-icon">🟡</span>
+                <span className="coin-count font-mono">{userCoins.toLocaleString()}</span>
+              </div>
+
+              <div className="coin-badge gdg-coin" title={`Cumulative GDG Coins: ${userGdgCoins.toLocaleString()}`}>
+                <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-gdg-pill-icon" />
+                <span className="coin-count font-mono">{userGdgCoins.toLocaleString()}</span>
+                <span className="coin-tag">GDG</span>
+              </div>
+            </div>
+          )}
+
           {/* Auth Button / Profile Badge */}
           {session && profile ? (
             <div className="user-profile-badge">
               <div className="user-avatar">
                 <User size={16} />
               </div>
-              <span className="user-display-name" title={profile.display_name}>
-                {profile.display_name}
-              </span>
+              <div className="user-identity-stack">
+                <span className="user-username font-mono" title={`@${profile.username}`}>
+                  @{profile.username}
+                </span>
+                <span className="user-realname" title={profile.display_name}>
+                  {profile.display_name}
+                </span>
+              </div>
               <button
                 id="nav-signout-btn"
                 className="signout-btn"
@@ -194,6 +215,74 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
           border-color: var(--border-medium);
         }
 
+        .nav-wallet-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .coin-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          user-select: none;
+          transition: all 0.2s ease;
+        }
+
+        .coin-badge.standard-coin {
+          background: rgba(251, 188, 5, 0.12);
+          border: 1px solid rgba(251, 188, 5, 0.35);
+          color: #FFD54F;
+        }
+
+        .coin-badge.standard-coin:hover {
+          background: rgba(251, 188, 5, 0.2);
+          border-color: rgba(251, 188, 5, 0.6);
+          box-shadow: 0 0 10px rgba(251, 188, 5, 0.25);
+        }
+
+        .coin-badge.gdg-coin {
+          background: linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(52, 168, 83, 0.15));
+          border: 1px solid rgba(66, 133, 244, 0.4);
+          color: #64B5F6;
+        }
+
+        .coin-badge.gdg-coin:hover {
+          border-color: rgba(66, 133, 244, 0.7);
+          box-shadow: 0 0 12px rgba(66, 133, 244, 0.3);
+        }
+
+        .coin-icon {
+          font-size: 14px;
+          line-height: 1;
+        }
+
+        .inline-gdg-pill-icon {
+          width: 16px;
+          height: 16px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 4px rgba(66, 133, 244, 0.5));
+        }
+
+        .coin-count {
+          font-weight: 800;
+          letter-spacing: 0.02em;
+        }
+
+        .coin-tag {
+          font-size: 0.65rem;
+          font-weight: 800;
+          background: rgba(66, 133, 244, 0.3);
+          color: #E3F2FD;
+          padding: 1px 4px;
+          border-radius: 4px;
+          letter-spacing: 0.05em;
+        }
+
         .user-profile-badge {
           display: flex;
           align-items: center;
@@ -215,11 +304,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
           color: white;
         }
 
-        .user-display-name {
-          font-weight: 600;
-          font-size: 0.88rem;
-          color: var(--text-primary);
-          max-width: 130px;
+        .user-identity-stack {
+          display: flex;
+          flex-direction: column;
+          max-width: 140px;
+          line-height: 1.15;
+          text-align: left;
+        }
+
+        .user-username {
+          font-weight: 800;
+          font-size: 0.84rem;
+          color: #FFFFFF;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .user-realname {
+          font-size: 0.68rem;
+          color: var(--text-muted);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
