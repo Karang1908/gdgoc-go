@@ -29,12 +29,11 @@ namespace GDGGo.Coins
         [Tooltip("Coin prefab (Quaternius RPG Coin.fbx + CoinPickup).")]
         public CoinPickup coinPrefab;
 
-        [Tooltip("Optional dedicated fuel prefab (Quaternius RPG Potion6_Filled + " +
-                 "CoinPickup tagged CoinType.Fuel). When assigned, fuel spawns use " +
-                 "this instead of the coin disc so the canister reads as fuel, not " +
-                 "another coin. Leave null to fall back to the legacy coin + orange " +
-                 "material behaviour.")]
+        [Tooltip("Optional dedicated fuel prefab.")]
         public CoinPickup fuelPrefabOverride;
+
+        [Tooltip("Optional dedicated GDG Pill coin prefab with custom 3D mesh & logo.")]
+        public CoinPickup pillPrefabOverride;
 
         [Tooltip("Materials for the four Google-colour coins and the rare GDG pill.")]
         public Material redMaterial;
@@ -53,12 +52,10 @@ namespace GDGGo.Coins
         public float greenWeight = 1f;
 
         [Tooltip("Probability that any given coin is the rare GDG pill.")]
-        [Range(0f, 0.2f)] public float gdgPillChance = 0.022f;
+        [Range(0f, 0.2f)] public float gdgPillChance = 0.055f;
 
-        [Tooltip("Track distance (m) before the GDG pill can drop at all. It is the " +
-                 "signature pickup, so it is held back to become a milestone rather than " +
-                 "something the player trips over in the first few seconds.")]
-        public float gdgPillUnlockDistance = 500f;
+        [Tooltip("Track distance (m) before the GDG pill can drop at all.")]
+        public float gdgPillUnlockDistance = 25f;
 
         [Header("Geometry")]
         [Tooltip("Spacing between coins along Z within a pattern.")]
@@ -80,33 +77,42 @@ namespace GDGGo.Coins
 
         [Header("Fuel")]
         [Tooltip("Metres between fuel cans when the tank is comfortably full.")]
-        public float fuelIntervalMetres = 190f;
+        public float fuelIntervalMetres = 75f;
 
         [Tooltip("Metres between fuel cans once the tank is low. Cans arrive more often " +
                  "as the player runs dry so a run ends from bad driving, not bad luck.")]
-        public float fuelIntervalWhenLow = 85f;
+        public float fuelIntervalWhenLow = 35f;
 
         /// <summary>Track distance at which the next fuel can is due.</summary>
-        private float _nextFuelTrack = 120f;
+        private float _nextFuelTrack = 35f;
+
+        [Header("GDG Pill Milestones")]
+        [Tooltip("Guaranteed milestone interval for GDG Pill coin spawns (every 100 meters).")]
+        public float pillMilestoneInterval = 100f;
+        private float _nextPillMilestoneTrack = 100f;
 
         protected override void SpawnAt(float worldZ, WorldScroller world)
         {
             float trackDistance = world.Distance + worldZ;
 
-            // Prefer a lane nothing is blocking, so coins are collectable rather than
-            // buried inside a bus. Fall back to any lane if all are busy.
             int lane = PickOpenLane(trackDistance);
 
-            // Fuel is scheduled on its own track-space cadence rather than rolled into the
-            // pattern mix: it is the difference between finishing a run and not, so it has
-            // to be predictable, not a lucky drop.
+            // 1. Guaranteed GDG Pill Coin every 100 meters!
+            if (trackDistance >= _nextPillMilestoneTrack)
+            {
+                SpawnGuaranteedGDGPill(lane, worldZ);
+                _nextPillMilestoneTrack = trackDistance + pillMilestoneInterval;
+                return;
+            }
+
+            // 2. Fuel is scheduled on its own track-space cadence
             if (trackDistance >= _nextFuelTrack)
             {
                 SpawnFuel(lane, worldZ);
                 var session = Core.GameSession.Instance;
                 bool low = session != null && session.Fuel <= Core.GameSession.LowFuelThreshold;
                 _nextFuelTrack = trackDistance + (low ? fuelIntervalWhenLow : fuelIntervalMetres);
-                return;   // a fuel can gets the lane to itself so it cannot be missed
+                return;
             }
 
             switch (ChoosePattern())
@@ -116,6 +122,23 @@ namespace GDGGo.Coins
                 case Pattern.Arc: SpawnArc(lane, worldZ); break;
                 case Pattern.Row: SpawnRow(worldZ); break;
             }
+        }
+
+        /// <summary>A single guaranteed GDG Pill coin, hovering in the open lane.</summary>
+        private void SpawnGuaranteedGDGPill(int lane, float worldZ)
+        {
+            float x = LaneModel.LaneX(lane);
+            float y = hoverHeight + 0.1f;
+
+            CoinPickup prefabToUse = pillPrefabOverride != null ? pillPrefabOverride : coinPrefab;
+            var coin = Instantiate(prefabToUse, new Vector3(x, y, worldZ), Quaternion.identity, transform);
+            coin.coinType = CoinType.GDGPill;
+            coin.coinValue = 25;
+            if (pillPrefabOverride == null)
+            {
+                coin.ApplyMaterial(gdgPillMaterial);
+            }
+            Track(coin.gameObject);
         }
 
         /// <summary>A single fuel can, hovering in the middle of its lane.</summary>
@@ -218,11 +241,24 @@ namespace GDGGo.Coins
         private void SpawnCoin(float x, float y, float z)
         {
             CoinType type = PickType();
-            var coin = Instantiate(coinPrefab, new Vector3(x, y, z), Quaternion.identity, transform);
+            CoinPickup prefabToUse = coinPrefab;
+            if (type == CoinType.GDGPill && pillPrefabOverride != null)
+            {
+                prefabToUse = pillPrefabOverride;
+            }
+            else if (type == CoinType.Fuel && fuelPrefabOverride != null)
+            {
+                prefabToUse = fuelPrefabOverride;
+            }
+
+            var coin = Instantiate(prefabToUse, new Vector3(x, y, z), Quaternion.identity, transform);
 
             coin.coinType = type;
             coin.coinValue = type == CoinType.GDGPill ? 25 : 1;
-            coin.ApplyMaterial(MaterialFor(type));
+            if (type != CoinType.GDGPill || pillPrefabOverride == null)
+            {
+                coin.ApplyMaterial(MaterialFor(type));
+            }
 
             Track(coin.gameObject);
         }
