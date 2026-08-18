@@ -32,19 +32,19 @@ namespace GDGGo.Coins
 
         [Header("Magnet")]
         [Tooltip("Radius within which an active magnet starts pulling this coin.")]
-        public float magnetRadius = 7f;
+        public float magnetRadius = 24f;
         [Tooltip("Speed the coin flies toward the player under the magnet.")]
-        public float magnetSpeed = 18f;
+        public float magnetSpeed = 32f;
 
-        [Tooltip("Distance at which the coin counts as collected while being magneted. " +
-                 "Needed because a coin flying at the player can outrun the trigger test.")]
-        public float magnetCollectDistance = 0.8f;
+        [Tooltip("Distance at which the coin counts as collected while being magneted.")]
+        public float magnetCollectDistance = 1.4f;
 
         public bool IsGDGPill => coinType == CoinType.GDGPill;
         public bool IsFuel => coinType == CoinType.Fuel;
 
         private float _bobPhase;
         private float _baseY;
+        private float _magnetFlightTime;
         private bool _collected;
 
         private void Awake()
@@ -55,9 +55,6 @@ namespace GDGGo.Coins
 
         private void Start()
         {
-            // Captured after the spawner has positioned us. The bob is then applied as an
-            // absolute offset from this height rather than a per-frame delta, which would
-            // accumulate float error and let coins slowly sink or climb over a long run.
             _baseY = transform.position.y;
         }
 
@@ -68,7 +65,11 @@ namespace GDGGo.Coins
 
             transform.Rotate(0f, rotationSpeedDeg * Time.deltaTime, 0f, Space.World);
 
-            if (session != null && session.HasMagnet) { ApplyMagnet(session); return; }
+            if (session != null && session.HasMagnet && !IsFuel)
+            {
+                ApplyMagnet(session);
+                return;
+            }
 
             if (bobAmplitude > 0f)
             {
@@ -84,19 +85,22 @@ namespace GDGGo.Coins
             var player = Gameplay.PlayerCar.Current;
             if (player == null) return;
 
-            Vector3 target = player.transform.position;
+            Vector3 target = player.transform.position + Vector3.up * 0.5f;
             Vector3 here = transform.position;
 
-            float dx = target.x - here.x;
-            float dy = target.y - here.y;
-            float dz = target.z - here.z;
-            float sqr = dx * dx + dy * dy + dz * dz;
+            float dist = Vector3.Distance(here, target);
+            if (dist > magnetRadius) return;
 
-            if (sqr > magnetRadius * magnetRadius) return;
+            _magnetFlightTime += Time.deltaTime;
+            float currentSpeed = Mathf.Lerp(16f, magnetSpeed, _magnetFlightTime * 2.5f);
 
-            transform.position = Vector3.MoveTowards(here, target, magnetSpeed * Time.deltaTime);
+            // Smooth curved suction towards the vehicle
+            Vector3 dir = (target - here).normalized;
+            Vector3 nextPos = here + dir * (currentSpeed * Time.deltaTime);
 
-            if (sqr <= magnetCollectDistance * magnetCollectDistance)
+            transform.position = nextPos;
+
+            if (dist <= magnetCollectDistance)
                 Collect(session);
         }
 
