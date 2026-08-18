@@ -383,7 +383,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           padding: 16px 16px max(32px, env(safe-area-inset-bottom, 0px) + 16px);
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
           box-sizing: border-box;
+        }
+
+        .leaderboard-container::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
 
         .leaderboard-header {
@@ -747,11 +755,19 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .table-container {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
           padding: 0;
           border-radius: 16px;
           background: var(--surface);
           border: 1px solid var(--border);
           box-shadow: none;
+        }
+
+        .table-container::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
 
         .leaderboard-table {
