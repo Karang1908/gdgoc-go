@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, AlertCircle, Loader2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -89,6 +89,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }}
     >
       <div className="modal-card card animate-fade-in">
+        {/* Top Right Close Button */}
+        {canDismiss && (
+          <button
+            type="button"
+            className="modal-close-icon-btn"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            <X size={18} />
+          </button>
+        )}
+
         <div className="modal-header">
           <div className="modal-brand-hub">
             <img src="/assets/gdg-mark.png" alt="GDG" className="modal-gdg-mark" />
@@ -220,16 +232,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
           </button>
         </form>
-
-        {canDismiss && (
-          <button
-            type="button"
-            className="dismiss-btn btn-text"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-        )}
       </div>
 
       <style>{`
@@ -250,6 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .modal-card {
+          position: relative;
           width: 100%;
           max-width: 390px;
           border-radius: var(--r-xl);
@@ -260,8 +263,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           padding: 0;
         }
 
+        .modal-close-icon-btn {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          color: var(--text-2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s var(--ease);
+          z-index: 5;
+          touch-action: manipulation;
+        }
+
+        .modal-close-icon-btn:hover {
+          background: var(--surface-3);
+          color: var(--text);
+        }
+
         .modal-header {
-          padding: 16px 20px 8px;
+          padding: 18px 20px 8px;
           text-align: center;
         }
 
@@ -351,7 +378,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .auth-form {
-          padding: 0 20px 14px;
+          padding: 0 20px 18px;
           display: flex;
           flex-direction: column;
           gap: 8px;
@@ -421,28 +448,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .submit-btn {
-          margin-top: 4px;
+          margin-top: 6px;
           width: 100%;
           height: 44px;
           font-size: 0.88rem;
           font-weight: 700;
           touch-action: manipulation;
-        }
-
-        .dismiss-btn {
-          display: block;
-          width: 100%;
-          text-align: center;
-          padding: 6px;
-          margin-top: -6px;
-          margin-bottom: 8px;
-          font-size: 0.78rem;
-          color: var(--text-3);
-          cursor: pointer;
-        }
-
-        .dismiss-btn:hover {
-          color: var(--text);
         }
       `}</style>
     </div>
