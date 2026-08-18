@@ -34,10 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
             alt="Google Developer Groups"
           />
           <div className="brand-divider" />
-          <div className="brand-context">
-            <span className="brand-title">GDG GO</span>
-            <span className="brand-sub">BITS Pilani Dubai Campus</span>
-          </div>
+          <span className="brand-title">GDGoC Go!</span>
         </div>
 
         {/* Center/Nav: Pill Navigation */}
@@ -189,24 +186,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
           flex: none;
         }
 
-        .brand-context {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.15;
-        }
-
         .brand-title {
           font-family: var(--font-display);
-          font-size: 1rem;
+          font-size: 1.15rem;
           font-weight: 700;
           color: var(--text);
-          letter-spacing: 0.02em;
-        }
-
-        .brand-sub {
-          font-size: 0.72rem;
-          color: var(--text-2);
-          font-weight: 500;
+          letter-spacing: -0.01em;
           white-space: nowrap;
         }
 
