@@ -1785,7 +1785,7 @@ MonoBehaviour:
   redMaterial: {fileID: 2100000, guid: 775e9a3484e984facbc9a8b1ef1b5fdd, type: 2}
   blueMaterial: {fileID: 2100000, guid: 613f30ad939fb449980860b8db459544, type: 2}
   yellowMaterial: {fileID: 2100000, guid: 73b4a68258ae84be6a0d74fb54037933, type: 2}
-  greenMaterial: {fileID: 0}
+  greenMaterial: {fileID: 2100000, guid: d7b7d62d6799542b2a7a7289fc1fbe00, type: 2}
   gdgPillMaterial: {fileID: 2100000, guid: 67fcf1048752c44c884079c6ea564da2, type: 2}
   fuelMaterial: {fileID: 2100000, guid: 5ef7aadf2001e4a999e3219208742e70, type: 2}
   redWeight: 1

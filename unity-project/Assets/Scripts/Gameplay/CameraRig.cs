@@ -52,11 +52,20 @@ namespace GDGGo.Gameplay
         private float _currentY;
         private float _currentRoll;
         private Core.GameSession _session;
+        private Vector3 _authoredOffset;
+
+        // Portrait WebGL needs extra width in frame. Pulling back avoids the extreme
+        // fisheye distortion that would come from solving this with FOV alone.
+        private const float PortraitPullback = 3.2f;
+        private const float PortraitLift = 1.15f;
+        private const float PortraitFovBonus = 14f;
+        private const float PortraitPitchBonus = 3f;
 
         private void Awake()
         {
             _camera = GetComponent<Camera>();
             if (_camera == null) _camera = GetComponentInChildren<Camera>();
+            _authoredOffset = offset;
             transform.rotation = Quaternion.Euler(pitchDegrees, 0f, 0f);
         }
 
@@ -82,23 +91,31 @@ namespace GDGGo.Gameplay
             if (_session == null) Subscribe();
             if (target == null && PlayerCar.Current != null) target = PlayerCar.Current.transform;
 
-            Vector3 basePosition = offset;
+            float portraitFactor = GetPortraitFactor();
+            Vector3 responsiveOffset = _authoredOffset + new Vector3(
+                0f,
+                PortraitLift * portraitFactor,
+                -PortraitPullback * portraitFactor);
+            Vector3 basePosition = responsiveOffset;
 
             if (target != null)
             {
                 float targetX = target.position.x * lateralFollow;
-                float targetY = offset.y + Mathf.Max(0f, target.position.y) * verticalFollow;
+                float targetY = responsiveOffset.y + Mathf.Max(0f, target.position.y) * verticalFollow;
 
                 float prevX = _currentX;
                 _currentX = Mathf.Lerp(_currentX, targetX, 1f - Mathf.Exp(-lateralLerp * Time.deltaTime));
                 _currentY = Mathf.Lerp(_currentY, targetY, 1f - Mathf.Exp(-lateralLerp * Time.deltaTime));
-                basePosition = new Vector3(_currentX, _currentY, offset.z);
+                basePosition = new Vector3(_currentX, _currentY, responsiveOffset.z);
 
                 // Arcade camera roll in direction of swerve
                 float lateralVelocity = (targetX - prevX) / Mathf.Max(0.001f, Time.deltaTime);
                 float targetRoll = Mathf.Clamp(-lateralVelocity * 0.45f, -maxCameraBankRoll, maxCameraBankRoll);
                 _currentRoll = Mathf.Lerp(_currentRoll, targetRoll, 1f - Mathf.Exp(-10f * Time.deltaTime));
-                transform.rotation = Quaternion.Euler(pitchDegrees, 0f, _currentRoll);
+                transform.rotation = Quaternion.Euler(
+                    pitchDegrees + PortraitPitchBonus * portraitFactor,
+                    0f,
+                    _currentRoll);
             }
 
             transform.position = basePosition + CurrentShakeOffset();
@@ -131,8 +148,17 @@ namespace GDGGo.Gameplay
             bool isBoosting = PlayerCar.Current != null && PlayerCar.Current.IsBoosting;
             float boostFactor = isBoosting ? 1.4f : 1.0f;
 
-            float targetFov = baseFieldOfView + (boostFieldOfViewBonus * speedExcess * boostFactor);
+            float targetFov = baseFieldOfView +
+                              (boostFieldOfViewBonus * speedExcess * boostFactor) +
+                              (PortraitFovBonus * GetPortraitFactor());
             _camera.fieldOfView = Mathf.Lerp(_camera.fieldOfView, targetFov, 1f - Mathf.Exp(-fovLerp * Time.deltaTime));
+        }
+
+        private float GetPortraitFactor()
+        {
+            if (_camera == null || _camera.pixelHeight <= 0) return 0f;
+            float aspect = (float)_camera.pixelWidth / _camera.pixelHeight;
+            return Mathf.Clamp01((1f - aspect) / 0.5f);
         }
 
         /// <summary>Kicks off a shake. Wired to GameSession.OnCrash.</summary>

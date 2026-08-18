@@ -61,6 +61,9 @@ namespace GDGGo.UI
         private float _displayedScore;
         private int _lastMultiplier = 1;
         private float _multiplierPop;
+        private float _responsiveHudScale = 1f;
+        private int _lastScreenWidth = -1;
+        private int _lastScreenHeight = -1;
 
         private void OnDisable()
         {
@@ -71,6 +74,8 @@ namespace GDGGo.UI
 
         private void Update()
         {
+            ApplyResponsiveLayout();
+
             if (_session == null)
             {
                 _session = GameSession.Instance;
@@ -106,6 +111,7 @@ namespace GDGGo.UI
                 var t = transform.Find("AlertText");
                 if (t != null) alertText = t.GetComponent<TMP_Text>();
             }
+            ApplyResponsiveLayout();
         }
 
         private void OnDestroy()
@@ -129,7 +135,7 @@ namespace GDGGo.UI
 
             _alertTimer -= Time.deltaTime;
             _alertScale = Mathf.MoveTowards(_alertScale, 1f, 2.5f * Time.deltaTime);
-            alertText.transform.localScale = Vector3.one * _alertScale;
+            alertText.transform.localScale = Vector3.one * (_alertScale * _responsiveHudScale);
 
             if (_alertTimer <= 0.4f)
             {
@@ -176,7 +182,34 @@ namespace GDGGo.UI
 
             _multiplierPop = Mathf.MoveTowards(_multiplierPop, 0f, multiplierPopDecay * Time.deltaTime);
             float scale = 1f + (multiplierPopScale - 1f) * _multiplierPop;
-            multiplierText.transform.localScale = new Vector3(scale, scale, 1f);
+            float responsiveScale = scale * _responsiveHudScale;
+            multiplierText.transform.localScale = new Vector3(responsiveScale, responsiveScale, 1f);
+        }
+
+        private void ApplyResponsiveLayout()
+        {
+            if (Screen.width == _lastScreenWidth && Screen.height == _lastScreenHeight) return;
+
+            _lastScreenWidth = Screen.width;
+            _lastScreenHeight = Screen.height;
+            float aspect = Screen.height > 0 ? (float)Screen.width / Screen.height : 1f;
+            float portraitBlend = Mathf.Clamp01((1f - aspect) / 0.5f);
+            _responsiveHudScale = Mathf.Lerp(1f, 0.58f, portraitBlend);
+
+            foreach (Transform child in transform)
+                child.localScale = Vector3.one * _responsiveHudScale;
+
+            // The desktop HUD uses one dense top band. On a narrow phone the centered
+            // fuel gauge needs its own row so it never covers score or coin readouts.
+            SetResponsivePosition("FuelGauge", new Vector2(0f, -14f), new Vector2(0f, -70f), portraitBlend);
+            SetResponsivePosition("DistanceText", new Vector2(28f, -92f), new Vector2(18f, -122f), portraitBlend);
+            SetResponsivePosition("MultiplierText", new Vector2(-28f, -88f), new Vector2(-18f, -122f), portraitBlend);
+        }
+
+        private void SetResponsivePosition(string childName, Vector2 wide, Vector2 portrait, float blend)
+        {
+            var child = transform.Find(childName) as RectTransform;
+            if (child != null) child.anchoredPosition = Vector2.Lerp(wide, portrait, blend);
         }
 
         /// <summary>

@@ -32,6 +32,7 @@ namespace GDGGo.Gameplay
                 var session = GameSession.Instance;
                 if (session != null && session.IsRunning)
                 {
+                    session.AddBonusScore(50);
                     UI.HUD.Instance?.ShowAlert("NEAR MISS! +50", new Color(1f, 0.85f, 0.1f));
                     Audio.AudioManager.Instance?.PlaySwerve();
                 }

@@ -27,13 +27,15 @@ namespace GDGGo.Core
 
         // ---------------- Run state ----------------
         public bool IsRunning { get; private set; }
+        /// <summary>Google-colour standard coins collected. GDG pills are tracked separately.</summary>
         public int CoinCount { get; private set; }
         public int GDGPillsCollected { get; private set; }
+        public int BonusScore { get; private set; }
         public float DistanceMeters => _world != null ? _world.Distance : 0f;
         public float RunSeconds { get; private set; }
 
         /// <summary>Distance points + coin points. Recomputed on read; never stored.</summary>
-        public int Score => Mathf.RoundToInt(DistanceMeters) * PointsPerMetre + _coinScore;
+        public int Score => Mathf.RoundToInt(DistanceMeters) * PointsPerMetre + _coinScore + BonusScore;
 
         public const int PointsPerMetre = 2;
 
@@ -116,6 +118,7 @@ namespace GDGGo.Core
         public static int LastCoins { get; private set; }
         public static int LastMeters { get; private set; }
         public static int LastPills { get; private set; }
+        public static int LastBonusScore { get; private set; }
         public static int LastDurationSeconds { get; private set; }
 
         private int _coinScore;
@@ -232,15 +235,25 @@ namespace GDGGo.Core
 
             int awarded = coinValue * Multiplier * (Has2x ? 2 : 1);
             _coinScore += awarded;
-            CoinCount++;
             if (isGDGPill)
             {
                 GDGPillsCollected++;
                 UI.HUD.Instance?.ShowAlert("+25 GDG COIN!", new Color(0.984f, 0.737f, 0.020f));
             }
+            else
+            {
+                CoinCount++;
+            }
 
             Heat = Mathf.Clamp01(Heat + heatPerCoin);
             OnCoin?.Invoke(awarded);
+        }
+
+        /// <summary>Adds a fixed, auditable gameplay bonus such as a near miss.</summary>
+        public void AddBonusScore(int points)
+        {
+            if (!IsRunning || points <= 0) return;
+            BonusScore += points;
         }
 
         /// <summary>The player hit an obstacle or a traffic car.</summary>
@@ -356,34 +369,44 @@ namespace GDGGo.Core
             LastCoins = finalCoins;
             LastMeters = finalMeters;
             LastPills = GDGPillsCollected;
+            LastBonusScore = BonusScore;
             LastDurationSeconds = finalDuration;
 
             Audio.AudioManager.Instance?.PlayGameOver();
             OnGameOver?.Invoke(finalScore, finalCoins, finalMeters);
 
-            ReportGameOver(finalScore, finalCoins, LastPills, finalMeters, finalDuration, reason);
+            ReportGameOver(finalScore, finalCoins, LastPills, LastBonusScore, finalMeters, finalDuration, reason);
         }
 
         [System.Serializable]
         private struct GameOverReport
         {
             public string type;
+            public string run_id;
             public int score;
             public int coins;
             public int pills;
+            public int bonus;
             public int distance;
             public int duration;
+            public string reason;
         }
 
-        private void ReportGameOver(int s, int c, int p, int m, int d, string reason)
+        private void ReportGameOver(int s, int c, int p, int b, int m, int d, string reason)
         {
-            // Build verified JSON payload with reason
-            string json = "{\"type\":\"gameover\",\"score\":" + s +
-                          ",\"coins\":" + c +
-                          ",\"pills\":" + p +
-                          ",\"distance\":" + m +
-                          ",\"duration\":" + d +
-                          ",\"reason\":\"" + (string.IsNullOrEmpty(reason) ? "police" : reason) + "\"}";
+            var report = new GameOverReport
+            {
+                type = "gameover",
+                run_id = Supabase.SupabaseSession.Instance != null ? Supabase.SupabaseSession.Instance.RunId : string.Empty,
+                score = s,
+                coins = c,
+                pills = p,
+                bonus = b,
+                distance = m,
+                duration = d,
+                reason = string.IsNullOrEmpty(reason) ? "police" : reason
+            };
+            string json = JsonUtility.ToJson(report);
 
             Debug.Log("[GameSession] Reporting game over to parent window: " + json);
 

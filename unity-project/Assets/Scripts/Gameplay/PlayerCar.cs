@@ -43,16 +43,23 @@ namespace GDGGo.Gameplay
         [Tooltip("Minimum screen-pixel travel before a drag counts as a swipe.")]
         public float swipeThresholdPixels = 40f;
 
+        [Tooltip("Maximum gap between taps that activates a short mobile boost.")]
+        public float doubleTapWindowSeconds = 0.32f;
+
+        [Tooltip("Seconds of boost awarded by a double tap.")]
+        public float doubleTapBoostSeconds = 1.2f;
+
         /// <summary>The active player car. Cached so per-coin magnet logic does not have
         /// to run a scene-wide search on every coin, every frame.</summary>
         public static PlayerCar Current { get; private set; }
 
         public int CurrentLane { get; private set; } = LaneModel.CentreLane;
         public bool IsJumping { get; private set; }
-        public bool IsBraking { get; private set; }
+        public bool IsBraking => _keyboardBraking || _buttonBraking || Time.unscaledTime < _brakeTapUntil;
 
         /// <summary>True while boosting, whether from held input or an active Nitro pickup.</summary>
-        public bool IsBoosting => _boostHeld || (Core.GameSession.Instance != null && Core.GameSession.Instance.HasNitro);
+        public bool IsBoosting => _keyboardBoostHeld || _buttonBoostHeld || Time.unscaledTime < _touchBoostUntil ||
+                                  (Core.GameSession.Instance != null && Core.GameSession.Instance.HasNitro);
 
         /// <summary>Current world speed. Owned by WorldScroller; mirrored here for callers.</summary>
         public float CurrentSpeed => WorldScroller.Instance != null ? WorldScroller.Instance.Speed : 0f;
@@ -61,7 +68,13 @@ namespace GDGGo.Gameplay
         private float _laneChangeT = 1f;   // 1 = settled
         private float _jumpTimer;
         private float _groundY;
-        private bool _boostHeld;
+        private bool _keyboardBraking;
+        private bool _buttonBraking;
+        private bool _keyboardBoostHeld;
+        private bool _buttonBoostHeld;
+        private float _brakeTapUntil = -1f;
+        private float _touchBoostUntil = -1f;
+        private float _lastTapTime = -10f;
 
         // Swipe tracking
         private Vector2 _touchStart;
@@ -94,8 +107,12 @@ namespace GDGGo.Gameplay
             }
             else
             {
-                _boostHeld = false;
-                IsBraking = false;
+                _keyboardBraking = false;
+                _buttonBraking = false;
+                _keyboardBoostHeld = false;
+                _buttonBoostHeld = false;
+                _brakeTapUntil = -1f;
+                _touchBoostUntil = -1f;
             }
 
             UpdateLanePosition();
@@ -135,10 +152,10 @@ namespace GDGGo.Gameplay
             Audio.AudioManager.Instance?.PlaySwerve();
         }
 
-        public void BrakeStart() => IsBraking = true;
-        public void BrakeStop() => IsBraking = false;
-        public void BoostStart() => _boostHeld = true;
-        public void BoostStop() => _boostHeld = false;
+        public void BrakeStart() => _buttonBraking = true;
+        public void BrakeStop() => _buttonBraking = false;
+        public void BoostStart() => _buttonBoostHeld = true;
+        public void BoostStop() => _buttonBoostHeld = false;
 
         // ============================================================
         // Input
@@ -151,8 +168,8 @@ namespace GDGGo.Gameplay
             if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Space)) Jump();
             if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) FastFall();
 
-            IsBraking = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
-            _boostHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            _keyboardBraking = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
+            _keyboardBoostHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         }
 
         /// <summary>
@@ -175,6 +192,11 @@ namespace GDGGo.Gameplay
                         break;
                     case TouchPhase.Ended:
                     case TouchPhase.Canceled:
+                        if (_touchActive)
+                        {
+                            TryResolveSwipe(t.position);
+                            if (_touchActive && t.phase == TouchPhase.Ended) RegisterTap();
+                        }
                         _touchActive = false;
                         break;
                 }
@@ -193,6 +215,11 @@ namespace GDGGo.Gameplay
             }
             else if (Input.GetMouseButtonUp(0))
             {
+                if (_touchActive)
+                {
+                    TryResolveSwipe(new Vector2(Input.mousePosition.x, Input.mousePosition.y));
+                    if (_touchActive) RegisterTap();
+                }
                 _touchActive = false;
             }
         }
@@ -215,12 +242,25 @@ namespace GDGGo.Gameplay
             _touchActive = false;
         }
 
+        /// <summary>Two quick taps provide a discoverable, button-free boost on phones.</summary>
+        private void RegisterTap()
+        {
+            float now = Time.unscaledTime;
+            if (now - _lastTapTime <= Mathf.Max(0.1f, doubleTapWindowSeconds))
+            {
+                _touchBoostUntil = now + Mathf.Max(0.1f, doubleTapBoostSeconds);
+                _lastTapTime = -10f;
+            }
+            else
+            {
+                _lastTapTime = now;
+            }
+        }
+
         /// <summary>Swipe-down brakes briefly when on the ground.</summary>
         private void BrakeTap()
         {
-            IsBraking = true;
-            CancelInvoke(nameof(BrakeStop));
-            Invoke(nameof(BrakeStop), 0.35f);
+            _brakeTapUntil = Time.unscaledTime + 0.35f;
         }
 
         // ============================================================
