@@ -31,6 +31,23 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const src = `/Build/index.html?${queryParams.toString()}`;
 
   const triggerFullscreen = () => {
+    // 1. Direct synchronous iframe requestFullscreen (Puts the pure Unity game into native fullscreen)
+    const target = iframeRef.current || containerRef.current;
+    if (target) {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        if (target.requestFullscreen) {
+          target.requestFullscreen().catch((err) => {
+            console.warn('[UnityEmbed] Fullscreen request error:', err);
+          });
+        } else if ((target as any).webkitRequestFullscreen) {
+          (target as any).webkitRequestFullscreen();
+        } else if ((target as any).msRequestFullscreen) {
+          (target as any).msRequestFullscreen();
+        }
+      }
+    }
+
+    // 2. Also notify Unity WebGL instance inside iframe
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
       try {
@@ -45,6 +62,14 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   };
 
   const exitFullscreen = () => {
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
       try {
@@ -121,6 +146,14 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border: none;
           display: block;
           outline: none;
+        }
+
+        .unity-iframe:fullscreen,
+        .unity-iframe:-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          border: none !important;
+          background: #080B12 !important;
         }
 
         @media (max-width: 768px) {
