@@ -4,12 +4,10 @@ using GDGGo.Gameplay;
 namespace GDGGo.Obstacles
 {
     /// <summary>
-    /// Streams stationary hazards: cones, barriers.
+    /// Streams stationary hazards: FastMesh traffic cones and barriers.
     ///
-    /// Smart obstacle distance:
-    /// As the car's speed increases, the distance between obstacles also scales UP
-    /// so the player has consistent, fair reaction time.
-    /// Spawns further ahead in the distance with plenty of visual anticipation.
+    /// At least one lane is always open and clearable.
+    /// Spawns steadily along the track with fair spacing.
     /// </summary>
     public sealed class ObstacleSpawner : ScrollingSpawner
     {
@@ -27,10 +25,10 @@ namespace GDGGo.Obstacles
 
         [Header("Density")]
         [Tooltip("Metres between clusters at the start of a run.")]
-        public float intervalAtStart = 160f;
+        public float intervalAtStart = 45f;
 
         [Tooltip("Metres between clusters once difficulty is maxed.")]
-        public float intervalAtMaxDifficulty = 240f;
+        public float intervalAtMaxDifficulty = 30f;
 
         [Tooltip("Difficulty above which clusters may block two lanes instead of one.")]
         [Range(0f, 1f)] public float twoLaneBlockThreshold = 0.95f;
@@ -85,16 +83,7 @@ namespace GDGGo.Obstacles
         {
             float difficulty = world != null ? world.Difficulty01 : 0f;
             float baseInterval = Mathf.Lerp(intervalAtStart, intervalAtMaxDifficulty, difficulty);
-
-            // Dynamic speed scaling: as vehicle travels faster, spacing increases proportionally
-            if (world != null && world.startSpeed > 0f)
-            {
-                float speedRatio = Mathf.Max(1f, world.Speed / world.startSpeed);
-                baseInterval *= speedRatio;
-            }
-
-            // +/-15% organic jitter
-            return baseInterval * Random.Range(0.88f, 1.15f);
+            return baseInterval * Random.Range(0.85f, 1.15f);
         }
     }
 }

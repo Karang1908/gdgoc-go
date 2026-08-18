@@ -1920,9 +1920,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d14ce376cafa2452796da6862415b828, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnAheadDistance: 240
+  spawnAheadDistance: 180
   despawnBehindZ: -35
-  startTrackDistance: 60
+  startTrackDistance: 35
   obstaclePrefabs:
   - prefab: {fileID: 1185145000963775901, guid: 1cb709ab8919a4a7e9a61caa361faf49, type: 3}
     weight: 3
@@ -1930,8 +1930,8 @@ MonoBehaviour:
     weight: 2
   - prefab: {fileID: 739290857873516067, guid: 6de6b0b0aac5a446f8f62c64b4761417, type: 3}
     weight: 2
-  intervalAtStart: 160
-  intervalAtMaxDifficulty: 240
+  intervalAtStart: 45
+  intervalAtMaxDifficulty: 30
   twoLaneBlockThreshold: 0.25
   twoLaneBlockChance: 0
 --- !u!1 &1141529104
