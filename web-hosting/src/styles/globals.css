@@ -440,24 +440,6 @@ button {
   transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
 }
 
-/* ---------- Google Strip Accent ---------- */
-
-.google-strip {
-  height: 4px;
-  width: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--g-blue) 0%,
-    var(--g-blue) 25%,
-    var(--g-red) 25%,
-    var(--g-red) 50%,
-    var(--g-yellow) 50%,
-    var(--g-yellow) 75%,
-    var(--g-green) 75%,
-    var(--g-green) 100%
-  );
-}
-
 /* ---------- Text Fields (Material Outlined) ---------- */
 
 .field {
