@@ -1,6 +1,7 @@
 import React from 'react';
-import { Trophy, LogOut, User, Gamepad2 } from 'lucide-react';
+import { Trophy, LogOut, User, Gamepad2, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   currentRoute: 'home' | 'leaderboard';
@@ -10,34 +11,41 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAuth }) => {
   const { session, profile, userCoins, userGdgCoins, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="navbar-container">
-      <div className="google-strip" />
-      <div className="navbar-content">
-        {/* Brand */}
+    <header className="appbar">
+      <div className="appbar-content">
+        {/* Left: Official Brand Lockup */}
         <div
-          className="brand-logo"
+          className="brand"
           onClick={() => navigate('home')}
           role="button"
           tabIndex={0}
-          aria-label="Go to Home"
+          aria-label="GDG Go Home"
         >
-          <div className="logo-icon-badge">
-            <span className="logo-car">🏎️</span>
-          </div>
-          <div className="brand-text">
-            <span className="brand-gdg">GDG</span>
-            <span className="brand-go">GO</span>
-            <span className="brand-tag">CHASE</span>
+          <img
+            className="logo-light"
+            src="/assets/gdg-logo-light.png"
+            alt="Google Developer Groups"
+          />
+          <img
+            className="logo-dark"
+            src="/assets/gdg-logo-dark.png"
+            alt="Google Developer Groups"
+          />
+          <div className="brand-divider" />
+          <div className="brand-context">
+            <span className="brand-title">GDG GO</span>
+            <span className="brand-sub">BITS Pilani Dubai Campus</span>
           </div>
         </div>
 
-        {/* Nav Links */}
+        {/* Center/Nav: Pill Navigation */}
         <nav className="nav-actions">
           <button
             id="nav-play-btn"
-            className={`nav-link-btn ${currentRoute === 'home' ? 'active' : ''}`}
+            className={`nav-pill ${currentRoute === 'home' ? 'active' : ''}`}
             onClick={() => navigate('home')}
           >
             <Gamepad2 size={18} />
@@ -46,46 +54,63 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
 
           <button
             id="nav-leaderboard-btn"
-            className={`nav-link-btn ${currentRoute === 'leaderboard' ? 'active' : ''}`}
+            className={`nav-pill ${currentRoute === 'leaderboard' ? 'active' : ''}`}
             onClick={() => navigate('leaderboard')}
           >
             <Trophy size={18} />
             <span>Leaderboard</span>
           </button>
 
-          {/* Cumulative Coins & GDG Coins Wallet Badges */}
+          {/* Cumulative Wallet Chips */}
           {session && (
-            <div className="nav-wallet-group animate-fade-in">
-              <div className="coin-badge standard-coin" title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}>
+            <div className="nav-wallet-group">
+              <div
+                className="wallet-chip standard"
+                title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}
+              >
                 <span className="coin-icon">🟡</span>
                 <span className="coin-count font-mono">{userCoins.toLocaleString()}</span>
               </div>
 
-              <div className="coin-badge gdg-coin" title={`Cumulative GDG Coins: ${userGdgCoins.toLocaleString()}`}>
+              <div
+                className="wallet-chip gdg"
+                title={`Cumulative GDG Coins: ${userGdgCoins.toLocaleString()}`}
+              >
                 <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-gdg-pill-icon" />
                 <span className="coin-count font-mono">{userGdgCoins.toLocaleString()}</span>
-                <span className="coin-tag">GDG</span>
+                <span className="coin-label">GDG</span>
               </div>
             </div>
           )}
 
-          {/* Auth Button / Profile Badge */}
+          {/* Right Actions: Theme Toggle & Profile / Sign In */}
+          <button
+            className="icon-btn theme-toggle-btn"
+            id="theme-toggle"
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           {session && profile ? (
-            <div className="user-profile-badge">
+            <div className="user-profile-pill">
               <div className="user-avatar">
-                <User size={16} />
+                <User size={15} />
               </div>
-              <div className="user-identity-stack">
+              <div className="user-text-stack">
                 <span className="user-username font-mono" title={`@${profile.username}`}>
                   @{profile.username}
                 </span>
-                <span className="user-realname" title={profile.display_name}>
+                <span className="user-displayname" title={profile.display_name}>
                   {profile.display_name}
                 </span>
               </div>
               <button
                 id="nav-signout-btn"
-                className="signout-btn"
+                className="signout-icon-btn"
                 onClick={() => signOut()}
                 title="Sign out"
                 aria-label="Sign out"
@@ -96,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
           ) : (
             <button
               id="nav-signin-btn"
-              className="btn btn-primary"
+              className="btn btn-filled btn-sm"
               onClick={onOpenAuth}
             >
               <User size={16} />
@@ -107,112 +132,117 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
       </div>
 
       <style>{`
-        .navbar-container {
-          background: rgba(18, 23, 34, 0.95);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-bottom: 1px solid var(--border-subtle);
+        .appbar {
+          display: flex;
+          align-items: center;
+          background: var(--bg);
+          border-bottom: 2px solid var(--border);
           position: sticky;
           top: 0;
           z-index: 100;
+          transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
         }
 
-        .navbar-content {
-          max-width: 1280px;
+        .appbar-content {
+          width: 100%;
+          max-width: 1320px;
           margin: 0 auto;
-          padding: 12px 24px;
+          padding: 12px clamp(16px, 3vw, 32px);
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 16px;
         }
 
-        .brand-logo {
+        .brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
+          min-width: 0;
+          text-decoration: none;
+          color: inherit;
           cursor: pointer;
           user-select: none;
         }
 
-        .logo-icon-badge {
-          width: 38px;
+        .brand img {
           height: 38px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(234, 67, 53, 0.2));
-          border: 1px solid rgba(66, 133, 244, 0.4);
+          width: auto;
+          display: block;
+        }
+
+        .brand .logo-dark {
+          display: none;
+        }
+
+        :root[data-theme='dark'] .brand .logo-light {
+          display: none;
+        }
+
+        :root[data-theme='dark'] .brand .logo-dark {
+          display: block;
+        }
+
+        .brand-divider {
+          width: 2px;
+          height: 24px;
+          background: var(--border);
+          flex: none;
+        }
+
+        .brand-context {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          box-shadow: 0 0 12px rgba(66, 133, 244, 0.25);
+          flex-direction: column;
+          line-height: 1.15;
         }
 
-        .brand-text {
-          display: flex;
-          align-items: baseline;
-          gap: 4px;
-        }
-
-        .brand-gdg {
+        .brand-title {
           font-family: var(--font-display);
-          font-size: 1.4rem;
+          font-size: 1rem;
           font-weight: 700;
-          color: #FFFFFF;
-          letter-spacing: 0.05em;
+          color: var(--text);
+          letter-spacing: 0.02em;
         }
 
-        .brand-go {
-          font-family: var(--font-display);
-          font-size: 1.4rem;
-          font-weight: 800;
-          color: var(--google-blue);
-          letter-spacing: 0.05em;
-        }
-
-        .brand-tag {
-          font-family: var(--font-mono);
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: var(--google-yellow);
-          background: rgba(251, 188, 5, 0.15);
-          border: 1px solid rgba(251, 188, 5, 0.3);
-          padding: 2px 6px;
-          border-radius: 4px;
-          margin-left: 6px;
-          text-transform: uppercase;
+        .brand-sub {
+          font-size: 0.72rem;
+          color: var(--text-2);
+          font-weight: 500;
+          white-space: nowrap;
         }
 
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
         }
 
-        .nav-link-btn {
-          display: flex;
+        .nav-pill {
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 14px;
-          border-radius: var(--radius-md);
-          background: transparent;
-          color: var(--text-secondary);
-          border: 1px solid transparent;
-          font-family: var(--font-sans);
-          font-weight: 600;
+          gap: 8px;
+          height: 40px;
+          padding: 0 16px;
+          border-radius: var(--pill);
+          font-family: var(--font-display);
           font-size: 0.9rem;
+          font-weight: 500;
+          color: var(--text-2);
+          background: transparent;
+          border: 1px solid transparent;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: all 0.15s var(--ease);
         }
 
-        .nav-link-btn:hover {
-          color: var(--text-primary);
-          background: rgba(255, 255, 255, 0.05);
+        .nav-pill:hover {
+          background: var(--surface-3);
+          color: var(--text);
         }
 
-        .nav-link-btn.active {
-          color: #FFFFFF;
-          background: var(--bg-surface-elevated);
-          border-color: var(--border-medium);
+        .nav-pill.active {
+          background: var(--accent-soft);
+          color: var(--accent);
+          font-weight: 700;
         }
 
         .nav-wallet-group {
@@ -221,140 +251,152 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
           gap: 8px;
         }
 
-        .coin-badge {
-          display: flex;
+        .wallet-chip {
+          display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 0.85rem;
+          height: 34px;
+          padding: 0 12px;
+          border-radius: var(--pill);
+          font-size: 0.84rem;
           font-weight: 700;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
           user-select: none;
-          transition: all 0.2s ease;
         }
 
-        .coin-badge.standard-coin {
-          background: rgba(251, 188, 5, 0.12);
-          border: 1px solid rgba(251, 188, 5, 0.35);
+        .wallet-chip.standard {
+          color: #B26A00;
+          border-color: rgba(251, 188, 4, 0.4);
+          background: rgba(251, 188, 4, 0.1);
+        }
+
+        :root[data-theme='dark'] .wallet-chip.standard {
           color: #FFD54F;
+          border-color: rgba(251, 188, 4, 0.3);
+          background: rgba(251, 188, 4, 0.12);
         }
 
-        .coin-badge.standard-coin:hover {
-          background: rgba(251, 188, 5, 0.2);
-          border-color: rgba(251, 188, 5, 0.6);
-          box-shadow: 0 0 10px rgba(251, 188, 5, 0.25);
-        }
-
-        .coin-badge.gdg-coin {
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(52, 168, 83, 0.15));
-          border: 1px solid rgba(66, 133, 244, 0.4);
-          color: #64B5F6;
-        }
-
-        .coin-badge.gdg-coin:hover {
-          border-color: rgba(66, 133, 244, 0.7);
-          box-shadow: 0 0 12px rgba(66, 133, 244, 0.3);
+        .wallet-chip.gdg {
+          color: var(--accent);
+          border-color: rgba(66, 133, 244, 0.35);
+          background: var(--accent-soft);
         }
 
         .coin-icon {
-          font-size: 14px;
-          line-height: 1;
+          font-size: 13px;
         }
 
         .inline-gdg-pill-icon {
-          width: 16px;
-          height: 16px;
+          width: 15px;
+          height: 15px;
           object-fit: contain;
-          filter: drop-shadow(0 0 4px rgba(66, 133, 244, 0.5));
         }
 
-        .coin-count {
-          font-weight: 800;
-          letter-spacing: 0.02em;
-        }
-
-        .coin-tag {
+        .coin-label {
           font-size: 0.65rem;
           font-weight: 800;
-          background: rgba(66, 133, 244, 0.3);
-          color: #E3F2FD;
-          padding: 1px 4px;
-          border-radius: 4px;
+          opacity: 0.85;
           letter-spacing: 0.05em;
         }
 
-        .user-profile-badge {
+        .theme-toggle-btn {
+          color: var(--text-2);
+        }
+
+        .theme-toggle-btn:hover {
+          color: var(--text);
+          background: var(--surface-3);
+        }
+
+        .user-profile-pill {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: var(--bg-surface-elevated);
-          border: 1px solid var(--border-medium);
-          padding: 4px 6px 4px 12px;
-          border-radius: 20px;
+          height: 40px;
+          padding: 0 8px 0 12px;
+          border-radius: var(--pill);
+          background: var(--surface-2);
+          border: 1px solid var(--border);
         }
 
         .user-avatar {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: var(--google-blue);
+          background: var(--accent);
+          color: var(--on-accent);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
         }
 
-        .user-identity-stack {
+        .user-text-stack {
           display: flex;
           flex-direction: column;
-          max-width: 140px;
-          line-height: 1.15;
-          text-align: left;
+          line-height: 1.1;
+          max-width: 120px;
         }
 
         .user-username {
-          font-weight: 800;
-          font-size: 0.84rem;
-          color: #FFFFFF;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .user-realname {
+        .user-displayname {
           font-size: 0.68rem;
-          color: var(--text-muted);
+          color: var(--text-3);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .signout-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          padding: 6px;
+        .signout-icon-btn {
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
+          display: grid;
+          place-items: center;
+          color: var(--text-3);
+          border: none;
+          background: transparent;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           transition: all 0.15s ease;
         }
 
-        .signout-btn:hover {
-          color: #FF6B6B;
-          background: rgba(234, 67, 53, 0.15);
+        .signout-icon-btn:hover {
+          color: var(--danger);
+          background: var(--danger-soft);
         }
 
-        @media (max-width: 640px) {
-          .navbar-content {
-            padding: 10px 16px;
-          }
-          .brand-tag {
+        @media (max-width: 860px) {
+          .brand-divider,
+          .brand-sub {
             display: none;
           }
-          .user-display-name {
+          .brand img {
+            height: 32px;
+          }
+          .user-displayname {
+            display: none;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .appbar-content {
+            padding: 10px 14px;
+          }
+          .brand-title {
+            display: none;
+          }
+          .nav-pill span {
+            display: none;
+          }
+          .wallet-chip.standard {
             display: none;
           }
         }

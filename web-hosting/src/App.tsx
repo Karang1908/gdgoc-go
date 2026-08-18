@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Home } from './home/Home';
 import { Leaderboard } from './leaderboard/Leaderboard';
@@ -31,99 +32,94 @@ export function App() {
   };
 
   return (
-    <AuthProvider>
-      <div className="app-root">
-        <Navbar
-          currentRoute={currentRoute}
-          navigate={navigate}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-        />
+    <ThemeProvider>
+      <AuthProvider>
+        <div className="app-root">
+          <Navbar
+            currentRoute={currentRoute}
+            navigate={navigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
 
-        <div className="app-main-view">
-          {currentRoute === 'home' ? (
-            <Home
-              navigate={navigate}
-              isAuthModalOpen={isAuthModalOpen}
-              setIsAuthModalOpen={setIsAuthModalOpen}
-            />
-          ) : (
-            <Leaderboard onBackToGame={() => navigate('home')} />
-          )}
+          <main className="app-main-view">
+            {currentRoute === 'home' ? (
+              <Home
+                navigate={navigate}
+                isAuthModalOpen={isAuthModalOpen}
+                setIsAuthModalOpen={setIsAuthModalOpen}
+              />
+            ) : (
+              <Leaderboard onBackToGame={() => navigate('home')} />
+            )}
+          </main>
+
+          <footer className="footer">
+            <div className="footer-content">
+              <span>
+                <span className="footer-long">Google Developer Group · </span>
+                BITS Pilani Dubai Campus
+              </span>
+              <span className="footer-dots">
+                <i></i><i></i><i></i><i></i>
+              </span>
+            </div>
+          </footer>
         </div>
 
-        <footer className="app-footer">
-          <div className="footer-content">
-            <div className="footer-brand">
-              <span className="footer-title">GDG GO — 3D ENDLESS CHASE</span>
-              <span className="footer-subtitle">Built for Google Developer Groups on Campus</span>
-            </div>
-            <div className="footer-links">
-              <span>Google Brand Colors • Kenney & Quaternius CC0 Art • Supabase</span>
-            </div>
-          </div>
-        </footer>
-      </div>
-
-      <style>{`
-        .app-root {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background: var(--bg-primary);
-        }
-
-        .app-main-view {
-          flex: 1;
-        }
-
-        .app-footer {
-          border-top: 1px solid var(--border-subtle);
-          background: var(--bg-surface);
-          padding: 24px;
-          margin-top: auto;
-        }
-
-        .footer-content {
-          max-width: 1280px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-        }
-
-        .footer-brand {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .footer-title {
-          font-family: var(--font-display);
-          font-size: 0.9rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          letter-spacing: 0.05em;
-        }
-
-        .footer-subtitle {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-        }
-
-        .footer-links {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-        }
-
-        @media (max-width: 640px) {
-          .footer-content {
+        <style>{`
+          .app-root {
+            min-height: 100vh;
+            display: flex;
             flex-direction: column;
-            text-align: center;
+            background: var(--bg);
+            color: var(--text);
+            transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
           }
-        }
-      `}</style>
-    </AuthProvider>
+
+          .app-main-view {
+            flex: 1 0 auto;
+            width: 100%;
+          }
+
+          .footer {
+            flex: none;
+            margin-top: auto;
+            border-top: 2px solid var(--border);
+            padding: 18px clamp(16px, 4vw, 40px) calc(18px + env(safe-area-inset-bottom, 0px));
+            background: var(--bg);
+            color: var(--text-2);
+            font-size: 0.875rem;
+            transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+          }
+
+          .footer-content {
+            width: 100%;
+            max-width: 1320px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+          }
+
+          .footer span:first-child {
+            font-weight: 500;
+          }
+
+          @media (max-width: 560px) {
+            .footer {
+              padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+              font-size: 0.8125rem;
+            }
+
+            .footer-long {
+              display: none;
+            }
+          }
+        `}</style>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

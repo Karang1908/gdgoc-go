@@ -106,10 +106,10 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           aspect-ratio: 16 / 9;
           min-height: 480px;
           max-height: calc(100vh - 140px);
-          background: #080B12;
-          border-radius: var(--radius-lg);
+          background: #000000;
+          border-radius: var(--r-lg);
           overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
+          box-shadow: var(--shadow-2);
         }
 
         .unity-embed-container:fullscreen,
@@ -121,7 +121,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border-radius: 0 !important;
           padding: 0 !important;
           margin: 0 !important;
-          background: #080B12 !important;
+          background: #000000 !important;
         }
 
         .unity-iframe {
@@ -133,13 +133,14 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           border: none;
           display: block;
           outline: none;
+          background: #000000;
         }
 
         @media (max-width: 768px) {
           .unity-embed-container {
             aspect-ratio: 16 / 9;
             min-height: 380px;
-            border-radius: var(--radius-md);
+            border-radius: var(--r-md);
           }
         }
       `}</style>
