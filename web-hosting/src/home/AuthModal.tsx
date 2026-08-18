@@ -91,8 +91,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   return (
     <div className="modal-backdrop">
       <div className="modal-card card animate-fade-in">
-        <div className="google-strip" />
-
         <div className="modal-header">
           <div className="modal-brand-hub">
             <img src="/assets/gdg-mark.png" alt="GDG" className="modal-gdg-mark" />

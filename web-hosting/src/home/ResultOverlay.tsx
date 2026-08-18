@@ -65,8 +65,6 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   return (
     <div className="result-backdrop">
       <div className="result-card card animate-fade-in">
-        <div className="google-strip" />
-
         <div className="result-header">
           {isNewRecord && !loadingRecord ? (
             <div className="record-chip chip chip-accent">
