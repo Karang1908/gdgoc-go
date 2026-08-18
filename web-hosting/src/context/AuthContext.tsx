@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { fetchUserCumulativeStats, DriverStats } from '../lib/api';
 
 export interface UserProfile {
   id: string;
@@ -12,11 +13,15 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  userCoins: number;
+  userGdgCoins: number;
+  userStats: DriverStats | null;
   loading: boolean;
   error: string | null;
   signUp: (username: string, password: string, displayName: string) => Promise<void>;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshCoins: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -32,10 +37,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userCoins, setUserCoins] = useState<number>(0);
+  const [userGdgCoins, setUserGdgCoins] = useState<number>(0);
+  const [userStats, setUserStats] = useState<DriverStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = () => setError(null);
+
+  const refreshCoins = useCallback(async () => {
+    if (!user) {
+      // Check local guest coins
+      const guestBonusGdg = parseInt(localStorage.getItem('gdg_coins_bonus_guest') || '0', 10) || 0;
+      setUserCoins(0);
+      setUserGdgCoins(guestBonusGdg);
+      return;
+    }
+
+    try {
+      const stats = await fetchUserCumulativeStats(user.id, profile?.username);
+      setUserCoins(stats.totalCoins);
+      setUserGdgCoins(stats.totalGdgCoins);
+      setUserStats(stats);
+    } catch (e) {
+      console.warn('[Auth] Error fetching cumulative coin stats:', e);
+    }
+  }, [user, profile]);
 
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -73,6 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.from('users').upsert(userProfile);
         }
         setProfile(userProfile);
+        const stats = await fetchUserCumulativeStats(session.user.id, userProfile.username);
+        setUserCoins(stats.totalCoins);
+        setUserGdgCoins(stats.totalGdgCoins);
+        setUserStats(stats);
+      } else {
+        const guestBonusGdg = parseInt(localStorage.getItem('gdg_coins_bonus_guest') || '0', 10) || 0;
+        setUserCoins(0);
+        setUserGdgCoins(guestBonusGdg);
       }
       setLoading(false);
     });
@@ -91,8 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
         setProfile(userProfile);
+        const stats = await fetchUserCumulativeStats(newSession.user.id, userProfile.username);
+        setUserCoins(stats.totalCoins);
+        setUserGdgCoins(stats.totalGdgCoins);
+        setUserStats(stats);
       } else {
         setProfile(null);
+        setUserCoins(0);
+        setUserGdgCoins(0);
+        setUserStats(null);
       }
       setLoading(false);
     });
@@ -233,11 +275,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user,
         profile,
+        userCoins,
+        userGdgCoins,
+        userStats,
         loading,
         error,
         signUp,
         signIn,
         signOut,
+        refreshCoins,
         clearError,
       }}
     >
