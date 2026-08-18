@@ -19,32 +19,6 @@ export const Home: React.FC<HomeProps> = ({
   const [selectedCarId, setSelectedCarId] = useState<string>('sports');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  const handleStartGame = () => {
-    // Request fullscreen immediately in the synchronous user click event
-    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch((err) => {
-          console.warn('[Home] Fullscreen request error:', err);
-        });
-      } else if ((elem as any).webkitRequestFullscreen) {
-        (elem as any).webkitRequestFullscreen();
-      }
-    }
-    setIsPlaying(true);
-  };
-
-  const handleBackToGarage = () => {
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
-    setIsPlaying(false);
-  };
-
   if (loading) {
     return (
       <div className="home-loading">
@@ -200,17 +174,14 @@ export const Home: React.FC<HomeProps> = ({
       {isPlaying ? (
         <GameView
           carId={selectedCarId}
-          onBackToGarage={handleBackToGarage}
-          onViewLeaderboard={() => {
-            handleBackToGarage();
-            navigate('leaderboard');
-          }}
+          onBackToGarage={() => setIsPlaying(false)}
+          onViewLeaderboard={() => navigate('leaderboard')}
         />
       ) : (
         <CarPicker
           selectedCarId={selectedCarId}
           onSelectCar={(id) => setSelectedCarId(id)}
-          onStartGame={handleStartGame}
+          onStartGame={() => setIsPlaying(true)}
         />
       )}
     </main>

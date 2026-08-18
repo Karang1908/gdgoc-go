@@ -31,38 +31,30 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
   const src = `/Build/index.html?${queryParams.toString()}`;
 
   const triggerFullscreen = () => {
-    const container = containerRef.current;
-    if (container) {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen().catch((err) => {
-            console.warn('[UnityEmbed] Fullscreen request error:', err);
-          });
-        } else if ((container as any).webkitRequestFullscreen) {
-          (container as any).webkitRequestFullscreen();
-        } else if ((container as any).msRequestFullscreen) {
-          (container as any).msRequestFullscreen();
-        }
-      }
-    }
-
-    // Also notify iframe
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityFullscreen' }, '*');
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
+          win.unityInstance.SetFullscreen(1);
+        }
+      } catch {
+        // cross-origin safety
+      }
     }
   };
 
   const exitFullscreen = () => {
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
-
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'unityExitFullscreen' }, '*');
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        if (win.unityInstance && typeof win.unityInstance.SetFullscreen === 'function') {
+          win.unityInstance.SetFullscreen(0);
+        }
+      } catch {
+        // cross-origin safety
+      }
     }
   };
 
@@ -93,9 +85,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
       className="unity-embed-container"
       ref={containerRef}
       onClick={() => {
-        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-          triggerFullscreen();
-        }
+        triggerFullscreen();
       }}
     >
       <iframe
@@ -103,7 +93,7 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
         src={src}
         title="GDG Go Game View"
         className="unity-iframe"
-        allow="autoplay; fullscreen *; focus-without-user-activation; gamepad"
+        allow="autoplay; fullscreen; focus-without-user-activation; gamepad"
         allowFullScreen={true}
         tabIndex={0}
       />
@@ -120,17 +110,6 @@ export const UnityEmbed = forwardRef<UnityEmbedHandle, UnityEmbedProps>(({
           overflow: hidden;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
           cursor: pointer;
-        }
-
-        .unity-embed-container:fullscreen,
-        .unity-embed-container:-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-          max-height: none !important;
-          aspect-ratio: auto !important;
-          border-radius: 0 !important;
-          padding: 0 !important;
-          margin: 0 !important;
         }
 
         .unity-iframe {

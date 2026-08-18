@@ -27,30 +27,11 @@ export const GameView: React.FC<GameViewProps> = ({
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
 
   const handleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(() => {});
-      } else if ((elem as any).webkitRequestFullscreen) {
-        (elem as any).webkitRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
+    unityEmbedRef.current?.triggerFullscreen();
   }, []);
 
   const handleExitFullscreen = useCallback(() => {
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
+    unityEmbedRef.current?.exitFullscreen();
   }, []);
 
   // Start background music on mount / user interaction
@@ -85,7 +66,7 @@ export const GameView: React.FC<GameViewProps> = ({
       console.log('[GameView] Processing verified gameover event from Unity:', data);
       bgmEngine.stop();
 
-      // Automatically exit fullscreen immediately when player dies
+      // Automatically exit Unity fullscreen when player dies
       try {
         handleExitFullscreen();
       } catch (err) {
@@ -152,15 +133,8 @@ export const GameView: React.FC<GameViewProps> = ({
     setGameOverPayload(null);
     setRunKey((prev) => prev + 1);
     bgmEngine.start();
-    // Re-enter fullscreen synchronously on click
-    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(() => {});
-      } else if ((elem as any).webkitRequestFullscreen) {
-        (elem as any).webkitRequestFullscreen();
-      }
-    }
+    // Trigger Unity fullscreen for the new run
+    handleFullscreen();
   };
 
   const handleToggleMusic = () => {
@@ -197,12 +171,12 @@ export const GameView: React.FC<GameViewProps> = ({
         <div
           className="fullscreen-recommendation-pill"
           onClick={handleFullscreen}
-          title="Click to toggle Full Screen"
+          title="Click to trigger Unity Full Screen"
           role="button"
           tabIndex={0}
         >
           <Sparkles size={14} className="sparkle-icon" />
-          <span>Fullscreen Mode</span>
+          <span>For best experience, play in full screen</span>
         </div>
 
         <div className="top-bar-right-controls">
@@ -210,7 +184,7 @@ export const GameView: React.FC<GameViewProps> = ({
             id="fullscreen-hud-btn"
             className="btn btn-secondary fullscreen-hud-btn"
             onClick={handleFullscreen}
-            title="Toggle Full Screen"
+            title="Trigger Unity Full Screen"
           >
             <Maximize2 size={16} />
             <span className="fullscreen-label">Full Screen</span>
