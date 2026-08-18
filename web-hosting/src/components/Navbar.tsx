@@ -65,18 +65,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenAu
             <div className="nav-wallet-group">
               <div
                 className="wallet-chip standard"
-                title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}
+                title={`Cumulative Standard Coins: ${(userCoins || 0).toLocaleString()}`}
               >
                 <Coins size={14} className="coin-svg" style={{ color: 'var(--g-yellow)' }} />
-                <span className="coin-count font-mono">{userCoins.toLocaleString()}</span>
+                <span className="coin-count font-mono">{(userCoins || 0).toLocaleString()}</span>
               </div>
 
               <div
                 className="wallet-chip gdg"
-                title={`Cumulative GDG Coins: ${userGdgCoins.toLocaleString()}`}
+                title={`Cumulative GDG Coins: ${(userGdgCoins || 0).toLocaleString()}`}
               >
                 <img src="/branding/gdg-pill.png" alt="GDG Coin" className="inline-gdg-pill-icon" />
-                <span className="coin-count font-mono">{userGdgCoins.toLocaleString()}</span>
+                <span className="coin-count font-mono">{(userGdgCoins || 0).toLocaleString()}</span>
                 <span className="coin-label">GDG</span>
               </div>
             </div>

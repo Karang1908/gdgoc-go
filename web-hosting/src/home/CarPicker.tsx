@@ -29,14 +29,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
           {session && (
             <div className="picker-wallet-group">
-              <div className="wallet-chip standard" title={`Cumulative Standard Coins: ${userCoins.toLocaleString()}`}>
+              <div className="wallet-chip standard" title={`Cumulative Standard Coins: ${(userCoins || 0).toLocaleString()}`}>
                 <Coins size={14} className="coin-svg" />
-                <span className="font-mono">{userCoins.toLocaleString()}</span>
+                <span className="font-mono">{(userCoins || 0).toLocaleString()}</span>
                 <span className="wallet-chip-lbl">COINS</span>
               </div>
-              <div className="wallet-chip gdg" title={`Cumulative GDG Coins: ${userGdgCoins.toLocaleString()}`}>
+              <div className="wallet-chip gdg" title={`Cumulative GDG Coins: ${(userGdgCoins || 0).toLocaleString()}`}>
                 <img src="/branding/gdg-pill.png" alt="GDG" className="inline-gdg-pill-icon" />
-                <span className="font-mono">{userGdgCoins.toLocaleString()}</span>
+                <span className="font-mono">{(userGdgCoins || 0).toLocaleString()}</span>
                 <span className="wallet-chip-lbl">GDG</span>
               </div>
             </div>
