@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
+import { Play, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { CarPicker } from './CarPicker';
 import { GameView } from './GameView';
-import { Play, Trophy } from 'lucide-react';
 
 interface HomeProps {
   navigate: (route: 'home' | 'leaderboard') => void;
@@ -16,23 +16,20 @@ export const Home: React.FC<HomeProps> = ({
   isAuthModalOpen,
   setIsAuthModalOpen,
 }) => {
-  const { session, loading } = useAuth();
+  const { session } = useAuth();
   const [selectedCarId, setSelectedCarId] = useState<string>('sports');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const handleStartGame = () => {
-    // 1. Immediately request fullscreen on game-fullscreen-root in the synchronous user click event
+    // Attempt native browser fullscreen if supported
     const root = document.getElementById('game-fullscreen-root');
     if (root) {
       if (root.requestFullscreen) {
-        root.requestFullscreen().catch((err) => {
-          console.warn('[Home] Fullscreen request warning:', err);
-        });
+        root.requestFullscreen().catch(() => {});
       } else if ((root as any).webkitRequestFullscreen) {
         (root as any).webkitRequestFullscreen();
       }
     }
-    // 2. Launch game
     setIsPlaying(true);
   };
 
@@ -47,93 +44,51 @@ export const Home: React.FC<HomeProps> = ({
     setIsPlaying(false);
   };
 
-  if (loading) {
-    return (
-      <div className="home-loading">
-        <div className="loading-spinner animate-spin" />
-        <span className="loading-text font-mono">INITIALIZING TELEMETRY...</span>
-        <style>{`
-          .home-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            gap: 16px;
-          }
-          .loading-spinner {
-            width: 44px;
-            height: 44px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-          }
-          .loading-text {
-            color: var(--text-3);
-            font-size: 0.85rem;
-            letter-spacing: 0.08em;
-          }
-        `}</style>
-      </div>
-    );
-  }
-
   // Unauthenticated landing page
   if (!session) {
     return (
       <main className="hero-landing-container">
-        <div className="hero-content">
-          <div className="hero-badge">
-            <span>Google Developer Groups on Campus</span>
+        <div className="hero-split-grid">
+          {/* Left Column: Left-aligned typography and CTAs */}
+          <div className="hero-text-col">
+            <h1 className="hero-title">
+              Outrun the police. <br />
+              <span className="accent-word">Rule the leaderboard</span>.
+            </h1>
+
+            <p className="lede hero-lede">
+              Step into the getaway car for an endless high-speed chase. Dodge traffic, collect GDG Coins, preserve your fuel, and climb the live global ranks.
+            </p>
+
+            <div className="hero-actions">
+              <button
+                id="hero-start-driving-btn"
+                className="btn btn-filled btn-lg hero-cta-btn"
+                onClick={() => setIsAuthModalOpen(true)}
+              >
+                <Play size={20} fill="currentColor" />
+                <span>Join the Chase</span>
+              </button>
+
+              <button
+                id="hero-leaderboard-btn"
+                className="btn btn-outlined btn-lg hero-secondary-btn"
+                onClick={() => navigate('leaderboard')}
+              >
+                <Trophy size={18} />
+                <span>View Leaderboard</span>
+              </button>
+            </div>
           </div>
 
-          <h1 className="hero-title">
-            Outrun the police. <br />
-            <span className="accent-word">Rule the leaderboard</span>.
-          </h1>
-
-          <p className="lede hero-lede">
-            Step into the getaway car for an endless high-speed 3D chase. Dodge traffic, collect Google-colored energy tokens, preserve your fuel, and climb the live global ranks.
-          </p>
-
-          <div className="hero-actions">
-            <button
-              id="hero-start-driving-btn"
-              className="btn btn-filled btn-lg hero-cta-btn"
-              onClick={() => setIsAuthModalOpen(true)}
-            >
-              <Play size={20} fill="currentColor" />
-              <span>Join the Chase</span>
-            </button>
-
-            <button
-              id="hero-leaderboard-btn"
-              className="btn btn-outlined btn-lg"
-              onClick={() => navigate('leaderboard')}
-            >
-              <Trophy size={18} />
-              <span>View Leaderboard</span>
-            </button>
-          </div>
-
-          {/* 3 Value Pillars */}
-          <div className="hero-pillars">
-            <div className="pillar-card card">
-              <div className="pillar-dot" style={{ background: 'var(--g-blue)' }} />
-              <h3>Dynamic Pursuit</h3>
-              <p>Police cruiser gap dynamically shrinks if you slow down or crash. Stay at cruising speed to survive.</p>
-            </div>
-
-            <div className="pillar-card card">
-              <div className="pillar-dot" style={{ background: 'var(--g-yellow)' }} />
-              <h3>Distance Fuel</h3>
-              <p>Fuel range is tied to distance traveled. Refuel by grabbing energy canisters along the highway.</p>
-            </div>
-
-            <div className="pillar-card card">
-              <div className="pillar-dot" style={{ background: 'var(--g-green)' }} />
-              <h3>Global Ranks</h3>
-              <p>Compete on a live deduplicated leaderboard with anti-cheat telemetry and cumulative coin wallets.</p>
+          {/* Right Column: Transparent Logo Graphic */}
+          <div className="hero-graphic-col">
+            <div className="hero-logo-frame">
+              <img
+                src="/branding/gdgoc-go-logo.png"
+                alt="GDGoC Go!"
+                className="hero-brand-logo animate-fade-in"
+              />
             </div>
           </div>
         </div>
@@ -147,45 +102,42 @@ export const Home: React.FC<HomeProps> = ({
 
         <style>{`
           .hero-landing-container {
-            position: relative;
-            min-height: calc(100dvh - 68px);
+            height: 100%;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 12px clamp(12px, 3vw, 24px) 16px;
+            padding: 12px clamp(16px, 4vw, 48px);
             box-sizing: border-box;
+            overflow: hidden;
           }
 
-          .hero-content {
-            position: relative;
-            max-width: 920px;
+          .hero-split-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            align-items: center;
+            gap: clamp(24px, 5vw, 64px);
+            max-width: 1180px;
             width: 100%;
+            margin: 0 auto;
+          }
+
+          .hero-text-col {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-          }
-
-          .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 14px;
-            background: var(--surface-3);
-            border: 1px solid var(--border);
-            border-radius: var(--pill);
-            font-family: var(--font-display);
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-2);
-            margin-bottom: 12px;
-            letter-spacing: 0.03em;
+            align-items: flex-start;
+            text-align: left;
           }
 
           .hero-title {
-            font-size: clamp(1.6rem, 3.5vw, 2.6rem);
-            line-height: 1.15;
-            margin-bottom: 10px;
+            font-family: var(--font-display);
+            font-size: clamp(2.2rem, 4.4vw, 3.75rem);
+            font-weight: 700;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            margin-bottom: 16px;
+            text-wrap: balance;
           }
 
           .accent-word {
@@ -193,73 +145,94 @@ export const Home: React.FC<HomeProps> = ({
           }
 
           .hero-lede {
-            font-size: clamp(0.82rem, 1.8vw, 0.95rem);
-            line-height: 1.4;
-            max-width: 600px;
-            margin-bottom: 18px;
+            font-family: var(--font-body);
+            font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+            line-height: 1.5;
+            color: var(--text-2);
+            max-width: 520px;
+            margin-bottom: 28px;
           }
 
           .hero-actions {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
+            gap: 14px;
             flex-wrap: wrap;
-            margin-bottom: 24px;
           }
 
           .hero-cta-btn {
-            height: 46px;
-            padding: 0 22px;
-            font-size: 0.9rem;
-          }
-
-          .hero-pillars {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            width: 100%;
-            text-align: left;
-          }
-
-          .pillar-card {
-            padding: 14px 16px;
-            border-radius: var(--r-md);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-          }
-
-          .pillar-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-bottom: 2px;
-          }
-
-          .pillar-card h3 {
+            height: 50px;
+            padding: 0 26px;
             font-size: 0.95rem;
             font-weight: 700;
+            border-radius: var(--pill);
+            touch-action: manipulation;
           }
 
-          .pillar-card p {
-            font-size: 0.78rem;
-            color: var(--text-2);
-            line-height: 1.35;
+          .hero-secondary-btn {
+            height: 50px;
+            padding: 0 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: var(--pill);
+            border: 2px solid var(--border);
+            touch-action: manipulation;
           }
 
-          @media (max-width: 768px) {
-            .hero-landing-container {
-              min-height: calc(100dvh - 60px);
-              padding: 8px 10px 14px;
-            }
-            .hero-pillars {
+          .hero-graphic-col {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .hero-logo-frame {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 420px;
+          }
+
+          .hero-brand-logo {
+            width: 100%;
+            max-width: 380px;
+            height: auto;
+            max-height: clamp(200px, 38vh, 360px);
+            object-fit: contain;
+            filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
+            user-select: none;
+            pointer-events: none;
+          }
+
+          @media (max-width: 820px) {
+            .hero-split-grid {
               grid-template-columns: 1fr;
-              gap: 8px;
+              gap: 16px;
+              text-align: center;
+              justify-items: center;
             }
-            .pillar-card {
-              padding: 10px 12px;
-              gap: 4px;
+            .hero-text-col {
+              align-items: center;
+              text-align: center;
+            }
+            .hero-title {
+              font-size: clamp(1.8rem, 6vw, 2.4rem);
+              margin-bottom: 10px;
+            }
+            .hero-lede {
+              font-size: 0.85rem;
+              margin-bottom: 18px;
+              max-width: 440px;
+            }
+            .hero-cta-btn, .hero-secondary-btn {
+              height: 44px;
+              padding: 0 18px;
+              font-size: 0.88rem;
+            }
+            .hero-brand-logo {
+              max-width: 180px;
+              max-height: 140px;
             }
           }
         `}</style>
@@ -290,8 +263,20 @@ export const Home: React.FC<HomeProps> = ({
       </div>
 
       <style>{`
+        .home-main-content {
+          height: 100%;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
         #game-fullscreen-root {
           width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
 
         #game-fullscreen-root.playing {
