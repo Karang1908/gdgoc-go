@@ -13,12 +13,15 @@ that a local build would not have: touch input, small download, and score integr
 - **Unity 6 LTS**, `6000.0.x` line → WebGL build (`unity-project/Build/` copied to
   `web-hosting/public/Build/`). Contains the **Game scene ONLY**.
 - **Iframe Boundary & Communication**:
-  - React passes session & car choice to Unity via URL query params:
-    `/Build/index.html?token=<jwt>&u=<username>&dn=<display_name>&car=<id>`
-  - Unity WebGL reports game-over to React host via `PostMessageBridge.jslib`:
-    `postMessage({ type: 'gameover', score, coins, distance, duration })`
-  - React site auto-submits the score to Supabase REST `/rest/v1/scores` upon receiving
-    the gameover message.
+  - React requests a server-issued run ID/secret before mounting Unity. It passes only
+    non-secret metadata to the iframe:
+    `/Build/index.html?run=<uuid>&u=<username>&dn=<display_name>&car=<id>`
+  - The run secret stays in React and the private Supabase run ledger. Never put a JWT,
+    refresh token, service-role key, or run secret in the iframe URL.
+  - Unity WebGL reports five-second `runcheckpoint` telemetry and one final `gameover`
+    message, including exact `coin_score`, through `PostMessageBridge.jslib`.
+  - React serializes checkpoints and finalizes the score through the Migration `0007`
+    RPC state machine. Browser roles cannot write `scores` or `leaderboard` directly.
 
 ## Verify before you claim it compiles
 
@@ -415,14 +418,14 @@ Note `AudioManager` lives directly in **Game.unity** and survives via `DontDestr
    scene unloads; `GameOverScreen` reads them in `OnEnable`. Do not reach into the
    destroyed `GameSession` instance.
 
-10. **The leaderboard is adversarial.** The client computes and POSTs its own score, and
-    both the anon key and the player's JWT are visible in the browser. RLS only checks
-    *who* writes, never *what*. `supabase/migrations/0002_score_integrity.sql` adds
-    plausibility bounds, a rate limit, and a trigger that overwrites client-supplied
-    username/display_name from the authenticated profile.
-    **The bounds are derived from gameplay constants** (`PointsPerMetre`, `maxMultiplier`,
-    pill value, `maxSpeed × boostMultiplier`). Retune any of those and you must retune the
-    SQL or honest scores start bouncing.
+10. **The leaderboard is adversarial.** Migration `0007_competitive_run_integrity.sql`
+    owns the competitive write path: server-issued run tickets, private timed checkpoints,
+    exact score arithmetic, gameplay-derived ceilings, one-time finalization, and immutable
+    score/leaderboard rows for browser roles. Never restore direct table writes or the old
+    seven-argument one-shot RPC. **The bounds are derived from serialized gameplay values**
+    (acceleration/speeds, coin-pattern spacing/size, pickup values, combo/2×, and near-miss
+    cadence). Retune any of those and update Migration `0007`, its SQL integration test, the
+    React build version, and the rebuilt Unity output as one release.
 
 ## Folder discipline
 
