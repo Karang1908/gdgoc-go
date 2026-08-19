@@ -220,7 +220,7 @@ namespace GDGGo.Audio
         public void PlayCrash() => Play(crash, 1f);
         public void PlayJump() => Play(jump != null ? jump : GenerateRocketJump(), 0.85f);
         public void PlaySwerve() => Play(swerve, 0.5f);
-        public void PlayPowerUp() => Play(powerUpPick != null ? powerUpPick : GeneratePowerUpSurge(), 0.65f);
+        public void PlayPowerUp() => Play(powerUpPick != null ? powerUpPick : GeneratePowerUpSurge(), 0.55f);
         public void PlayPoliceWarning() => Play(policeWarning);
         public void PlayGameOver() => Play(gameOver);
 
@@ -231,10 +231,10 @@ namespace GDGGo.Audio
         {
             int multiplier = Core.GameSession.Instance != null ? Core.GameSession.Instance.Multiplier : 1;
             float pitch = Mathf.Clamp(1f + (multiplier - 1) * 0.08f, 1f, 1.8f);
-            Play(coinPickup != null ? coinPickup : GenerateSubwayCoin(), 0.55f, pitch);
+            Play(coinPickup != null ? coinPickup : GenerateSubwayCoin(), 0.45f, pitch);
         }
 
-        public void PlayPill() => Play(pillPickup != null ? pillPickup : GenerateGoldenJackpot(), 0.65f, 1f);
+        public void PlayPill() => Play(pillPickup != null ? pillPickup : GenerateGoldenJackpot(), 0.55f, 1f);
 
         public void PlayFuel() => Play(fuelPickup != null ? fuelPickup : GeneratePowerUpSurge(), 0.9f);
 
