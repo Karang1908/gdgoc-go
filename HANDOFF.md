@@ -1,6 +1,6 @@
 # GDGoC Go! — Engineering Handoff
 
-Last source review: **18 August 2026**
+Last source review: **19 August 2026**
 
 Repository: `https://github.com/Karang1908/gdgoc-go.git`
 
@@ -50,13 +50,20 @@ The following pieces must be deployed together:
 1. The current Unity WebGL build in `web-hosting/public/Build/` (tracked in git for Netlify CI).
 2. The current React host in `web-hosting/`.
 3. Supabase migrations through
-   [`0005_authoritative_score_submission.sql`](supabase/migrations/0005_authoritative_score_submission.sql) and
-   [`0006_users_email.sql`](supabase/migrations/0006_users_email.sql).
+   [`0007_competitive_run_integrity.sql`](supabase/migrations/0007_competitive_run_integrity.sql).
 
-Migration `0005` is mandatory for the current frontend. It adds the per-run UUID and
-`bonus_score`, makes run submission idempotent, prevents direct browser writes to score and
-leaderboard rows, and exposes the authenticated `submit_game_score` RPC. If the frontend is
-deployed before this migration, completed runs will be queued locally but cannot be banked.
+Migration `0007` is mandatory for the current frontend and Unity source. It replaces the
+one-shot Migration `0005` score RPC with server-issued run tickets, server-timed checkpoints,
+exact pickup-score validation, and a one-time finalizer. It also removes the old seven-argument
+`submit_game_score` RPC. The Migration `0007` database, React host, and freshly rebuilt Unity
+WebGL output are one release unit. Any mixed deployment will prevent ranked runs from starting
+or saving; do not apply or deploy only one part.
+
+Migration `0005` remains a prerequisite and is the layer that made score/leaderboard rows
+client-immutable and run submission idempotent. Migration `0007` closes its central weakness:
+the old RPC accepted a client-created run UUID and trusted a single plausible-looking final
+payload. The browser can now create score rows only after a matching server-issued run has
+advanced through the checkpoint state machine.
 
 Migration `0006` adds the `email` column and index to `public.users` so the Supabase project
 administrator can view player email addresses directly in the Table Editor, with automated
@@ -87,6 +94,13 @@ The working tree may contain uncommitted Unity, React, migration, PWA, and docum
 changes. Always run `git status --short` before editing or committing, and do not discard
 changes that are unrelated to the current task.
 
+On 19 August, Unity 6000.0.81f1 successfully rebuilt the WebGL player through the live Editor
+using `GDG Go > Build WebGL`. The build includes the Migration `0007` checkpoint and final-score
+telemetry changes. `npm run build` then copied the result into the tracked
+`web-hosting/public/Build/` directory; SHA-1 checks confirmed that the data, framework, WASM, and
+loader files match the Editor output byte for byte. Deploy these WebGL artifacts, the React host,
+and Migration `0007` together. A future green `build:spa` alone still does not update Unity.
+
 ---
 
 ## 2. Repository map and sources of truth
@@ -113,14 +127,14 @@ changes that are unrelated to the current task.
 | [`web-hosting/src/home/Home.tsx`](web-hosting/src/home/Home.tsx) | Guest landing page, authenticated garage, game launch, and game exit. |
 | [`web-hosting/src/home/CarPicker.tsx`](web-hosting/src/home/CarPicker.tsx) | Vehicle carousel, stat bars, swipe/arrow selection, and start button. |
 | [`web-hosting/src/components/CarShowcase3D.tsx`](web-hosting/src/components/CarShowcase3D.tsx) | Lazy Three.js vehicle preview for capable desktop devices. |
-| [`web-hosting/src/home/GameView.tsx`](web-hosting/src/home/GameView.tsx) | Full-screen game shell, run IDs, trusted Unity messages, score submission, retry state, audio, and result overlay. |
+| [`web-hosting/src/home/GameView.tsx`](web-hosting/src/home/GameView.tsx) | Full-screen game shell, server run tickets, ordered checkpoints, trusted Unity messages, final submission, retry state, audio, and result overlay. |
 | [`web-hosting/src/components/UnityEmbed.tsx`](web-hosting/src/components/UnityEmbed.tsx) | Same-origin Unity iframe, query parameters, focus, and fullscreen messages. |
 | [`web-hosting/src/home/ResultOverlay.tsx`](web-hosting/src/home/ResultOverlay.tsx) | Final run metrics, banked totals, save state, replay, and leaderboard action. |
 | [`web-hosting/src/home/AuthModal.tsx`](web-hosting/src/home/AuthModal.tsx) | Registration and sign-in modal with validated email address, required display name, and password toggle. |
 | [`web-hosting/src/leaderboard/Leaderboard.tsx`](web-hosting/src/leaderboard/Leaderboard.tsx) | Podium, current-driver card, search, refresh, desktop table, and mobile cards. |
 | [`web-hosting/src/controls/Controls.tsx`](web-hosting/src/controls/Controls.tsx) | `/controls` instructions for gestures, keyboard controls, HUD, pickups, power-ups, and survival tips. |
 | [`web-hosting/src/context/AuthContext.tsx`](web-hosting/src/context/AuthContext.tsx) | Supabase session, validated email registration, public profile persistence, and wallet refresh. |
-| [`web-hosting/src/lib/api.ts`](web-hosting/src/lib/api.ts) | Score payload validation, offline queue, RPC call, leaderboard queries, and fallback aggregation. |
+| [`web-hosting/src/lib/api.ts`](web-hosting/src/lib/api.ts) | Run-ticket/checkpoint/finalize RPCs, score payload validation, short-interruption retry queue, leaderboard queries, and fallback aggregation. |
 | [`web-hosting/src/components/ScoreQueueSync.tsx`](web-hosting/src/components/ScoreQueueSync.tsx) | Background flush of queued runs after sign-in or reconnect. |
 | [`web-hosting/src/lib/gameDisplay.ts`](web-hosting/src/lib/gameDisplay.ts) | Standalone-mode detection, Fullscreen API wrappers, and best-effort landscape lock. |
 | [`web-hosting/src/components/InstallPrompt.tsx`](web-hosting/src/components/InstallPrompt.tsx) | Android install prompt and iOS Safari Add to Home Screen guidance. |
@@ -131,7 +145,7 @@ changes that are unrelated to the current task.
 | File | What it owns |
 |---|---|
 | [`unity-project/Assets/Scenes/Game.unity`](unity-project/Assets/Scenes/Game.unity) | Serialized runtime values and references. Scene values override C# field defaults. |
-| [`unity-project/Assets/Scripts/Core/GameSession.cs`](unity-project/Assets/Scripts/Core/GameSession.cs) | Authoritative in-run score, combo, Heat, fuel, power-up flags, crashes, and final telemetry. |
+| [`unity-project/Assets/Scripts/Core/GameSession.cs`](unity-project/Assets/Scripts/Core/GameSession.cs) | In-run score, exact pickup-score accumulator, combo, Heat, fuel, power-up flags, crashes, five-second integrity checkpoints, and final telemetry. |
 | [`unity-project/Assets/Scripts/Gameplay/WorldScroller.cs`](unity-project/Assets/Scripts/Gameplay/WorldScroller.cs) | Distance, difficulty, cruising speed, boost speed, and braking speed. |
 | [`unity-project/Assets/Scripts/Gameplay/PlayerCar.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCar.cs) | Lane movement, jump/fast-fall, keyboard, swipe, braking, and double-tap boost. |
 | [`unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs) | Crash handling, shields, and temporary invulnerability. |
@@ -141,7 +155,7 @@ changes that are unrelated to the current task.
 | [`unity-project/Assets/Scripts/PowerUps/PowerUpSpawner.cs`](unity-project/Assets/Scripts/PowerUps/PowerUpSpawner.cs) | Power-up timing, weights, lane selection, and color coding. |
 | [`unity-project/Assets/Scripts/UI/HUD.cs`](unity-project/Assets/Scripts/UI/HUD.cs) | Score animation, combo, fuel, alerts, power-up icons, and portrait scaling. |
 | [`unity-project/Assets/Scripts/Supabase/SupabaseSession.cs`](unity-project/Assets/Scripts/Supabase/SupabaseSession.cs) | Reads non-secret run/player/car metadata from the iframe URL. It does not connect to Supabase. |
-| [`unity-project/Assets/Plugins/WebGL/PostMessageBridge.jslib`](unity-project/Assets/Plugins/WebGL/PostMessageBridge.jslib) | Sends final Unity telemetry to the same-origin React parent. |
+| [`unity-project/Assets/Plugins/WebGL/PostMessageBridge.jslib`](unity-project/Assets/Plugins/WebGL/PostMessageBridge.jslib) | Sends checkpoint and final Unity telemetry to the same-origin React parent. |
 | [`unity-project/Assets/Editor/ProjectSetup.cs`](unity-project/Assets/Editor/ProjectSetup.cs) | Project setup, WebGL settings, validation, and the `GDG Go/Build WebGL` menu command. |
 | [`unity-project/Assets/Editor/SceneBuilder.cs`](unity-project/Assets/Editor/SceneBuilder.cs) | Rebuilds the Game scene and its runtime object graph. |
 | [`unity-project/Assets/Editor/PrefabsBuilder.cs`](unity-project/Assets/Editor/PrefabsBuilder.cs) | Generates the prefabs used by the scene. |
@@ -156,17 +170,21 @@ The browser runtime is deliberately split at the iframe boundary:
 React SPA
   ├─ Supabase Auth session and public profile (with email)
   ├─ garage, /controls, /leaderboard, result overlay
-  ├─ creates one UUID for each run
+  ├─ requests a single-use run ID + secret from Supabase
+  ├─ keeps the secret in React (never passes it to Unity)
   ├─ embeds /Build/index.html?run=...&u=...&dn=...&car=...
-  └─ receives and validates one gameover message
+  └─ receives and validates checkpoints plus one gameover message
         ↓ same-origin window.postMessage
 Unity WebGL iframe
   ├─ parses non-secret query metadata
   ├─ runs the chase and calculates the score
+  ├─ reports exact cumulative telemetry every five seconds
   └─ reports final telemetry once
         ↓ authenticated Supabase RPC from React only
 Supabase
-  ├─ inserts an immutable score row once per user/run UUID
+  ├─ owns private run/checkpoint state and server timing
+  ├─ rejects backward, impossible, unissued, expired, or mismatched telemetry
+  ├─ inserts one integrity-version-1 score row once per issued run
   ├─ recomputes that driver's cumulative row
   └─ recomputes deterministic global ranks
 ```
@@ -268,8 +286,9 @@ differ from field initializers in C#.
 | Power-up interval | about 240 m, randomized by 0.75–1.35× |
 
 The theoretical boosted peak from the current serialized speed values is approximately
-`46 × 1.55 = 71.3` units/s. The database permits 75 distance units per reported second to
-leave frame-rounding headroom.
+`46 × 1.55 = 71.3` units/s. Migration `0007` validates the full-run distance against the
+serialized acceleration curve and also caps checkpoint-to-checkpoint movement at the boosted
+peak with small frame/rounding headroom.
 
 ### Power-up durations in the current scene
 
@@ -308,7 +327,10 @@ awarded pickup score = base value × current combo multiplier × active 2× fact
 
 The `coins` value submitted to the backend means standard coins only. The Unity and database
 field named `pills` is the existing internal compatibility field for the exact GDG Coin
-count. `bonus` in the iframe message becomes `bonus_score` in PostgreSQL.
+count. `coin_score` is the exact accumulated pickup score after combo and 2× modifiers.
+`bonus` in the iframe message becomes `bonus_score` in PostgreSQL. Migration `0007` requires
+the exact identity `score = distance × 2 + coin_score + bonus_score`; it no longer accepts a
+broad estimated score envelope.
 
 Do not derive GDG Coins from standard coins. The old `floor(coins / 15)` behavior exists only
 as a fallback estimate for legacy rows that predate exact counters.
@@ -317,14 +339,17 @@ as a fallback estimate for legacy rows that predate exact counters.
 
 ## 7. Unity-to-React message contract
 
-React creates a UUID before mounting each Unity iframe. The iframe URL contains only
-non-secret metadata:
+React calls `start_game_run` before mounting each Unity iframe. Supabase creates the run UUID,
+an unguessable run secret, its issue time, and its expiry time. React retains the secret and
+passes only the run UUID plus non-secret display metadata to Unity:
 
 ```text
 /Build/index.html?run=<uuid>&u=<username>&dn=<display-name>&car=<vehicle-id>
 ```
 
-At game over, Unity sends:
+While the game is running, Unity sends cumulative telemetry every five seconds with
+`"type": "runcheckpoint"`. At game over, it sends the same totals with
+`"type": "gameover"`:
 
 ```json
 {
@@ -332,7 +357,8 @@ At game over, Unity sends:
   "run_id": "e84c2b9d-14e0-4d45-9f2f-9db83cd8c71d",
   "score": 965,
   "coins": 20,
-  "pills": 5,
+  "pills": 1,
+  "coin_score": 67,
   "bonus": 100,
   "distance": 399,
   "duration": 17,
@@ -344,14 +370,16 @@ At game over, Unity sends:
 
 1. `event.origin === window.location.origin`.
 2. `event.source` is the mounted Unity iframe window.
-3. `type` is `gameover`.
-4. `run_id` equals the UUID React assigned to the current iframe.
-5. The run UUID has not already been handled by this `GameView` instance.
+3. `type` is `runcheckpoint` or `gameover`.
+4. `run_id` equals the server-issued UUID assigned to the current iframe.
+5. A final `gameover` for that run UUID has not already been handled by this `GameView`.
 6. All numeric fields are finite and non-negative.
 
-The bridge uses `window.location.origin` as its `postMessage` target, not `*`. Keep the
-origin and source checks even though the iframe is same-origin; they prevent unrelated page
-scripts or nested frames from injecting a score event into the normal UI path.
+React serializes checkpoint RPC calls so an earlier checkpoint cannot arrive after a later one.
+The bridge uses `window.location.origin` as its `postMessage` target, not `*`. Keep the origin
+and source checks even though the iframe is same-origin; they prevent unrelated page scripts
+or nested frames from injecting telemetry into the normal UI path. These browser checks are
+defense in depth; the database remains the competitive-integrity boundary.
 
 The browser-to-Unity messages `unityFullscreen` and `unityExitFullscreen` are also accepted
 only from the same-origin parent by the generated Unity host template.
@@ -362,56 +390,70 @@ only from the same-origin parent by the generated Unity host template.
 
 ### Normal submission path
 
-1. Unity reports the final run once.
-2. React validates and normalizes the payload.
-3. React writes the run to the local pending queue before attempting the network request.
-4. `submitScore` calls the authenticated Supabase RPC `submit_game_score`.
-5. The RPC gets identity from `auth.uid()` rather than trusting the iframe/player labels.
-6. PostgreSQL inserts the run once under unique `(user_id, run_id)`.
-7. The existing score trigger calls `recompute_leaderboard()`.
-8. The trigger recomputes the player's totals and global ranks.
-9. The RPC returns authoritative wallet, personal-best, distance, game-count, and rank data.
-10. React removes the local queue item and refreshes the wallet.
+1. React calls `start_game_run(build_version, car_id)` and receives one active run ticket.
+2. Unity reports cumulative checkpoint telemetry every five seconds.
+3. React validates, normalizes, serializes, and forwards it to `checkpoint_game_run` together
+   with the retained run secret and a unique checkpoint ID.
+4. PostgreSQL locks the run, verifies ownership/secret/status/server timing, exact score
+   arithmetic, monotonic counters, gameplay-derived speed/pickup/value/bonus ceilings, and
+   stores the checkpoint in a private append-only table.
+5. At game over, React queues the final payload locally, records one final checkpoint, and
+   calls the nine-argument `submit_game_score` finalizer.
+6. The finalizer requires an exact match with the latest accepted checkpoint, marks the run
+   submitted once, and inserts one immutable `integrity_version = 1` score row.
+7. The score trigger recomputes the player's totals and deterministic global ranks.
+8. The RPC returns the authoritative wallet, personal best, distance, game count, and rank.
+9. React removes the local queue item and refreshes the wallet.
 
-If the same UUID is retried, the RPC returns `duplicate` and does not insert or double-count
-the run. Duplicate detection happens before the hourly rate count.
+If a submit committed but its HTTP response was lost, the exact final checkpoint retry is
+accepted and the finalizer returns `duplicate` with the original score ID. It cannot insert or
+double-count the run. Run starts and submissions use per-player transaction advisory locks so
+parallel requests cannot race the rate limits or create two final rows.
 
 ### Offline and interrupted submissions
 
 Pending runs are stored under:
 
 ```text
-localStorage['gdg-go:pending-scores:v1']
+localStorage['gdg-go:pending-scores:v2']
 ```
 
-The queue retains at most 20 entries and de-duplicates by `userId + run_id`. It is flushed:
+Each queue record contains the user ID, final payload, and that run's server secret. The queue
+retains at most 20 entries and de-duplicates by `userId + run_id`. It is flushed:
 
 - when `ScoreQueueSync` mounts for a signed-in user;
 - when the browser emits `online`;
 - when `GameView` mounts for a signed-in user.
 
-Permanent payload/check errors are removed from the queue. Network errors and missing-RPC
-errors remain retryable. Clearing site data clears this queue, so it is retry support—not
-durable server storage.
+Permanent payload/check errors are removed from the queue. Network errors remain retryable.
+The server clock may trail client run time by at most five minutes, so this queue recovers short
+network interruptions and lost responses; it is not offline gameplay or durable server storage.
+Clearing site data discards it. Migration `0007` intentionally invalidates the old v1 queue,
+whose entries have no server-issued secret and therefore cannot be proven.
 
 ### Database validation envelope
 
-Migration `0005` enforces, among other constraints:
+Migration `0007` enforces, among other constraints:
 
 - valid authenticated user and existing public profile;
-- non-negative score, counters, bonus, and distance;
-- duration of at least one second for new RPC submissions;
-- at most 20 new score rows per user per hour;
-- `gdg_coins = pills` on new run-ID rows;
-- distance no greater than `duration_seconds × 75`;
-- new-run pickup count no greater than `distance + 50`;
-- score inside the possible distance/pickup/bonus envelope;
-- near-miss bonus divisible by 50 and bounded against run duration.
+- a random server-issued run ID/secret owned by `auth.uid()`, with only one active run;
+- a 2-hour-15-minute run expiry, at most 30 starts/hour, and at most 20 saved scores/hour;
+- append-only, sequential checkpoints whose reported duration follows server elapsed time,
+  with the first and every subsequent client-time gap capped at 15 seconds;
+- monotonic score, distance, counters, and duration;
+- the exact score identity, combo-ramp maximum pickup score, and separate standard/GDG values;
+- a conservative GDG Coin rarity ceiling derived from the 5.5% roll, 100 m milestones, and
+  extra streaming/randomness slack;
+- the current acceleration/boost distance ceiling;
+- current coin-pattern spawn-density and near-miss cadence ceilings;
+- a fresh final checkpoint that exactly matches the final submission;
+- one-time finalization and immutable score/leaderboard rows for browser roles.
 
-These checks reject casual forged values and inconsistent telemetry. They do **not** make the
-game simulation server-authoritative: a determined user can still alter a public WebGL
-client and submit plausible values. Strong anti-cheat would require signed replays or a
-server-owned simulation.
+This is tamper-resistant competitive validation, not a mathematically server-authoritative
+game. Because WebGL code executes on the player's device, a determined bot can still automate
+play or manufacture a real-time stream that remains inside every legitimate bound. Preventing
+that final class requires the server to simulate/replay the run (or verify a deterministic
+input replay). Never describe client-side WebGL scoring as impossible to cheat.
 
 ### Leaderboard fields and ordering
 
@@ -460,15 +502,27 @@ Run migrations in numeric order on a fresh project:
 6. [`0006_users_email.sql`](supabase/migrations/0006_users_email.sql):
    adds `email` column and index to `public.users` for Table Editor admin visibility and backfills
    from `auth.users`.
+7. [`0007_competitive_run_integrity.sql`](supabase/migrations/0007_competitive_run_integrity.sql):
+   private run/checkpoint ledger, server-issued run secrets, exact score arithmetic and
+   gameplay-derived validation, single-use finalization, verified score markers, reduced RPC
+   privileges, and removal of the vulnerable Migration `0005` one-shot RPC signature.
 
-For an existing environment already on `0004`, apply `0005` and `0006` in order. The migrations use
-`if not exists`, policy drops, and function replacement where practical, but they are still
-schema migrations—not scripts to run on every deploy.
+For an existing environment on `0005`, apply `0006` (if it is not already present), then
+`0007`. The migrations use `if not exists`, policy drops, and function replacement where
+practical, but they are still schema migrations—not scripts to run on every deploy.
 
-Public browser roles can read public profiles, scores, and leaderboard data. After `0005`,
-they cannot directly insert/update/delete score or leaderboard rows. Authenticated score
-creation happens only through the security-definer RPC. Never expose the Supabase
-`service_role` key to Vite, Unity, Git, or the browser.
+Public browser roles can read public profiles, scores, and leaderboard data. They cannot
+insert/update/delete score or leaderboard rows, use the `private` schema, or execute trigger
+helpers. The only competitive write surface is the authenticated trio `start_game_run`,
+`checkpoint_game_run`, and the new nine-argument `submit_game_score`; all three derive player
+identity from `auth.uid()`. Never expose the Supabase `service_role` key to Vite, Unity, Git,
+or the browser.
+
+`private.game_runs` and `private.game_run_checkpoints` are operational audit state. They have
+RLS enabled and no browser table grants. `public.scores.coin_score` records exact pickup points,
+and `public.scores.integrity_version = 1` identifies rows finalized by Migration `0007`.
+Pre-`0007` rows remain at version `0` because their old one-shot telemetry cannot be proven
+retroactively; do not silently relabel them as verified.
 
 Required Vite environment variables are documented in
 [`web-hosting/.env.example`](web-hosting/.env.example):
@@ -608,7 +662,7 @@ instructions stay truthful.
 1. Install Node.js compatible with the committed lockfile (Node 20 LTS is the safest choice).
 2. Install Unity **6000.0.81f1** with WebGL Build Support.
 3. Create `web-hosting/.env.local` from `.env.example` and set the Supabase URL/anon key.
-4. Apply Supabase migrations `0001` through `0006` in order.
+4. Apply Supabase migrations `0001` through `0007` in order.
 5. Install web dependencies:
 
 ```bash
@@ -692,6 +746,19 @@ npm run build:spa
 git diff --check
 ```
 
+The database integration test is:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/0007_competitive_run_integrity_test.sql
+```
+
+Run it only against an isolated local/test database that already has migrations `0001`–`0007`;
+it opens a transaction and rolls back its fixtures. It checks the known fabricated million-
+point payload, the standard-coin-as-400 and all-GDG-Coin exploits, table/schema privileges,
+old RPC removal, cross-driver run ownership, required checkpoint cadence, normal
+start/checkpoint/finalize flow, and lost-response idempotency.
+
 Use `npm run build` before release to verify the Unity copy path as well. A Vite warning about
 the large lazy Three.js chunk is currently informational; an actual TypeScript or build error
 is not.
@@ -705,6 +772,8 @@ is not.
 - Unity receives keyboard focus and all keyboard controls work.
 - Game mode hides the application header/footer.
 - Result overlay reports score, standard coins, exact GDG Coins, bonus, distance, and time.
+- Network activity shows one `start_game_run`, periodic ordered `checkpoint_game_run` calls,
+  and one final nine-argument `submit_game_score` call.
 - A saved run updates wallet, current-driver card, race count, personal best, and rank.
 - Refreshing or retrying the same run UUID does not double-count it.
 
@@ -729,8 +798,8 @@ Test at minimum a 390 × 844 viewport plus one short landscape viewport:
 After a real test run, inspect tables:
 
 ```sql
-select run_id, score, coins, pills, gdg_coins, bonus_score,
-       distance, duration_seconds, created_at
+select run_id, score, coins, pills, gdg_coins, coin_score, bonus_score,
+       distance, duration_seconds, integrity_version, created_at
 from public.scores
 order by created_at desc
 limit 10;
@@ -746,9 +815,10 @@ from public.leaderboard
 order by rank asc nulls last;
 ```
 
-For every new run, `run_id` must be non-null and `pills = gdg_coins`. Re-submitting the same
-user/run UUID must return `duplicate` without changing `total_games`, `total_coins`, or
-`total_gdg_coins`.
+For every new run, `run_id` and `coin_score` must be non-null, `pills = gdg_coins`,
+`integrity_version = 1`, and `score = distance * 2 + coin_score + bonus_score`. Re-submitting
+the same user/run UUID must return `duplicate` with the same score ID and without changing
+`total_games`, `total_coins`, or `total_gdg_coins`.
 
 ---
 
@@ -759,15 +829,20 @@ user/run UUID must return `duplicate` without changing `total_games`, `total_coi
 Check, in order:
 
 1. The user still has an authenticated Supabase session.
-2. Migration `0005` exists in the target database.
-3. `submit_game_score` is executable by `authenticated`.
+2. Migration `0007` exists in the target database.
+3. `start_game_run`, `checkpoint_game_run`, and the nine-argument `submit_game_score` are
+   executable by `authenticated`; the old seven-argument function must not exist.
 4. The public profile row exists for `auth.uid()`.
-5. The payload satisfies duration, distance, count, score, and bonus constraints.
-6. The player has not exceeded 20 new runs in one hour.
-7. Browser network and Supabase project status are healthy.
+5. The browser, Unity build, and database were deployed from the same integrity contract.
+6. The final checkpoint is present, less than 30 seconds old, and exactly matches the submit.
+7. The payload satisfies duration, acceleration, delta movement, pickup, exact pickup-score,
+   score-formula, and bonus constraints.
+8. The player has not exceeded 30 starts or 20 saved scores in one hour.
+9. Browser network and Supabase project status are healthy.
 
-The browser queue is intentionally retained for retryable errors. Do not “fix” the symptom by
-deleting the queue before finding the server failure.
+The browser queue is intentionally retained for short retryable interruptions. Runs cannot be
+banked indefinitely offline because server timing is part of the integrity proof. Do not “fix”
+the symptom by deleting the queue before finding the server failure.
 
 ### GDG totals do not match the result overlay
 
@@ -778,16 +853,31 @@ because their exact count cannot be reconstructed after the fact.
 
 ### A run is saved twice
 
-Verify the iframe receives a valid UUID under `run`, Unity returns it unchanged, the RPC is
-used instead of a direct table insert, and the partial unique index
-`scores_user_run_unique` exists. Do not create a new UUID while merely retrying the same run;
-only Play Again/restart should create a new run identity.
+Verify the iframe receives the server-issued UUID under `run`, Unity returns it unchanged, the
+server run reaches `submitted`, and `scores_user_run_unique` exists. The same run secret and
+UUID must be retained for a retry. Only Play Again/restart should call `start_game_run` for a
+new identity; that call deliberately abandons the previous active run.
 
 ### Honest runs fail the database plausibility checks
 
-Compare gameplay tuning against migration `0005`. Changes to maximum speed, boost, pickup
-values, maximum multiplier, bonus size, or bonus frequency may require a coordinated SQL
-constraint update. Never loosen constraints without documenting the new legitimate maximum.
+Compare gameplay tuning against migration `0007`. Changes to acceleration, maximum speed,
+boost, coin-pattern interval/size, pickup values, maximum multiplier, 2× behavior, near-miss
+size/cooldown, or run duration may require a coordinated SQL function/constraint update.
+Never loosen a bound without deriving and documenting the new legitimate maximum and adding a
+positive and negative integration fixture.
+
+### Ranked run is unavailable before Unity appears
+
+The host could not obtain a server ticket. Confirm Migration `0007` is deployed, the current
+session can execute `start_game_run`, and the player is below the 30-start hourly limit. This
+fail-closed loader is intentional: Unity must not start a ranked run with a client-created ID.
+
+### All checkpoints are rejected after a Unity source update
+
+Confirm a fresh WebGL build was copied into `web-hosting/public/Build`. The pre-`0007` build
+does not emit `coin_score` or `runcheckpoint`. Also compare all serialized Game scene tuning
+against the ceilings documented in Migration `0007`; C# field defaults alone are not enough
+because scene values override them.
 
 ### Unity is not full-bleed on a phone
 
@@ -825,14 +915,23 @@ Equivalent rewrite rules are required on any other host.
 
 ## 15. Safe change rules for future work
 
-- Treat `GameSession.cs`, `GameView.tsx`, `api.ts`, and migration `0005` as one score contract.
-  A telemetry field change must be updated end-to-end.
+- Treat `GameSession.cs`, `PostMessageBridge.jslib`, `GameView.tsx`, `api.ts`, and Migration
+  `0007` as one score contract. A telemetry field or gameplay-ceiling change must be updated
+  end-to-end and released together.
 - Never trust username, display name, or user ID from Unity when writing scores. Identity must
   come from the authenticated database session.
 - Never send Supabase JWTs or service-role credentials into Unity.
-- Preserve the per-run UUID during retries; generate a new one only for a new run.
+- Never restore the removed seven-argument `submit_game_score` RPC or any endpoint that can
+  finalize a client-created/uncheckpointed run.
+- Keep run secrets out of iframe URLs, logs, UI, and analytics. They belong in React memory and
+  the bounded v2 retry record only.
+- Preserve the server-issued run UUID and secret during retries; request a new ticket only for
+  a genuinely new run.
 - Keep standard-coin and exact GDG Coin counters separate.
-- Update database plausibility limits whenever legitimate gameplay maxima change.
+- Keep `coin_score` as the exact accumulated pickup points; never reconstruct it from pickup
+  count after the fact.
+- Update database plausibility limits whenever legitimate gameplay maxima change, and rerun
+  `0007_competitive_run_integrity_test.sql`.
 - Do not edit `web-hosting/public/Build`, `unity-project/Build`, or `dist` manually.
 - Be cautious when running Unity generator menu items: `SceneBuilder` and prefab builders can
   rewrite generated scene/prefab assets.
@@ -851,17 +950,24 @@ Equivalent rewrite rules are required on any other host.
 ## 16. Recommended release sequence
 
 1. Review `git status` and the diff.
-2. Apply pending Supabase migrations in staging (`0005`, `0006`).
-3. Validate/rebuild the Unity Game scene only when Unity source changed.
-4. Build Unity WebGL into `unity-project/Build`.
-5. Run the full web build so `copy-unity.js` refreshes the embedded build in `web-hosting/public/Build`.
-6. Run desktop and phone browser QA.
-7. Run an authenticated test race and verify its raw score row, user email in `public.users`, and aggregate row.
-8. Retry the same run identity to confirm idempotency.
-9. Test installed PWA launch and service-worker update behavior.
-10. Deploy the matching database, Unity, and React versions.
-11. Smoke-test `/`, `/controls`, `/leaderboard`, game launch, result banking, and refresh in
+2. Apply migrations through `0007` to an isolated staging database.
+3. Run `supabase/tests/0007_competitive_run_integrity_test.sql` in staging/local PostgreSQL.
+4. Validate the Unity Game scene and build Unity WebGL into `unity-project/Build`.
+5. Run the full web build so `copy-unity.js` refreshes the embedded build in
+   `web-hosting/public/Build`.
+6. Verify the copied build actually emits `coin_score` checkpoints; the old tracked binary is
+   incompatible even if the React build succeeds.
+7. Run desktop and phone browser QA.
+8. Run an authenticated test race and verify its private run/checkpoints, version-1 raw score,
+   user email in `public.users`, and aggregate row.
+9. Retry the same final run identity/secret to confirm it returns the same score ID.
+10. Test installed PWA launch and service-worker update behavior.
+11. Schedule a coordinated cutover. Applying `0007` first breaks the old host's save call;
+    deploying the new host first cannot start a run against the old database. Use a short
+    maintenance window or an atomic deployment process.
+12. Smoke-test `/`, `/controls`, `/leaderboard`, game launch, checkpoints, result banking, and refresh in
     production.
 
-That sequence prevents the most dangerous partial release: a new frontend emitting the new
-payload while production still has the old direct-insert database contract.
+That sequence prevents the most dangerous partial releases: a new frontend calling RPCs that
+do not exist yet, an old frontend calling the deliberately removed one-shot RPC, or an old
+Unity binary omitting the required exact pickup score/checkpoints.
