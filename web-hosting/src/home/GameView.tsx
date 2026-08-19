@@ -5,10 +5,13 @@ import { ResultOverlay } from './ResultOverlay';
 import {
   flushQueuedScores,
   GameOverPayload,
+  GameRunTicket,
+  checkpointGameRun,
   queueScore,
   removeQueuedScore,
   ScoreSubmissionError,
   ScoreSubmissionResult,
+  startGameRun,
   submitScore,
 } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -28,31 +31,15 @@ interface GameViewProps {
 
 export type ScoreSaveState = 'idle' | 'saving' | 'saved' | 'queued' | 'error';
 
-function createRunId(): string {
-  const webCrypto = globalThis.crypto;
-  if (webCrypto && typeof webCrypto.randomUUID === 'function') {
-    return webCrypto.randomUUID();
-  }
-
-  const bytes = new Uint8Array(16);
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
 export const GameView: React.FC<GameViewProps> = ({
   carId,
   onBackToGarage,
   onViewLeaderboard,
 }) => {
   const { session, profile, refreshCoins } = useAuth();
-  const [runId, setRunId] = useState<string>(() => createRunId());
+  const [runTicket, setRunTicket] = useState<GameRunTicket | null>(null);
+  const [runLoadError, setRunLoadError] = useState<string>('');
+  const [isStartingRun, setIsStartingRun] = useState<boolean>(true);
   const [gameOverPayload, setGameOverPayload] = useState<GameOverPayload | null>(null);
   const [saveState, setSaveState] = useState<ScoreSaveState>('idle');
   const [saveMessage, setSaveMessage] = useState<string>('');
@@ -63,8 +50,62 @@ export const GameView: React.FC<GameViewProps> = ({
   ));
   const unityEmbedRef = useRef<UnityEmbedHandle>(null);
   const handledRunRef = useRef<string | null>(null);
+  const runTicketRef = useRef<GameRunTicket | null>(null);
+  const initialRunRequestedRef = useRef(false);
+  const runRequestSequenceRef = useRef(0);
+  const checkpointChainRef = useRef<Promise<void>>(Promise.resolve());
 
   const selectedCar = CARS.find((c) => c.id === carId) || CARS[0];
+  const runId = runTicket?.runId || '';
+
+  const beginSecureRun = useCallback(async () => {
+    const requestSequence = runRequestSequenceRef.current + 1;
+    runRequestSequenceRef.current = requestSequence;
+    setIsStartingRun(true);
+    setRunLoadError('');
+    setRunTicket(null);
+    runTicketRef.current = null;
+    handledRunRef.current = null;
+    checkpointChainRef.current = Promise.resolve();
+    setGameOverPayload(null);
+    setSaveState('idle');
+    setSaveMessage('');
+    setSubmissionResult(null);
+
+    try {
+      const ticket = await startGameRun(carId);
+      if (runRequestSequenceRef.current !== requestSequence) return;
+      runTicketRef.current = ticket;
+      setRunTicket(ticket);
+      bgmEngine.start();
+    } catch (error) {
+      if (runRequestSequenceRef.current !== requestSequence) return;
+      setRunLoadError(error instanceof Error ? error.message : 'A secure ranked run could not be started.');
+    } finally {
+      if (runRequestSequenceRef.current === requestSequence) setIsStartingRun(false);
+    }
+  }, [carId]);
+
+  useEffect(() => () => {
+    runRequestSequenceRef.current += 1;
+  }, []);
+
+  useEffect(() => {
+    if (initialRunRequestedRef.current) return;
+    initialRunRequestedRef.current = true;
+    void beginSecureRun();
+  }, [beginSecureRun]);
+
+  const queueCheckpoint = useCallback((payload: GameOverPayload): Promise<void> => {
+    const ticket = runTicketRef.current;
+    if (!ticket) return Promise.reject(new Error('The secure run ticket is missing.'));
+
+    const next = checkpointChainRef.current
+      .catch(() => {})
+      .then(() => checkpointGameRun(payload, ticket.runSecret));
+    checkpointChainRef.current = next;
+    return next;
+  }, []);
 
   useEffect(() => {
     const updateFullscreenState = () => {
@@ -159,7 +200,7 @@ export const GameView: React.FC<GameViewProps> = ({
         setSubmissionResult(null);
       }
 
-      if (type === 'gameover') {
+      if (type === 'runcheckpoint' || type === 'gameover') {
         if (String(data.run_id || '') !== runId || handledRunRef.current === runId) return;
 
         const metric = (value: unknown): number | null => {
@@ -169,25 +210,34 @@ export const GameView: React.FC<GameViewProps> = ({
         const score = metric(data.score);
         const coins = metric(data.coins);
         const pills = metric(data.pills);
+        const coinScore = metric(data.coin_score);
         const bonus = metric(data.bonus);
         const distance = metric(data.distance);
         const duration = metric(data.duration);
-        if (score == null || coins == null || pills == null || bonus == null || distance == null || duration == null) {
+        if (score == null || coins == null || pills == null || coinScore == null || bonus == null || distance == null || duration == null) {
           console.warn('[GameView] Rejected invalid game-over telemetry.');
           return;
         }
 
         const payload: GameOverPayload = {
-          type: 'gameover',
+          type: type === 'gameover' ? 'gameover' : 'runcheckpoint',
           run_id: runId,
           score,
           coins,
           pills,
+          coin_score: coinScore,
           bonus,
           distance,
           duration: Math.max(1, duration),
           reason: String(data.reason || 'police'),
         };
+
+        if (type === 'runcheckpoint') {
+          void queueCheckpoint(payload).catch((error) => {
+            console.warn('[GameView] Ranked-run checkpoint warning:', error);
+          });
+          return;
+        }
 
         handledRunRef.current = runId;
         setGameOverPayload(payload);
@@ -201,11 +251,19 @@ export const GameView: React.FC<GameViewProps> = ({
           return;
         }
 
-        queueScore(userId, payload);
+        const ticket = runTicketRef.current;
+        if (!ticket || ticket.runId !== runId) {
+          setSaveState('error');
+          setSaveMessage('The secure run ticket was lost. This result cannot be ranked.');
+          return;
+        }
+
+        queueScore(userId, ticket.runSecret, payload);
         setSaveState('saving');
         setSaveMessage('Banking run…');
         try {
-          const result = await submitScore(payload);
+          await checkpointChainRef.current.catch(() => {});
+          const result = await submitScore(payload, ticket.runSecret);
           removeQueuedScore(userId, runId);
           setSubmissionResult(result);
           setSaveState('saved');
@@ -226,16 +284,10 @@ export const GameView: React.FC<GameViewProps> = ({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [refreshCoins, runId, session?.user.id]);
+  }, [queueCheckpoint, refreshCoins, runId, session?.user.id]);
 
   const handlePlayAgain = () => {
-    setGameOverPayload(null);
-    setSaveState('idle');
-    setSaveMessage('');
-    setSubmissionResult(null);
-    handledRunRef.current = null;
-    setRunId(createRunId());
-    bgmEngine.start();
+    void beginSecureRun();
   };
 
   const handleToggleMusic = () => {
@@ -297,6 +349,7 @@ export const GameView: React.FC<GameViewProps> = ({
             id="restart-run-btn"
             className="floating-hud-btn"
             onClick={handlePlayAgain}
+            disabled={isStartingRun}
             title="Restart Run"
           >
             <RefreshCw size={16} />
@@ -306,14 +359,29 @@ export const GameView: React.FC<GameViewProps> = ({
 
       {/* 100% Full-bleed Unity Canvas Container */}
       <div className="game-canvas-wrapper">
-        <UnityEmbed
-          ref={unityEmbedRef}
-          key={runId}
-          runId={runId}
-          username={profile?.username || ''}
-          displayName={profile?.display_name || ''}
-          carId={carId}
-        />
+        {runTicket ? (
+          <UnityEmbed
+            ref={unityEmbedRef}
+            key={runTicket.runId}
+            runId={runTicket.runId}
+            username={profile?.username || ''}
+            displayName={profile?.display_name || ''}
+            carId={carId}
+          />
+        ) : (
+          <div className="secure-run-loader" role="status">
+            <div className="secure-run-loader-card">
+              <img src="/assets/gdg-mark.png" alt="" />
+              <strong>{isStartingRun ? 'Securing ranked run…' : 'Ranked run unavailable'}</strong>
+              <span>{runLoadError || 'Requesting a single-use run ticket from the score server.'}</span>
+              {!isStartingRun && (
+                <button type="button" className="floating-hud-btn" onClick={() => void beginSecureRun()}>
+                  Try again
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mobile-control-hint" role="status">
           <span>Swipe to steer</span>
@@ -365,6 +433,36 @@ export const GameView: React.FC<GameViewProps> = ({
           background: #000000;
           overflow: hidden;
         }
+
+        .secure-run-loader {
+          position: absolute;
+          inset: 0;
+          z-index: 12;
+          display: grid;
+          place-items: center;
+          padding: 24px;
+          background: #000;
+          color: #fff;
+        }
+
+        .secure-run-loader-card {
+          width: min(360px, 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          text-align: center;
+          font-family: var(--font-display);
+        }
+
+        .secure-run-loader-card img {
+          width: 48px;
+          height: 48px;
+          object-fit: contain;
+        }
+
+        .secure-run-loader-card strong { font-size: 1.1rem; }
+        .secure-run-loader-card span { color: #9aa0a6; line-height: 1.45; }
 
         .floating-game-hud {
           position: absolute;
