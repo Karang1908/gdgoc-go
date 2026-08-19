@@ -1,6 +1,6 @@
 # FreeDNS Custom Domains for Netlify and Vercel
 
-Last verified against provider documentation: **19 August 2026**
+Last verified against provider documentation: **20 August 2026**
 
 This guide explains how to connect a hostname managed through
 [FreeDNS / afraid.org](https://freedns.afraid.org/) to a website hosted on Netlify or
@@ -351,8 +351,24 @@ both are attached to the project.
 
 ## 5. Connect FreeDNS to Vercel
 
-Vercel currently uses an A record for an apex domain and a project-specific CNAME for a
-subdomain. Values shown under the project's domain settings override general-purpose values.
+Vercel normally recommends an A record for an apex domain and a project-specific CNAME for a
+subdomain. Vercel also supports connecting a hostname with an A record when a CNAME cannot be
+used. Values shown under the project's **Settings > Domains** page always override
+general-purpose values.
+
+For this repository, configure the Vercel project as follows before adding a domain:
+
+| Vercel setting | Value |
+|---|---|
+| Root Directory | `web-hosting` |
+| Framework Preset | `Vite` |
+| Build Command | `npm run build:spa` |
+| Output Directory | `dist` |
+
+The repository's `web-hosting/vercel.json` applies the build/output settings and the SPA rewrite
+needed for direct routes such as `/controls` and `/leaderboard`. The Vercel dashboard must
+still use `web-hosting` as the project Root Directory. Use `npm run build:spa`, not
+`npm run build`: the latter tries to copy a Unity build from outside the Vercel project root.
 
 ### 5.1 Add the hostname to the Vercel project
 
@@ -389,14 +405,45 @@ Use the value shown for the actual project:
 Do not point the CNAME at a random deployment URL unless the Vercel dashboard explicitly
 instructs that value. Do not include `https://` or `/`.
 
-### 5.3 Configure an apex domain with A
+### 5.3 Configure an apex domain or CNAME-restricted hostname with A
 
-For an apex domain, Vercel normally asks for an A record. Vercel's current general-purpose
-address is `76.76.21.21`, but use the exact value shown by the project's domain configuration.
+For an apex domain, Vercel normally asks for an A record. An A record may also be used for a
+subdomain when the DNS provider does not permit the CNAME Vercel normally recommends.
+
+Use the A-record address in this order:
+
+1. Add the exact hostname to the Vercel project.
+2. Open **Settings > Domains** and use the project-specific A-record address if Vercel displays
+   one. Vercel selects addresses from an optimized Anycast pool, so this value has priority.
+3. If no project-specific A address is displayed and an A record is required because CNAME is
+   unavailable, Vercel's documented general-purpose Anycast address is:
+
+   ```text
+   76.76.21.21
+   ```
+
+Do not use a historic or third-party IP when Vercel displays a different address for the
+project.
 
 If `example.com` is your own domain hosted at FreeDNS, the root record may appear with a blank
 subdomain field or `@`, depending on the interface. Confirm that the resulting record is
 exactly `example.com` before saving.
+
+For the GDGoC Go hostname, where FreeDNS blocks CNAME records on the shared dynamic-DNS domain,
+the A-record fallback is:
+
+| FreeDNS field | Value |
+|---|---|
+| Type | `A` |
+| Subdomain | `go-gdg` |
+| Domain | `oc.com.ar` |
+| Destination | The Vercel project-specific A address, or `76.76.21.21` when Vercel provides no different address |
+
+Add `go-gdg.oc.com.ar` to **Vercel > Project > Settings > Domains** before publishing this
+record. If the hostname currently points to Netlify, replace that traffic record; do not leave
+both the Netlify and Vercel A addresses on the same hostname. To keep both providers available,
+use separate hostnames, such as keeping `go-gdg.oc.com.ar` on Netlify and assigning a different
+FreeDNS hostname to Vercel.
 
 ### 5.4 Complete Vercel ownership verification
 
@@ -427,16 +474,19 @@ Then:
 
 ### 5.5 If FreeDNS rejects the Vercel CNAME
 
-Do not automatically substitute Vercel's apex A address for a subdomain CNAME. Vercel's
-official external-DNS flow expects the record type displayed for the hostname.
+Use one of these paths:
 
-Use one of these supported paths:
+1. Prefer the project-specific A address shown under **Vercel > Project > Settings > Domains**.
+2. If Vercel provides no different A address, use the general-purpose Anycast address
+   `76.76.21.21` and keep the complete hostname assigned to the Vercel project.
+3. Ask the FreeDNS administrator/domain owner to enable the project-specific CNAME.
+4. Use a FreeDNS domain or a domain you own where CNAME is permitted.
+5. Move the hostname to DNS infrastructure where the required record can be created.
 
-1. Ask the FreeDNS administrator/domain owner to enable CNAME records.
-2. Use a FreeDNS domain or a domain you own where CNAME is permitted.
-3. If Vercel itself displays an A-record option for that exact hostname, use the displayed
-   value.
-4. Move the hostname to DNS infrastructure where the required record can be created.
+After creating the A record, wait for Vercel to report **Valid Configuration**. If Vercel
+continues to request a different record, follow the project-specific dashboard instruction;
+the shared general-purpose IP is not a substitute for a different address explicitly assigned
+to the project.
 
 Changing nameservers to Vercel is generally possible only when you own the base domain.
 Users of a shared FreeDNS domain cannot normally change its nameservers. Vercel wildcard
@@ -608,10 +658,12 @@ the complete hostname.
 ### Vercel says “Invalid Configuration”
 
 1. Open **Settings > Domains** and copy the current project-specific record again.
-2. Confirm a subdomain uses CNAME when Vercel requests CNAME.
-3. Confirm the CNAME destination contains no scheme or path.
-4. Remove conflicting A/AAAA/CNAME records at the same hostname.
-5. Complete any `_vercel` TXT ownership challenge.
+2. If using CNAME, confirm its destination contains no scheme or path.
+3. If FreeDNS blocks CNAME, confirm the A record uses the project-specific Vercel address or
+   the documented `76.76.21.21` fallback when no different address is displayed.
+4. Remove conflicting A/AAAA/CNAME/URL records at the same hostname.
+5. Confirm the complete hostname was added to the same Vercel project that was deployed.
+6. Complete any `_vercel` TXT ownership challenge.
 
 ### FreeDNS blocks CNAME records
 
@@ -621,7 +673,11 @@ This is a FreeDNS/shared-domain policy restriction, not a Netlify or Vercel buil
 - Use a domain where CNAME is enabled.
 - On Netlify, use the displayed load-balancer A fallback only when the project's instructions
   allow it.
-- On Vercel, do not invent an A workaround for a requested subdomain CNAME.
+- On Vercel, use the project-specific A record shown in Domain Settings. If no different
+  project-specific address is shown, the documented general-purpose fallback is
+  `76.76.21.21`.
+- Never keep both the Netlify and Vercel A addresses on one hostname as an improvised
+  load-balancing setup.
 
 ### DNS resolves but HTTPS is not ready
 
@@ -710,10 +766,13 @@ record is wrong.
 
 - [ ] Vercel deployment URL works.
 - [ ] Full custom hostname added under Project Settings > Domains.
-- [ ] Exact project-specific CNAME or displayed apex A record copied.
+- [ ] Exact project-specific CNAME or displayed A record copied.
+- [ ] If CNAME is blocked and no different project A is displayed, A points to
+      `76.76.21.21`.
 - [ ] `_vercel` ownership TXT record added when requested.
 - [ ] TXT Destination wrapped in straight double quotes.
 - [ ] No URL-forward or conflicting traffic record exists.
+- [ ] The same hostname does not contain both Netlify and Vercel A records.
 - [ ] FreeDNS permits the record type Vercel requires.
 - [ ] DNS queries return the new records.
 - [ ] Vercel reports Valid Configuration.
@@ -729,6 +788,7 @@ record is wrong.
 - [Netlify: Domain management documentation](https://docs.netlify.com/manage/domains/)
 - [Vercel: Setting up a custom domain](https://vercel.com/docs/domains/set-up-custom-domain)
 - [Vercel: Adding and configuring a custom domain](https://vercel.com/docs/domains/working-with-domains/add-a-domain)
+- [Vercel: Using a domain with A records](https://vercel.com/kb/guide/a-record-and-caa-with-vercel)
 - [Vercel: Claiming domain ownership](https://vercel.com/docs/domains/working-with-domains/claim-domain-ownership)
 - [Vercel: Troubleshooting domains](https://vercel.com/docs/domains/troubleshooting)
 - [FreeDNS: DNS record type reference](https://freedns.afraid.org/faq/type.php)
