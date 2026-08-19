@@ -1,11 +1,12 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 
 export interface GameOverPayload {
-  type: 'gameover';
+  type: 'gameover' | 'runcheckpoint';
   run_id: string;
   score: number;
   coins: number;
   pills?: number;
+  coin_score?: number;
   bonus?: number;
   distance: number;
   duration: number;
@@ -21,7 +22,9 @@ export interface ScoreRow {
   coins: number;
   pills?: number;
   gdg_coins?: number;
+  coin_score?: number;
   bonus_score?: number;
+  integrity_version?: number;
   run_id?: string;
   distance: number;
   duration_seconds: number;
@@ -40,6 +43,13 @@ export interface ScoreSubmissionResult {
   rank: number | null;
 }
 
+export interface GameRunTicket {
+  runId: string;
+  runSecret: string;
+  issuedAt: string;
+  expiresAt: string;
+}
+
 export class ScoreSubmissionError extends Error {
   constructor(message: string, public retryable = true, public code?: string) {
     super(message);
@@ -48,10 +58,12 @@ export class ScoreSubmissionError extends Error {
 }
 
 const RUN_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PENDING_SCORES_KEY = 'gdg-go:pending-scores:v1';
+const PENDING_SCORES_KEY = 'gdg-go:pending-scores:v2';
+export const GAME_BUILD_VERSION = 'webgl-2026.08.19-integrity-1';
 
 interface PendingScore {
   userId: string;
+  runSecret: string;
   payload: GameOverPayload;
   queuedAt: string;
 }
@@ -78,6 +90,7 @@ function normalizeScorePayload(payload: GameOverPayload): GameOverPayload {
     score: wholeNumber(payload.score, 'Score'),
     coins: wholeNumber(payload.coins, 'Coin count'),
     pills: wholeNumber(payload.pills || 0, 'GDG coin count'),
+    coin_score: wholeNumber(payload.coin_score || 0, 'Pickup score'),
     bonus: wholeNumber(payload.bonus || 0, 'Bonus score'),
     distance: wholeNumber(payload.distance, 'Distance'),
     duration: wholeNumber(payload.duration, 'Duration', 1),
@@ -104,11 +117,11 @@ function writePendingScores(scores: PendingScore[]): void {
   }
 }
 
-export function queueScore(userId: string, payload: GameOverPayload): void {
+export function queueScore(userId: string, runSecret: string, payload: GameOverPayload): void {
   const pending = readPendingScores().filter(
     (item) => !(item.userId === userId && item.payload?.run_id === payload.run_id),
   );
-  pending.push({ userId, payload, queuedAt: new Date().toISOString() });
+  pending.push({ userId, runSecret, payload, queuedAt: new Date().toISOString() });
   writePendingScores(pending);
 }
 
@@ -122,18 +135,102 @@ export function removeQueuedScore(userId: string, runId: string): void {
  * Submits a run through the database-owned RPC. The run UUID is unique per user,
  * so a network retry can never create a second score or double-count the wallet.
  */
-export async function submitScore(payload: GameOverPayload): Promise<ScoreSubmissionResult> {
+function createCheckpointId(): string {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.randomUUID === 'function') return webCrypto.randomUUID();
+
+  const bytes = new Uint8Array(16);
+  if (webCrypto?.getRandomValues) webCrypto.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+export async function startGameRun(carId: string): Promise<GameRunTicket> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new ScoreSubmissionError('Your session expired. Sign in again to start a ranked run.', false, 'no_session');
+  }
+
+  const { data, error } = await supabase.rpc('start_game_run', {
+    p_build_version: GAME_BUILD_VERSION,
+    p_car_id: carId || 'sports',
+  });
+
+  if (error) {
+    throw new ScoreSubmissionError(
+      error.code === 'PGRST202'
+        ? 'Competitive run security is not installed on the score server yet.'
+        : (error.message || 'A secure ranked run could not be started.'),
+      false,
+      error.code,
+    );
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.run_id || !row?.run_secret) {
+    throw new ScoreSubmissionError('The score server returned an incomplete run ticket.', false, 'empty_run_ticket');
+  }
+
+  return {
+    runId: String(row.run_id),
+    runSecret: String(row.run_secret),
+    issuedAt: String(row.issued_at || ''),
+    expiresAt: String(row.expires_at || ''),
+  };
+}
+
+export async function checkpointGameRun(
+  payload: GameOverPayload,
+  runSecret: string,
+): Promise<void> {
+  const run = normalizeScorePayload(payload);
+  if (!RUN_ID_PATTERN.test(runSecret)) {
+    throw new ScoreSubmissionError('This run did not have a valid server ticket.', false, 'invalid_run_secret');
+  }
+
+  const { error } = await supabase.rpc('checkpoint_game_run', {
+    p_run_id: run.run_id,
+    p_run_secret: runSecret,
+    p_checkpoint_id: createCheckpointId(),
+    p_score: run.score,
+    p_coins: run.coins,
+    p_pills: run.pills || 0,
+    p_coin_score: run.coin_score || 0,
+    p_bonus_score: run.bonus || 0,
+    p_distance: run.distance,
+    p_duration_seconds: run.duration,
+  });
+
+  if (error) {
+    throw new ScoreSubmissionError(
+      error.message || 'The ranked-run checkpoint was rejected.',
+      !new Set(['22003', '23502', '23514', '42501']).has(error.code || ''),
+      error.code,
+    );
+  }
+}
+
+export async function submitScore(
+  payload: GameOverPayload,
+  runSecret: string,
+): Promise<ScoreSubmissionResult> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session || !session.user) {
     throw new ScoreSubmissionError('Your session expired. Sign in again to save this run.', true, 'no_session');
   }
 
   const run = normalizeScorePayload(payload);
+  await checkpointGameRun(run, runSecret);
   const { data, error } = await supabase.rpc('submit_game_score', {
     p_run_id: run.run_id,
+    p_run_secret: runSecret,
     p_score: run.score,
     p_coins: run.coins,
     p_pills: run.pills || 0,
+    p_coin_score: run.coin_score || 0,
     p_bonus_score: run.bonus || 0,
     p_distance: run.distance,
     p_duration_seconds: run.duration,
@@ -181,7 +278,11 @@ export function flushQueuedScores(userId: string): Promise<Map<string, ScoreSubm
 
     for (const item of pending) {
       try {
-        const result = await submitScore(item.payload);
+        if (!item.runSecret || !RUN_ID_PATTERN.test(item.runSecret)) {
+          removeQueuedScore(userId, item.payload.run_id);
+          continue;
+        }
+        const result = await submitScore(item.payload, item.runSecret);
         removeQueuedScore(userId, item.payload.run_id);
         saved.set(item.payload.run_id, result);
       } catch (error) {
