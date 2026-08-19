@@ -11,7 +11,7 @@ Think Subway Surfers, but you're the getaway car.
 - **Three lanes.** Swap with arrows/WASD, swipe on mobile, or on-screen buttons.
 - **Jump** low hazards (cones, tyres, debris). Tall ones — traffic, stop signs,
   traffic lights — must be dodged, so lane changes never stop mattering.
-- **Coins** in four Google colours (1 pt each) plus a rare **GDG pill** (25 pts).
+- **Coins** in four Google colours (1 pt each) plus a rare **GDG Coin** (25 pts).
   They arrive in authored patterns — lines, weaves, jump arcs, full rows.
 - **Combo multiplier** up to ×8 for collecting coins in quick succession. Resets on
   a crash. This is the main gap between a casual score and a good one.
@@ -26,18 +26,15 @@ Think Subway Surfers, but you're the getaway car.
 1. Install **Unity 6 LTS** (`6000.0.x`) with the **WebGL Build Support** module.
 2. Unity Hub → **Add project from disk** → `gdg-go/unity-project/`.
    First import takes several minutes — wait for the progress bar to clear.
-3. Unity menu → **GDG Go → Run Full Project Setup**. One click does everything:
-   registers tags, creates the Supabase config asset, the 5 scenes, the 5 coin
-   materials, WebGL player settings, every prefab, the Game scene, the UI scenes,
-   and the audio wiring. Idempotent — safe to re-run.
-4. Paste your Supabase **URL** and **anon public key** into
-   `Assets/Resources/SupabaseConfig.asset` (the setup step selects it for you).
-5. In the Supabase SQL editor, run **both** migrations in order:
-   - `supabase/migrations/0001_init.sql` — tables + RLS
-   - `supabase/migrations/0002_score_integrity.sql` — anti-cheat bounds + rate limit
-6. Open `Assets/Scenes/Boot.unity` and press **Play**.
-7. Build: **File → Build Settings → WebGL → Build**, output to `web-hosting/`.
-8. Deploy: from `web-hosting/`, `netlify deploy --prod`.
+3. Open `Assets/Scenes/Game.unity` and run **GDG Go → Validate Setup**. Do not run a
+   scene/prefab generator casually: generated assets can be rewritten.
+4. Run `npm ci` in `web-hosting/`, create `.env.local` from `.env.example`, and set the
+   public Supabase URL and anon key there. Unity receives no Supabase credential.
+5. Apply every file in `supabase/migrations/` in numeric order through
+   `0007_competitive_run_integrity.sql`.
+6. Open `Assets/Scenes/Game.unity` and press **Play**.
+7. Build with **GDG Go → Build WebGL**, then run `npm run build` from `web-hosting/`.
+8. Follow the coordinated database/Unity/React release sequence in `HANDOFF.md`.
 
 ## Verify the code compiles without opening Unity
 
@@ -65,9 +62,10 @@ be verified without running Unity:
 | Runs end too quickly | `GameSession.difficultyDrain` (lower = longer runs) and `crashHeatPenalty`. |
 | Coins hard to collect | `CoinPickup.magnetRadius`, `CoinSpawner.hoverHeight`. |
 
-If you retune scoring (`PointsPerMetre`, `maxMultiplier`, pill value, `maxSpeed`),
-**also update the bounds in `0002_score_integrity.sql`** — they are derived from those
-constants, and honest scores will start being rejected otherwise.
+If you retune scoring, acceleration, maximum/boost speed, pickup values or density, combo/2×,
+or near misses, **also update the derived validation in
+`0007_competitive_run_integrity.sql`** and its integration test. Honest scores will be
+rejected if the serialized scene and database contract disagree.
 
 ## What lives where
 
@@ -99,13 +97,12 @@ Sourcing is not arbitrary — it follows what the packs actually contain:
 
 ## Leaderboard integrity
 
-The client computes and posts its own score, and both the anon key and the player's JWT
-are visible in any browser. `0002_score_integrity.sql` therefore adds server-side
-plausibility bounds (score must be reachable from the submitted distance and coins;
-distance must be reachable in the submitted time), a per-user rate limit, and a trigger
-that overwrites the client-supplied name with the authenticated profile's.
+Migration `0007` issues every ranked run on the server, keeps its ledger/checkpoints private,
+checks progress against server time and gameplay-derived ceilings, requires exact score
+arithmetic, and finalizes one immutable score row. Browser roles cannot insert, update, or
+delete score/leaderboard rows, and the old one-shot score RPC is removed.
 
-These are bounds, not proof. They defeat the realistic attack — posting an absurd number
-— and force anything more determined to stay inside the envelope a real run could
-produce. Genuine anti-cheat would need server-side simulation or signed replays, which
-is well beyond this game's scope.
+This blocks direct score edits and fabricated instant totals. WebGL still executes on the
+player's device, so a determined bot can automate or imitate plausible real-time play. Only a
+server-owned simulation or deterministic replay verifier can eliminate that remaining class.
+See `HANDOFF.md` for the exact contract and release procedure.
