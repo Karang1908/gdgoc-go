@@ -87,7 +87,7 @@ export const Home: React.FC<HomeProps> = ({
             <div className="hero-logo-frame">
               <img
                 src="/branding/gdgoc-go-logo.png"
-                alt="GDGoC Go!"
+                alt="GDGoC Go! — Build. Connect. Race."
                 className="hero-brand-logo animate-fade-in"
               />
             </div>
@@ -115,10 +115,10 @@ export const Home: React.FC<HomeProps> = ({
 
           .hero-split-grid {
             display: grid;
-            grid-template-columns: 1.15fr 0.85fr;
+            grid-template-columns: 1fr 1fr;
             align-items: center;
-            gap: clamp(24px, 5vw, 64px);
-            max-width: 1180px;
+            gap: clamp(20px, 3vw, 44px);
+            max-width: 1240px;
             width: 100%;
             margin: 0 auto;
           }
@@ -192,14 +192,14 @@ export const Home: React.FC<HomeProps> = ({
             align-items: center;
             justify-content: center;
             width: 100%;
-            max-width: 420px;
+            max-width: 560px;
           }
 
           .hero-brand-logo {
             width: 100%;
-            max-width: 380px;
+            max-width: 520px;
             height: auto;
-            max-height: clamp(200px, 38vh, 360px);
+            max-height: clamp(280px, 46vh, 420px);
             object-fit: contain;
             filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
             user-select: none;
@@ -265,9 +265,10 @@ export const Home: React.FC<HomeProps> = ({
               min-width: 0;
             }
             .hero-brand-logo {
-              max-width: 145px;
-              max-height: 115px;
-              margin-top: 2px;
+              width: clamp(230px, 70vw, 280px);
+              max-width: 100%;
+              max-height: 190px;
+              margin-top: 6px;
             }
           }
         `}</style>
