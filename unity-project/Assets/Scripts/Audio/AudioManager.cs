@@ -220,7 +220,7 @@ namespace GDGGo.Audio
         public void PlayCrash() => Play(crash, 1f);
         public void PlayJump() => Play(jump != null ? jump : GenerateRocketJump(), 0.85f);
         public void PlaySwerve() => Play(swerve, 0.5f);
-        public void PlayPowerUp() => Play(powerUpPick != null ? powerUpPick : GeneratePowerUpSurge(), 0.45f);
+        public void PlayPowerUp() => Play(powerUpPick != null ? powerUpPick : GeneratePowerUpSurge(), 0.35f);
         public void PlayPoliceWarning() => Play(policeWarning);
         public void PlayGameOver() => Play(gameOver);
 
@@ -234,7 +234,7 @@ namespace GDGGo.Audio
             Play(coinPickup != null ? coinPickup : GenerateSubwayCoin(), 0.35f, pitch);
         }
 
-        public void PlayPill() => Play(pillPickup != null ? pillPickup : GenerateGoldenJackpot(), 0.45f, 1f);
+        public void PlayPill() => Play(pillPickup != null ? pillPickup : GenerateGoldenJackpot(), 0.35f, 1f);
 
         public void PlayFuel() => Play(fuelPickup != null ? fuelPickup : GeneratePowerUpSurge(), 0.9f);
 
