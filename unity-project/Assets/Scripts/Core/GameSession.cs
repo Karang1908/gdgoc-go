@@ -31,6 +31,8 @@ namespace GDGGo.Core
         public int CoinCount { get; private set; }
         public int GDGPillsCollected { get; private set; }
         public int BonusScore { get; private set; }
+        /// <summary>Exact pickup points after combo and 2x multipliers.</summary>
+        public int CoinScore => _coinScore;
         public float DistanceMeters => _world != null ? _world.Distance : 0f;
         public float RunSeconds { get; private set; }
 
@@ -122,6 +124,7 @@ namespace GDGGo.Core
         public static int LastDurationSeconds { get; private set; }
 
         private int _coinScore;
+        private float _nextIntegrityCheckpointAt = 5f;
         private WorldScroller _world;
 
         private void Awake()
@@ -150,6 +153,12 @@ namespace GDGGo.Core
             TickCombo();
             TickHeat();
             TickFuel();
+
+            if (RunSeconds >= _nextIntegrityCheckpointAt)
+            {
+                ReportIntegrityCheckpoint();
+                _nextIntegrityCheckpointAt += 5f;
+            }
         }
 
         /// <summary>
@@ -352,6 +361,9 @@ namespace GDGGo.Core
 #if UNITY_WEBGL && !UNITY_EDITOR
         [System.Runtime.InteropServices.DllImport("__Internal")]
         private static extern void ReportGameOverToHost(string json);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void ReportRunCheckpointToHost(string json);
 #endif
 
         /// <summary>Ends the run and reports the final telemetry to the hosting website.</summary>
@@ -375,7 +387,7 @@ namespace GDGGo.Core
             Audio.AudioManager.Instance?.PlayGameOver();
             OnGameOver?.Invoke(finalScore, finalCoins, finalMeters);
 
-            ReportGameOver(finalScore, finalCoins, LastPills, LastBonusScore, finalMeters, finalDuration, reason);
+            ReportGameOver(finalScore, finalCoins, LastPills, _coinScore, LastBonusScore, finalMeters, finalDuration, reason);
         }
 
         [System.Serializable]
@@ -386,13 +398,57 @@ namespace GDGGo.Core
             public int score;
             public int coins;
             public int pills;
+            public int coin_score;
             public int bonus;
             public int distance;
             public int duration;
             public string reason;
         }
 
-        private void ReportGameOver(int s, int c, int p, int b, int m, int d, string reason)
+        [System.Serializable]
+        private struct IntegrityCheckpointReport
+        {
+            public string type;
+            public string run_id;
+            public int score;
+            public int coins;
+            public int pills;
+            public int coin_score;
+            public int bonus;
+            public int distance;
+            public int duration;
+        }
+
+        private void ReportIntegrityCheckpoint()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!IsRunning) return;
+
+            var report = new IntegrityCheckpointReport
+            {
+                type = "runcheckpoint",
+                run_id = Supabase.SupabaseSession.Instance != null ? Supabase.SupabaseSession.Instance.RunId : string.Empty,
+                score = Score,
+                coins = CoinCount,
+                pills = GDGPillsCollected,
+                coin_score = _coinScore,
+                bonus = BonusScore,
+                distance = Mathf.RoundToInt(DistanceMeters),
+                duration = Mathf.Max(1, Mathf.RoundToInt(RunSeconds))
+            };
+
+            try
+            {
+                ReportRunCheckpointToHost(JsonUtility.ToJson(report));
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("[GameSession] Integrity checkpoint error: " + ex.Message);
+            }
+#endif
+        }
+
+        private void ReportGameOver(int s, int c, int p, int coinScore, int b, int m, int d, string reason)
         {
             var report = new GameOverReport
             {
@@ -401,6 +457,7 @@ namespace GDGGo.Core
                 score = s,
                 coins = c,
                 pills = p,
+                coin_score = coinScore,
                 bonus = b,
                 distance = m,
                 duration = d,
