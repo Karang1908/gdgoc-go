@@ -6,6 +6,10 @@ Repository: `https://github.com/Karang1908/gdgoc-go.git`
 
 Primary branch at review time: `main`
 
+Production URL: **https://go-gdg.oc.com.ar**
+
+Netlify site URL: **https://gdgoc-go.netlify.app**
+
 Unity editor version: **6000.0.81f1**
 
 This document is the current operational handoff for the React host, Unity WebGL game,
@@ -38,6 +42,32 @@ to Unity or building multiple Unity UI scenes; neither is part of the current ar
 ---
 
 ## 1. Current state and deployment-critical notes
+
+### Operational snapshot
+
+At the time of this final review, local `main` and `origin/main` both point to commit
+`6f3fae9`. The three most recent product changes are:
+
+| Commit | Change |
+|---|---|
+| `6f3fae9` | Refined registration labels, placeholders, and the real-name/email verification notice. |
+| `1aead9d` | Increased the guest-home hero logo size on desktop and mobile. |
+| `844a5ba` | Replaced the guest-home artwork with the high-resolution transparent `GDGoC GO!` logo and the exact tagline `BUILD. CONNECT. RACE.`. |
+
+The tracked working tree was clean before this `HANDOFF.md` update. This documentation edit
+will therefore be the only local change until it is committed. No future maintainer should
+assume that an uncommitted handoff update has reached Netlify; check `git status`, GitHub, and
+the Netlify deploy log.
+
+The custom production hostname is `go-gdg.oc.com.ar`. It is managed through FreeDNS and
+attached to the Netlify project whose default hostname is `gdgoc-go.netlify.app`. FreeDNS
+must provide real DNS records for the custom hostname, not a URL-forwarding/redirect record.
+Netlify owns TLS issuance and renewal after DNS verification succeeds.
+
+This review verified the repository and Git state, not the live Supabase migration ledger.
+The production database must be checked for the Migration `0007` RPC signatures and
+privileges before a competitive release; do not infer database state solely from deployed
+frontend code.
 
 The application is a React/Vite single-page app that embeds a one-scene Unity WebGL build
 in a same-origin iframe. React owns authentication, profiles, routing, score persistence,
@@ -77,8 +107,11 @@ Important current UI behavior:
   theme, and account controls.
 - The desktop navbar logo is rendered at **44 px** height with balanced brand lockup and
   a 32 px compact mark on mobile.
-- In the registration modal (`AuthModal.tsx`), **nothing is optional**: username, display name,
-  validated email address, and password are all mandatory.
+- In the registration modal (`AuthModal.tsx`), **nothing is optional**: username, name,
+  validated email address, and password are all mandatory. The database field remains
+  `display_name`, but the player-facing label is intentionally just “Name”.
+- Registration placeholders do not suggest fake example identities. A visible notice asks
+  players to use their real name and email address for score verification and contact.
 - There is intentionally **no persistent bottom Play/Leaderboard navigation**.
 - Entering the game hides both the application header and footer and mounts a fixed,
   edge-to-edge game surface.
@@ -89,6 +122,9 @@ Important current UI behavior:
 - The How to Play page uses the existing asset at `web-hosting/public/branding/gdg-pill.png`
   when presenting a GDG Coin. Its visible description is “Base value 25”.
 - The vehicle stat bars are intentionally present in the garage.
+- The guest landing page uses `web-hosting/public/branding/gdgoc-go-logo.png`, a 1536 × 1024
+  transparent PNG containing the exact tagline “BUILD. CONNECT. RACE.”. It is intentionally
+  large: up to 520 px wide on desktop and 230–280 px wide on phones.
 
 The working tree may contain uncommitted Unity, React, migration, PWA, and documentation
 changes. Always run `git status --short` before editing or committing, and do not discard
@@ -115,6 +151,7 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 | [`unity-project/Build/`](unity-project/Build/) | Generated Unity WebGL output. It is gitignored. |
 | [`web-hosting/dist/`](web-hosting/dist/) | Generated production site. Never edit it manually. |
 | [`web-hosting/scripts/copy-unity.js`](web-hosting/scripts/copy-unity.js) | Copies Unity output into the Vite public tree and replaces Unity's stock page with the full-bleed host template. |
+| [`docs/FREEDNS_CUSTOM_DOMAINS.md`](docs/FREEDNS_CUSTOM_DOMAINS.md) | Step-by-step FreeDNS custom-domain setup for Netlify and Vercel, including shared-domain restrictions and troubleshooting. |
 | [`HANDOFF.md`](HANDOFF.md) | Current cross-system handoff and deployment contract. |
 
 ### Files that control the live React behavior
@@ -124,13 +161,13 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 | [`web-hosting/src/App.tsx`](web-hosting/src/App.tsx) | Providers, route selection, dynamic viewport height, header/footer shell, and game-active global layout. |
 | [`web-hosting/src/lib/routes.ts`](web-hosting/src/lib/routes.ts) | Mapping between browser paths and the three application routes. |
 | [`web-hosting/src/components/Navbar.tsx`](web-hosting/src/components/Navbar.tsx) | Responsive header, 44 px logo branding, route controls, wallet, theme, profile, and sign-out. |
-| [`web-hosting/src/home/Home.tsx`](web-hosting/src/home/Home.tsx) | Guest landing page, authenticated garage, game launch, and game exit. |
+| [`web-hosting/src/home/Home.tsx`](web-hosting/src/home/Home.tsx) | Guest landing page, responsive hero-brand sizing, authenticated garage, game launch, and game exit. |
 | [`web-hosting/src/home/CarPicker.tsx`](web-hosting/src/home/CarPicker.tsx) | Vehicle carousel, stat bars, swipe/arrow selection, and start button. |
 | [`web-hosting/src/components/CarShowcase3D.tsx`](web-hosting/src/components/CarShowcase3D.tsx) | Lazy Three.js vehicle preview for capable desktop devices. |
 | [`web-hosting/src/home/GameView.tsx`](web-hosting/src/home/GameView.tsx) | Full-screen game shell, server run tickets, ordered checkpoints, trusted Unity messages, final submission, retry state, audio, and result overlay. |
 | [`web-hosting/src/components/UnityEmbed.tsx`](web-hosting/src/components/UnityEmbed.tsx) | Same-origin Unity iframe, query parameters, focus, and fullscreen messages. |
 | [`web-hosting/src/home/ResultOverlay.tsx`](web-hosting/src/home/ResultOverlay.tsx) | Final run metrics, banked totals, save state, replay, and leaderboard action. |
-| [`web-hosting/src/home/AuthModal.tsx`](web-hosting/src/home/AuthModal.tsx) | Registration and sign-in modal with validated email address, required display name, and password toggle. |
+| [`web-hosting/src/home/AuthModal.tsx`](web-hosting/src/home/AuthModal.tsx) | Registration and sign-in modal with validated email address, required real-name guidance, concise placeholders, and password toggle. |
 | [`web-hosting/src/leaderboard/Leaderboard.tsx`](web-hosting/src/leaderboard/Leaderboard.tsx) | Podium, current-driver card, search, refresh, desktop table, and mobile cards. |
 | [`web-hosting/src/controls/Controls.tsx`](web-hosting/src/controls/Controls.tsx) | `/controls` instructions for gestures, keyboard controls, HUD, pickups, power-ups, and survival tips. |
 | [`web-hosting/src/context/AuthContext.tsx`](web-hosting/src/context/AuthContext.tsx) | Supabase session, validated email registration, public profile persistence, and wallet refresh. |
@@ -205,17 +242,25 @@ deployment headers.
 Player registration collects:
 
 - **Username**: 3–24 characters (letters, numbers, `_`, `-`), unique across drivers.
-- **Display Name**: 2–24 characters (mandatory), shown publicly on the leaderboard.
+- **Name**: 2–24 characters (mandatory), shown publicly on the leaderboard. It is persisted
+  under the existing `display_name` database column and API property.
 - **Email Address**: Validated email address format (`name@example.com`), stored in `auth.users`
-  and persisted in `public.users.email` for administrator visibility and account recovery.
+  and persisted in `public.users.email` for administrator visibility, score verification,
+  and contact.
 - **Password**: At least 6 characters.
+
+The registration form intentionally uses the neutral placeholders “Your username”, “Your
+name”, and “Your email address”. It also asks entrants to use real contact details so score
+verification does not become an event-day support problem. Do not restore fake-looking
+examples such as `Speedster99`, `Alex Rivera`, or `alex@example.com`.
 
 The public identity is stored in `public.users`:
 
 - `id`: matching `auth.users.id` UUID.
 - `username`: unique login handle.
 - `display_name`: public name shown on the leaderboard.
-- `email`: player's verified email address (added in Migration `0006`).
+- `email`: player's submitted email address (added in Migration `0006`). Format validation
+  does not prove ownership while confirmation is disabled.
 
 Sign In supports either **Username** (with backward compatibility for synthetic `@gdg-go.local`
 accounts) or the registered **Email Address**.
@@ -613,6 +658,22 @@ special attention during releases.
 
 ## 11. Responsive UI details that must be preserved
 
+### Guest landing page
+
+- The right-side desktop hero artwork is the transparent high-resolution asset at
+  `public/branding/gdgoc-go-logo.png`.
+- The logo text and tagline are part of one raster asset; do not recreate the tagline in CSS
+  or add a second text row beneath it.
+- The visible text is exactly `GDGoC GO!` and `BUILD. CONNECT. RACE.`.
+- Desktop uses a balanced two-column hero, a logo frame up to 560 px, and artwork up to
+  520 px wide/420 px tall.
+- Below 820 px the hero stacks vertically and the artwork uses
+  `clamp(230px, 70vw, 280px)` with a 190 px height cap.
+- Keep `object-fit: contain`, transparent edges, and the soft drop shadow. Do not crop or
+  stretch the logo.
+- The asset was deliberately regenerated at 1536 × 1024 to remove the prior blur. Avoid
+  replacing it with the old low-resolution version.
+
 ### Header and footer
 
 - Desktop header: 68 px.
@@ -733,6 +794,33 @@ defines:
 
 The build machine must receive `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
+### Production domain and FreeDNS
+
+The public site is served at `https://go-gdg.oc.com.ar`; the Netlify project remains
+reachable at `https://gdgoc-go.netlify.app`.
+
+The important distinction is DNS mapping versus forwarding:
+
+- `go-gdg.oc.com.ar` must resolve to the Netlify endpoint through the FreeDNS DNS record
+  accepted for this dynamic DNS zone. A FreeDNS `URL` record is only an HTTP redirect and
+  leaves visitors on the Netlify hostname; it is not a custom-domain configuration.
+- FreeDNS currently restricts adding a CNAME on this dynamic DNS domain. The working setup
+  therefore uses the Netlify-recommended load-balancer address for the `go-gdg` hostname.
+  Re-check the value shown by Netlify before recreating the record rather than copying an IP
+  from old documentation.
+- Netlify may require a root-level TXT record whose host is
+  `subdomain-owner-verification`. Use the exact value Netlify displays for this site. The
+  verification value is proof of control and should not be copied into this repository.
+- The TXT record belongs at `subdomain-owner-verification.oc.com.ar`; the application host
+  remains `go-gdg.oc.com.ar`.
+- “Pending DNS verification” or “Netlify DNS propagating” can persist while recursive DNS
+  caches expire. Do not replace the working DNS record with URL forwarding during that wait.
+- Netlify provisions HTTPS only after it sees the correct DNS/ownership records. Verify both
+  the certificate and the final browser address after propagation.
+
+GitHub pushes to `main` trigger the configured Netlify build. Before pushing a change, run the
+appropriate local production build and remember that `build:spa` does not rebuild Unity.
+
 ---
 
 ## 13. Verification checklist
@@ -766,8 +854,12 @@ is not.
 ### Desktop browser
 
 - `/`, `/leaderboard`, and `/controls` work by direct URL and browser back/forward.
-- Sign-up (with mandatory username, display name, validated email, password), sign-in,
+- Sign-up (with mandatory username, name, validated email, password), sign-in,
   sign-out, and theme persistence work.
+- The registration form says Username, Name, Email Address, and Password; its placeholders
+  are neutral, and the real-name/email verification notice is readable without overflow.
+- The guest hero uses the sharp transparent logo, the tagline reads exactly
+  “BUILD. CONNECT. RACE.”, and the artwork is neither cropped nor blurry.
 - Garage arrows, thumbnails, stat bars, and launch button work.
 - Unity receives keyboard focus and all keyboard controls work.
 - Game mode hides the application header/footer.
@@ -911,6 +1003,21 @@ should not be relied upon.
 The host is missing the SPA fallback. On Netlify, keep the `/* -> /index.html 200` redirect.
 Equivalent rewrite rules are required on any other host.
 
+### The custom domain redirects to or displays the Netlify hostname
+
+FreeDNS is using a `URL` forwarding record instead of a DNS record. Delete only that incorrect
+host record and recreate the custom hostname with the DNS target currently recommended by
+Netlify. Keep the Netlify ownership TXT record. Once DNS and TLS finish propagating, navigation
+to `https://go-gdg.oc.com.ar` should keep that hostname in the browser address bar.
+
+### Netlify remains on “Pending DNS verification”
+
+Confirm the ownership TXT record is quoted as required by the FreeDNS form, is attached to
+`subdomain-owner-verification.oc.com.ar`, and exactly matches the value currently displayed
+by Netlify. Then confirm `go-gdg.oc.com.ar` resolves to Netlify rather than a FreeDNS URL
+redirect. DNS caches can delay verification; repeatedly changing correct records restarts the
+wait and makes diagnosis harder.
+
 ---
 
 ## 15. Safe change rules for future work
@@ -940,6 +1047,8 @@ Equivalent rewrite rules are required on any other host.
 - Preserve safe-area padding, `visualViewport` height handling, and 44 px coarse-pointer
   targets when changing mobile layouts.
 - Use existing branding and vehicle assets unless an asset replacement is explicitly in scope.
+- Preserve the current guest-home logo and its exact `BUILD. CONNECT. RACE.` tagline unless
+  another explicit asset-change request supersedes it.
 - Verify both normal browser mode and installed standalone mode before calling a mobile change
   complete.
 - Before committing, inspect the dirty worktree and avoid bundling or reverting unrelated
@@ -967,6 +1076,8 @@ Equivalent rewrite rules are required on any other host.
     maintenance window or an atomic deployment process.
 12. Smoke-test `/`, `/controls`, `/leaderboard`, game launch, checkpoints, result banking, and refresh in
     production.
+13. Open `https://go-gdg.oc.com.ar` directly, verify the certificate, confirm the browser keeps
+    the custom hostname, and repeat the installed-PWA launch check from that origin.
 
 That sequence prevents the most dangerous partial releases: a new frontend calling RPCs that
 do not exist yet, an old frontend calling the deliberately removed one-shot RPC, or an old
