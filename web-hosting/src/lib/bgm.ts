@@ -49,7 +49,7 @@ class SubwaySurfersMusicEngine {
       this.filterNode.frequency.setValueAtTime(12000, this.ctx.currentTime);
 
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.24, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.28, this.ctx.currentTime);
 
       this.filterNode.connect(this.masterGain);
       this.masterGain.connect(this.ctx.destination);
@@ -85,7 +85,7 @@ class SubwaySurfersMusicEngine {
     this.isMuted = !this.isMuted;
     localStorage.setItem('gdg_go_bgm_muted', String(this.isMuted));
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.24, this.ctx.currentTime, 0.05);
+      this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.28, this.ctx.currentTime, 0.05);
     }
     return this.isMuted;
   }
