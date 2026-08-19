@@ -48,11 +48,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (tab === 'signup') {
       if (!displayName.trim()) {
-        setLocalError('Please enter your display name');
+        setLocalError('Please enter your name');
         return false;
       }
       if (displayName.trim().length < 2) {
-        setLocalError('Display name must be at least 2 characters');
+        setLocalError('Name must be at least 2 characters');
         return false;
       }
       if (!email.trim()) {
@@ -61,7 +61,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email.trim())) {
-        setLocalError('Please enter a valid email address (e.g. name@example.com)');
+        setLocalError('Please enter a valid email address');
         return false;
       }
     }
@@ -158,6 +158,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
+        {tab === 'signup' && (
+          <p className="profile-note">
+            Please use your real name and email address so we can verify scores and contact you when needed.
+          </p>
+        )}
+
         {/* Error Alert */}
         {activeError && (
           <div className="error-banner">
@@ -178,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 id="auth-username"
                 type="text"
                 className="input-field with-icon"
-                placeholder={tab === 'signup' ? 'e.g. speedster99' : 'e.g. speedster99 or alex@example.com'}
+                placeholder={tab === 'signup' ? 'Your username' : 'Your username or email'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete={tab === 'signup' ? 'username' : 'username email'}
@@ -194,7 +200,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <>
               <div className="field animate-fade-in">
                 <label className="field-label" htmlFor="auth-display-name">
-                  Display Name
+                  Name
                 </label>
                 <div className="input-wrap">
                   <User size={16} className="input-icon" />
@@ -202,7 +208,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     id="auth-display-name"
                     type="text"
                     className="input-field with-icon"
-                    placeholder="e.g. Alex Rivera"
+                    placeholder="Your name"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     maxLength={24}
@@ -222,14 +228,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     id="auth-email"
                     type="email"
                     className="input-field with-icon"
-                    placeholder="e.g. alex@example.com"
+                    placeholder="Your email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
                     required
                   />
                 </div>
-                <span className="input-hint">Used for account recovery & score verification</span>
+                <span className="input-hint">For score verification and contact</span>
               </div>
             </>
           )}
@@ -426,6 +432,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .error-icon {
           flex-shrink: 0;
           margin-top: 1px;
+        }
+
+        .profile-note {
+          margin: 0 20px 8px;
+          color: var(--text-2);
+          font-size: 0.7rem;
+          line-height: 1.4;
+          text-align: center;
         }
 
         .auth-form {
