@@ -1,5 +1,11 @@
 # GDG Go — Setup Guide
 
+> **Legacy setup guide:** this document describes the original multi-scene/direct-score
+> architecture and is retained for historical asset/setup context. Do not use its Supabase or
+> deployment steps for the current production app. Follow `HANDOFF.md`, apply migrations through
+> `0007_competitive_run_integrity.sql`, and deploy the matching React and rebuilt Unity output
+> together.
+
 Everything **you** have to do, in order, from an empty machine to a live game at a URL.
 
 Anything marked **YOU MUST** is blocking — skip it and the game will not work.
