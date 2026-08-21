@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Home } from './home/Home';
+import { AuthModal } from './home/AuthModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ScoreQueueSync } from './components/ScoreQueueSync';
 import { AppRoute, pathForRoute, routeFromPath } from './lib/routes';
@@ -82,7 +83,6 @@ export function App() {
             {currentRoute === 'home' ? (
               <Home
                 navigate={navigate}
-                isAuthModalOpen={isAuthModalOpen}
                 setIsAuthModalOpen={setIsAuthModalOpen}
               />
             ) : currentRoute === 'leaderboard' ? (
@@ -109,6 +109,15 @@ export function App() {
           </footer>
 
           <InstallPrompt />
+
+          {/* App-level so Sign In works from every route, not just home. The
+              dialog closes itself on success, so signing in from /leaderboard
+              leaves you on /leaderboard with your standing showing. */}
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            canDismiss={true}
+          />
         </div>
 
         <style>{`
@@ -195,7 +204,7 @@ export function App() {
             min-height: 100%;
             place-items: center;
             color: var(--text-2);
-            font-weight: 700;
+            font-weight: 500;
           }
 
           @media (max-width: 600px), (max-height: 520px) and (pointer: coarse) {
