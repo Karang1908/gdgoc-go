@@ -155,11 +155,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <style>{`
+        /* Google product app bar: a hairline, no heavy rule, elevation only
+           when content scrolls under it. */
         .appbar {
           display: flex;
           align-items: center;
           background: var(--bg);
-          border-bottom: 1px solid var(--border);
+          border-bottom: 1px solid var(--border-subtle);
           position: sticky;
           top: 0;
           z-index: 100;
@@ -167,7 +169,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           width: 100%;
           flex-shrink: 0;
           box-sizing: border-box;
-          transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+          transition: background-color var(--dur-md) var(--ease),
+            border-color var(--dur-md) var(--ease);
         }
 
         .appbar-content {
@@ -193,6 +196,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           border: 0;
           background: transparent;
           text-align: left;
+          border-radius: var(--r-sm);
+          /* The mark shrinks to 24px on phones; the tap target must not. */
+          min-height: 44px;
+        }
+
+        @media (pointer: coarse) {
+          .brand { min-width: 44px; }
         }
 
         .logo-desktop.logo-light {
@@ -216,6 +226,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           object-fit: contain;
         }
 
+        /* Scoped to .logo-desktop on purpose — an unscoped .logo-dark rule
+           renders both marks and blows out the mobile width. */
         :root[data-theme='dark'] .logo-desktop.logo-light {
           display: none;
         }
@@ -225,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         }
 
         .brand-divider {
-          width: 2px;
+          width: 1px;
           height: 24px;
           background: var(--border);
           flex: none;
@@ -233,8 +245,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         .brand-title {
           font-family: var(--font-display);
-          font-size: 1.22rem;
-          font-weight: 700;
+          font-size: 1.25rem;
+          font-weight: 500;
           color: var(--text);
           letter-spacing: -0.01em;
           white-space: nowrap;
@@ -243,69 +255,82 @@ export const Navbar: React.FC<NavbarProps> = ({
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
           flex-shrink: 0;
         }
 
+        /* Navigation pills read as M3 tonal segments: no outline, a state
+           layer on hover, and a tonal fill when selected. */
         .nav-pill {
+          position: relative;
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          height: 36px;
-          padding: 0 14px;
+          gap: 8px;
+          height: 40px;
+          padding: 0 16px;
           border-radius: var(--pill);
           font-family: var(--font-display);
-          font-size: 0.84rem;
+          font-size: 0.875rem;
           font-weight: 500;
           color: var(--text-2);
-          background: transparent;
-          border: 1px solid transparent;
+          background-color: transparent;
+          background-image: none;
+          border: none;
           cursor: pointer;
-          transition: all 0.15s var(--ease);
           white-space: nowrap;
+          transition: background-color var(--dur-md) var(--ease),
+            color var(--dur-md) var(--ease);
         }
 
         .nav-pill:hover {
-          background: var(--surface-2);
+          background-image: linear-gradient(var(--state-hover), var(--state-hover));
           color: var(--text);
         }
 
+        .nav-pill:active {
+          background-image: linear-gradient(var(--state-press), var(--state-press));
+        }
+
         .nav-pill.active {
-          background: var(--accent-soft);
+          background-color: var(--accent-soft);
           color: var(--accent);
-          font-weight: 700;
-          border-color: rgba(66, 133, 244, 0.25);
+          font-weight: 500;
+        }
+
+        .nav-pill.active:hover {
+          background-image: linear-gradient(var(--state-accent-hover), var(--state-accent-hover));
         }
 
         .nav-wallet-group {
           display: flex;
           align-items: center;
           gap: 6px;
+          margin-left: 4px;
         }
 
+        /* Wallet chips carry brand colour because the coins themselves are
+           brand objects; everything else in the bar stays neutral. */
         .wallet-chip {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
           height: 32px;
-          padding: 0 10px;
-          border-radius: var(--pill);
-          font-size: 0.78rem;
-          font-weight: 700;
+          padding: 0 12px;
+          border-radius: var(--r-sm);
+          font-size: 0.8125rem;
+          font-weight: 500;
           background: var(--surface-2);
-          border: 1px solid var(--border);
+          border: none;
         }
 
         .wallet-chip.standard {
-          color: #B26A00;
-          border-color: rgba(251, 188, 4, 0.4);
-          background: rgba(251, 188, 4, 0.1);
+          color: #a56a00;
+          background: rgba(251, 188, 4, 0.16);
         }
 
         :root[data-theme='dark'] .wallet-chip.standard {
-          color: #FFD54F;
-          border-color: rgba(251, 188, 4, 0.3);
-          background: rgba(251, 188, 4, 0.12);
+          color: #fdd663;
+          background: rgba(251, 188, 4, 0.14);
         }
 
         .coin-svg {
@@ -314,61 +339,58 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         .wallet-chip.gdg {
           color: var(--accent);
-          border-color: rgba(66, 133, 244, 0.35);
           background: var(--accent-soft);
         }
 
         .inline-gdg-pill-icon {
-          width: 12px;
-          height: 12px;
+          width: 14px;
+          height: 14px;
           object-fit: contain;
         }
 
         .coin-count {
           line-height: 1;
+          font-weight: 500;
         }
 
         .coin-label {
-          font-size: 0.62rem;
-          font-weight: 800;
+          font-size: 0.6875rem;
+          font-weight: 500;
           letter-spacing: 0.04em;
+          opacity: 0.8;
         }
 
+        /* Plain Google icon button — the chrome comes from the state layer,
+           not from a border. */
         .theme-toggle-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--pill);
           display: grid;
           place-items: center;
           color: var(--text-2);
-          background: var(--surface-2);
-          border: 1px solid var(--border);
+          background-color: transparent;
+          border: none;
           cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .theme-toggle-btn:hover {
-          color: var(--text);
-          background: var(--surface-3);
         }
 
         .user-profile-pill {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 0 4px 0 10px;
-          height: 36px;
+          padding: 0 4px 0 12px;
+          height: 40px;
           background: var(--surface-2);
-          border: 1px solid var(--border);
+          border: none;
           border-radius: var(--pill);
         }
 
         .user-avatar {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
-          background: var(--accent-soft);
-          color: var(--accent);
+          background: var(--accent);
+          color: var(--on-accent);
           display: grid;
           place-items: center;
           flex-shrink: 0;
@@ -377,51 +399,54 @@ export const Navbar: React.FC<NavbarProps> = ({
         .user-text-stack {
           display: flex;
           flex-direction: column;
-          line-height: 1.1;
+          line-height: 1.15;
+          min-width: 0;
         }
 
         .user-username {
-          font-size: 0.76rem;
-          font-weight: 700;
+          font-size: 0.8125rem;
+          font-weight: 500;
           color: var(--text);
-          max-width: 90px;
+          max-width: 96px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .user-displayname {
-          font-size: 0.64rem;
+          font-size: 0.6875rem;
           color: var(--text-3);
-          max-width: 90px;
+          max-width: 96px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .signout-icon-btn {
-          width: 26px;
-          height: 26px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: grid;
           place-items: center;
           color: var(--text-3);
           border: none;
-          background: transparent;
+          background-color: transparent;
+          background-image: none;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: color var(--dur-sm) var(--ease),
+            background-color var(--dur-sm) var(--ease);
         }
 
         .signout-icon-btn:hover {
           color: var(--danger);
-          background: var(--danger-soft);
+          background-color: var(--danger-soft);
         }
 
         .nav-signin-btn {
-          height: 36px;
-          padding: 0 16px;
-          font-size: 0.84rem;
-          font-weight: 700;
+          height: 40px;
+          padding: 0 20px;
+          font-size: 0.875rem;
+          font-weight: 500;
           touch-action: manipulation;
         }
 
@@ -458,10 +483,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             height: 24px;
           }
           .brand-title {
-            font-size: 0.95rem;
+            font-size: 1rem;
           }
           .nav-actions {
-            gap: 4px;
+            gap: 2px;
             min-width: 0;
           }
           .nav-pill {
@@ -485,16 +510,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           }
           .nav-signin-btn {
             height: 44px;
-            padding: 0 12px;
-            font-size: 0.78rem;
+            padding: 0 14px;
+            font-size: 0.8125rem;
           }
           .wallet-chip.standard {
             display: none;
           }
           .wallet-chip.gdg {
             height: 36px;
-            padding: 0 8px;
-            font-size: 0.72rem;
+            padding: 0 10px;
+            font-size: 0.75rem;
           }
           .user-profile-pill {
             padding: 0 0 0 8px;
