@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'gdg-go-v2';
+const CACHE_VERSION = 'gdg-go-v4';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const GAME_CACHE = `${CACHE_VERSION}-game`;
 const APP_SHELL = ['/', '/manifest.webmanifest', '/assets/favicon.png', '/assets/apple-touch-icon.png'];
