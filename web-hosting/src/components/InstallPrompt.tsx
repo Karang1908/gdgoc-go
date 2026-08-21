@@ -65,6 +65,14 @@ export function InstallPrompt() {
     };
   }, [iOSSafari, installEvent]);
 
+  // The banner is fixed, so it would otherwise sit on top of the last rows of
+  // a scrolling page. Flag it on <body> and let the scroll owners reserve room.
+  useEffect(() => {
+    const shown = visible && !isStandalone();
+    document.body.classList.toggle('install-prompt-visible', shown);
+    return () => document.body.classList.remove('install-prompt-visible');
+  }, [visible]);
+
   const dismiss = () => {
     try {
       localStorage.setItem(DISMISSED_KEY, String(Date.now()));
@@ -148,7 +156,7 @@ export function InstallPrompt() {
         }
 
         .install-prompt-copy strong { font-size: 0.82rem; }
-        .install-prompt-copy span { margin-top: 2px; color: var(--text-2); font-size: 0.72rem; }
+        .install-prompt-copy span { margin-top: 2px; color: var(--text-2); font-size: 0.75rem; }
 
         .install-action {
           min-width: 68px;
@@ -157,7 +165,7 @@ export function InstallPrompt() {
           border-radius: var(--pill);
           background: var(--accent);
           color: var(--on-accent);
-          font-weight: 700;
+          font-weight: 500;
         }
 
         .install-dismiss {
