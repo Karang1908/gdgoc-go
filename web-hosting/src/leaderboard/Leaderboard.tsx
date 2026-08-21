@@ -73,7 +73,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
           <div className="header-badge">
             <Trophy size={14} className="trophy-icon" />
-            <span>GLOBAL LEADERBOARD</span>
+            <span>Global leaderboard</span>
           </div>
         </div>
 
@@ -197,18 +197,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             </div>
             <div className="standing-stats-grid">
               <div className="standing-stat-item">
-                <span className="standing-stat-label">HIGH SCORE</span>
+                <span className="standing-stat-label">High score</span>
                 <span className="standing-stat-val font-mono">{fmt(userStanding?.bestScore || 0)}</span>
               </div>
               <div className="standing-stat-item">
-                <span className="standing-stat-label">CUMULATIVE COINS</span>
+                <span className="standing-stat-label">Cumulative coins</span>
                 <span className="standing-stat-val font-mono">
                   <Coins size={12} className="standing-coin-icon" />
                   {fmt(userCoins)}
                 </span>
               </div>
               <div className="standing-stat-item">
-                <span className="standing-stat-label">GDG COINS</span>
+                <span className="standing-stat-label">GDG Coins</span>
                 <span className="standing-stat-val font-mono gdg-val">
                   <img src="/branding/gdg-pill.png" alt="GDG" className="inline-pill-icon" />
                   {fmt(userGdgCoins)}
@@ -421,8 +421,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           border: 1px solid var(--border);
           border-radius: var(--pill);
           font-family: var(--font-display);
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-2);
           letter-spacing: 0.04em;
         }
@@ -472,7 +472,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .podium-card {
           position: relative;
           background: var(--surface);
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           border-radius: var(--r-xl);
           padding: 16px 12px 14px;
           text-align: center;
@@ -497,7 +497,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           align-items: center;
           justify-content: center;
           font-size: 0.8rem;
-          font-weight: 700;
+          font-weight: 500;
           margin-bottom: 6px;
           color: var(--text);
         }
@@ -529,17 +529,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         .silver-avatar {
           background: rgba(95, 99, 104, 0.15);
-          color: #9AA0A6;
+          color: var(--text-3);
         }
 
         .bronze-avatar {
           background: rgba(234, 67, 53, 0.15);
-          color: #EA4335;
+          color: var(--g-red);
         }
 
         .podium-username {
           font-size: 0.92rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--text);
           margin-bottom: 2px;
           white-space: nowrap;
@@ -549,7 +549,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .podium-realname {
-          font-size: 0.72rem;
+          font-size: 0.75rem;
           color: var(--text-2);
           margin-bottom: 6px;
           white-space: nowrap;
@@ -560,7 +560,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         .podium-score {
           font-size: 1.15rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--accent);
           margin-bottom: 6px;
         }
@@ -569,7 +569,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           color: var(--text-2);
           flex-wrap: wrap;
           justify-content: center;
@@ -598,7 +598,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           overflow: hidden;
           background: var(--accent-soft);
           border: 1px solid var(--accent);
-          border-radius: 16px;
+          border-radius: var(--r-lg);
           margin-bottom: 20px;
         }
 
@@ -622,11 +622,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           height: 48px;
           flex: 0 0 48px;
           place-items: center;
-          border-radius: 14px;
+          border-radius: var(--r-md);
           background: var(--accent);
           color: var(--on-accent);
           font-size: 1.05rem;
-          font-weight: 800;
+          font-weight: 500;
         }
 
         .standing-name-stack {
@@ -639,7 +639,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           overflow: hidden;
           color: var(--text);
           font-size: 1rem;
-          font-weight: 700;
+          font-weight: 500;
           line-height: 1.2;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -670,8 +670,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .standing-stat-label {
-          font-size: 0.58rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-2);
           letter-spacing: 0.03em;
           white-space: nowrap;
@@ -679,7 +679,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         .standing-stat-val {
           font-size: 0.92rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--text);
           display: flex;
           align-items: center;
@@ -758,7 +758,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           scrollbar-width: none;
           -ms-overflow-style: none;
           padding: 0;
-          border-radius: 16px;
+          border-radius: var(--r-lg);
           background: var(--surface);
           border: 1px solid var(--border);
           box-shadow: none;
@@ -790,10 +790,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .leaderboard-table th {
           background: var(--surface-2);
           padding: 13px 16px;
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-2);
-          text-transform: uppercase;
           letter-spacing: 0.04em;
           border-bottom: 1px solid var(--border);
           white-space: nowrap;
@@ -842,7 +841,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           height: 28px;
           border-radius: 50%;
           font-size: 0.75rem;
-          font-weight: 700;
+          font-weight: 500;
           background: var(--surface-3);
           color: var(--text-2);
         }
@@ -859,22 +858,22 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
         .rank-pill.silver {
           background: rgba(95, 99, 104, 0.2);
-          color: #5F6368;
+          color: var(--text-2);
           border: 1px solid rgba(95, 99, 104, 0.4);
         }
 
         :root[data-theme='dark'] .rank-pill.silver {
-          color: #BDC1C6;
+          color: var(--text-2);
         }
 
         .rank-pill.bronze {
           background: rgba(234, 67, 53, 0.15);
-          color: #C5221F;
+          color: var(--danger);
           border: 1px solid rgba(234, 67, 53, 0.3);
         }
 
         :root[data-theme='dark'] .rank-pill.bronze {
-          color: #F28B82;
+          color: var(--danger);
         }
 
         .driver-cell {
@@ -892,7 +891,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .driver-username {
-          font-weight: 700;
+          font-weight: 500;
           font-size: 0.88rem;
           color: var(--text);
           overflow: hidden;
@@ -901,7 +900,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .driver-realname {
-          font-size: 0.72rem;
+          font-size: 0.75rem;
           color: var(--text-2);
           overflow: hidden;
           text-overflow: ellipsis;
@@ -909,8 +908,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         }
 
         .you-badge {
-          font-size: 0.62rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           background: var(--accent);
           color: var(--on-accent);
           padding: 2px 6px;
@@ -920,7 +919,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
         .td-score {
           text-align: right;
           font-size: 0.95rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--accent);
         }
 
@@ -980,7 +979,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           .podium-rank-badge {
             width: 22px;
             height: 22px;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             margin-bottom: 4px;
           }
           .podium-avatar-wrap {
@@ -993,7 +992,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             margin-bottom: 1px;
           }
           .podium-realname {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             margin-bottom: 3px;
           }
           .podium-score {
@@ -1001,7 +1000,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             margin-bottom: 3px;
           }
           .podium-sub {
-            font-size: 0.62rem;
+            font-size: 0.75rem;
             gap: 4px;
           }
           .standing-stats-grid {
@@ -1061,7 +1060,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
           .standing-stat-label {
             overflow: hidden;
-            font-size: 0.52rem;
+            font-size: 0.75rem;
             text-overflow: ellipsis;
           }
 
@@ -1135,10 +1134,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             color: var(--text-3);
             content: attr(data-label);
             font-family: var(--font-ui);
-            font-size: 0.56rem;
-            font-weight: 700;
+            font-size: 0.75rem;
+            font-weight: 500;
             letter-spacing: 0.03em;
-            text-transform: uppercase;
           }
 
           .leaderboard-table .td-rank {
@@ -1163,7 +1161,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           .leaderboard-table .td-games {
             display: block !important;
             text-align: right;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
           }
 
           .driver-username,
@@ -1207,7 +1205,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           .header-badge {
             min-height: 32px;
             padding: 0 10px;
-            font-size: 0.62rem;
+            font-size: 0.75rem;
           }
 
           .leaderboard-title {
@@ -1239,7 +1237,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             min-height: 64px;
             padding: 9px 11px;
             border-width: 1px;
-            border-radius: 14px;
+            border-radius: var(--r-md);
             text-align: left;
           }
 
@@ -1260,7 +1258,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             width: 28px;
             height: 28px;
             margin: 0;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
           }
 
           .podium-avatar-wrap {
@@ -1290,7 +1288,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             grid-row: 2;
             align-self: start;
             margin: 0;
-            font-size: 0.66rem;
+            font-size: 0.75rem;
           }
 
           .podium-score {
@@ -1308,7 +1306,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             align-self: start;
             justify-content: flex-end;
             gap: 5px;
-            font-size: 0.58rem;
+            font-size: 0.75rem;
             white-space: nowrap;
           }
 
@@ -1318,7 +1316,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
           .user-standing-card {
             margin-bottom: 14px;
-            border-radius: 14px;
+            border-radius: var(--r-md);
             background: var(--surface);
           }
 
@@ -1340,7 +1338,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
 
           .standing-realname {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
           }
 
           .standing-stats-grid {
@@ -1353,7 +1351,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
 
           .standing-stat-label {
-            font-size: 0.5rem;
+            font-size: 0.75rem;
           }
 
           .standing-stat-val {
@@ -1366,13 +1364,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
 
           .search-input {
-            border-radius: 14px;
+            border-radius: var(--r-md);
           }
 
           .refresh-btn {
             width: 48px;
             padding: 0;
-            border-radius: 14px;
+            border-radius: var(--r-md);
           }
 
           .refresh-btn span {
@@ -1384,13 +1382,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             gap: 9px 6px;
             margin-bottom: 10px;
             padding: 11px 10px 10px;
-            border-radius: 14px;
+            border-radius: var(--r-md);
           }
 
           .rank-pill {
             width: 32px;
             height: 32px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
           }
 
           .leaderboard-table .td-rank {
@@ -1407,7 +1405,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
 
           .driver-realname {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
           }
 
           .leaderboard-table .td-score {
@@ -1430,7 +1428,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
             border-radius: 8px;
             background: var(--surface-2);
             color: var(--text);
-            font-size: 0.67rem;
+            font-size: 0.75rem;
             line-height: 1.15;
             text-align: left;
             white-space: nowrap;
@@ -1443,7 +1441,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
 
           .leaderboard-table td::before {
             margin-bottom: 4px;
-            font-size: 0.48rem;
+            font-size: 0.75rem;
           }
 
           .table-coin-cell,
@@ -1457,7 +1455,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBackToGame }) => {
           }
 
           .you-badge {
-            font-size: 0.55rem;
+            font-size: 0.75rem;
           }
         }
 
