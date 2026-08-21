@@ -1,9 +1,19 @@
 /* ==========================================================================
-   GDG Go — Google Developer Group
-   Design system. Authentic Google brand language: Google Sans, Google Sans Text,
-   the four Google brand colours (#4285F4, #EA4335, #FBBC04, #34A853),
-   clean neutral surfaces (Pure White & Jet Black #000000), fully-rounded pill controls,
-   Google elevation shadows, and Material Design 3 tokens.
+   GDGoC Go — Material 3 foundation
+   --------------------------------------------------------------------------
+   Google's real product surface, not an approximation of it:
+     · Google Sans (display) + Google Sans Text (UI), self-hosted
+     · Google's neutral ramp — #FFFFFF/#F8F9FA/#F1F3F4 light, #202124/#292A2D/
+       #303134/#3C4043 dark. Google does not ship pure-black web surfaces.
+     · Google Blue 600 (#1A73E8) carries every action in light, Blue 200
+       (#8AB4F8) in dark. The brand four are RESERVED for brand moments —
+       footer marks, coin legends, podium — and never used as UI accents.
+     · Material 3 state layers (8% hover / 12% pressed), two-layer elevation,
+       and the M3 type scale.
+
+   Structural rules below the token block are load-bearing for the game shell:
+   the viewport lock, `body.game-active`, `--app-height`, and the safe-area
+   insets. Restyle tokens freely; change those rules only on purpose.
    ========================================================================== */
 
 /* ---------- Typeface ---------- */
@@ -38,119 +48,134 @@
   font-display: swap;
 }
 
-/* ---------- Tokens ---------- */
+/* ---------- Tokens: constant across themes ---------- */
 
 :root {
-  /* Google brand four */
+  /* Google brand four. Reserved for brand moments — never a UI accent. */
   --g-blue: #4285f4;
   --g-red: #ea4335;
   --g-yellow: #fbbc04;
   --g-green: #34a853;
 
-  --google-blue: #4285f4;
-  --google-red: #ea4335;
-  --google-yellow: #fbbc04;
-  --google-green: #34a853;
-
   --font-display: 'Google Sans', system-ui, -apple-system, sans-serif;
   --font-ui: 'Google Sans Text', system-ui, -apple-system, sans-serif;
-  --font-sans: 'Google Sans Text', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+  --font-body: 'Google Sans Text', system-ui, -apple-system, sans-serif;
+  /* Numeric readouts stay in the brand face with tabular figures. Google
+     aligns numbers this way rather than switching to a mono face, and the
+     only mono actually installed here would be a system font. */
+  --font-mono: 'Google Sans Text', system-ui, -apple-system, sans-serif;
 
+  /* M3 shape scale */
   --pill: 999px;
   --r-xl: 28px;
   --r-lg: 20px;
   --r-md: 12px;
   --r-sm: 8px;
 
+  /* M3 easing — emphasized decelerate for entrances, standard for the rest */
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  --dur-sm: 0.15s;
+  --dur-md: 0.25s;
+  --dur-lg: 0.4s;
 }
 
-/* Light Theme — Google's official neutral ramp */
+/* ---------- Light theme — Google's neutral ramp ---------- */
+
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
+
   --bg: #ffffff;
-  --bg-primary: #ffffff;
   --surface: #ffffff;
   --surface-2: #f8f9fa;
   --surface-3: #f1f3f4;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #f8f9fa;
-  --bg-card: #ffffff;
-  --bg-overlay: rgba(255, 255, 255, 0.92);
 
-  --border: #dadce0;
   --border-subtle: #e8eaed;
+  --border: #dadce0;
   --border-strong: #bdc1c6;
-  --border-medium: #dadce0;
-  --border-glow: rgba(66, 133, 244, 0.25);
 
   --text: #202124;
-  --text-primary: #202124;
   --text-2: #5f6368;
-  --text-secondary: #5f6368;
-  --text-3: #80868b;
-  --text-muted: #80868b;
+  /* Google Grey 600 (#80868b) measures 3.68:1 on white and fails the 4.5
+     floor for placeholder and hint text. This is the grey Google Search uses
+     for result text: same family, 4.65:1. */
+  --text-3: #70757a;
 
   --accent: #1a73e8;
   --accent-hover: #185abc;
-  --on-accent: #ffffff;
   --accent-soft: #e8f0fe;
+  --on-accent: #ffffff;
 
   --success: #188038;
   --success-soft: #e6f4ea;
   --danger: #c5221f;
   --danger-soft: #fce8e6;
 
+  /* M3 state layers, tinted from the foreground */
+  --state-hover: rgba(32, 33, 36, 0.08);
+  --state-press: rgba(32, 33, 36, 0.12);
+  --state-on-accent-hover: rgba(255, 255, 255, 0.12);
+  --state-on-accent-press: rgba(255, 255, 255, 0.18);
+  --state-accent-hover: rgba(26, 115, 232, 0.08);
+  --state-accent-press: rgba(26, 115, 232, 0.12);
+
+  --scrim: rgba(32, 33, 36, 0.6);
+
+  /* Google's own two-layer elevation: contact shadow + ambient blur */
   --shadow-1: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   --shadow-2: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
   --shadow-3: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --shadow-4: 0 2px 3px 0 rgba(60, 64, 67, 0.3), 0 6px 10px 4px rgba(60, 64, 67, 0.15);
 }
 
-/* Dark Theme — Google's updated actual Jet Black (#000000) AMOLED */
+/* ---------- Dark theme — Google's real dark ramp, not AMOLED black ---------- */
+
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #000000;
-  --bg-primary: #000000;
-  --surface: #0a0a0a;
-  --surface-2: #141416;
-  --surface-3: #202024;
-  --bg-surface: #0a0a0a;
-  --bg-surface-elevated: #141416;
-  --bg-card: #0a0a0a;
-  --bg-overlay: rgba(0, 0, 0, 0.94);
 
-  --border: #222226;
-  --border-subtle: #18181c;
-  --border-strong: #38383e;
-  --border-medium: #222226;
-  --border-glow: rgba(138, 180, 248, 0.25);
+  --bg: #202124;
+  --surface: #292a2d;
+  --surface-2: #303134;
+  --surface-3: #3c4043;
 
-  --text: #f4f4f5;
-  --text-primary: #f4f4f5;
-  --text-2: #a1a1aa;
-  --text-secondary: #a1a1aa;
-  --text-3: #71717a;
-  --text-muted: #71717a;
+  --border-subtle: #3c4043;
+  --border: #5f6368;
+  --border-strong: #80868b;
+
+  --text: #e8eaed;
+  --text-2: #bdc1c6;
+  --text-3: #9aa0a6;
 
   --accent: #8ab4f8;
   --accent-hover: #aecbfa;
-  --on-accent: #000000;
-  --accent-soft: #142236;
+  --accent-soft: #1f3047;
+  --on-accent: #202124;
 
   --success: #81c995;
-  --success-soft: #102a18;
+  --success-soft: #1e3325;
   --danger: #f28b82;
-  --danger-soft: #381b19;
+  --danger-soft: #3b2220;
 
-  --shadow-1: 0 1px 3px 0 rgba(0, 0, 0, 0.8), 0 1px 2px -1px rgba(0, 0, 0, 0.8);
-  --shadow-2: 0 4px 12px 0 rgba(0, 0, 0, 0.9), 0 2px 4px -1px rgba(0, 0, 0, 0.8);
-  --shadow-3: 0 10px 24px 0 rgba(0, 0, 0, 0.95), 0 4px 8px -2px rgba(0, 0, 0, 0.8);
+  --state-hover: rgba(232, 234, 237, 0.08);
+  --state-press: rgba(232, 234, 237, 0.12);
+  --state-on-accent-hover: rgba(32, 33, 36, 0.12);
+  --state-on-accent-press: rgba(32, 33, 36, 0.18);
+  --state-accent-hover: rgba(138, 180, 248, 0.12);
+  --state-accent-press: rgba(138, 180, 248, 0.18);
+
+  --scrim: rgba(0, 0, 0, 0.7);
+
+  --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.6), 0 1px 3px 1px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 1px 2px 0 rgba(0, 0, 0, 0.6), 0 2px 6px 2px rgba(0, 0, 0, 0.3);
+  --shadow-3: 0 1px 3px 0 rgba(0, 0, 0, 0.6), 0 4px 8px 3px rgba(0, 0, 0, 0.3);
+  --shadow-4: 0 2px 3px 0 rgba(0, 0, 0, 0.6), 0 6px 10px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* ---------- Base ---------- */
+/* ==========================================================================
+   Base — viewport lock. Load-bearing for the game shell.
+   ========================================================================== */
 
 * {
   box-sizing: border-box;
@@ -184,7 +209,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background-color var(--dur-md) var(--ease), color var(--dur-md) var(--ease);
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -216,7 +241,17 @@ body.game-active #root {
   background-color: var(--bg);
 }
 
-/* ---------- Typography ---------- */
+/* The install banner is fixed above the content. While it is on screen the
+   scroll owners reserve its height so the last row stays reachable. */
+body.install-prompt-visible .leaderboard-container,
+body.install-prompt-visible .controls-page,
+body.install-prompt-visible .app-main-view {
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ==========================================================================
+   Type — Material 3 scale
+   ========================================================================== */
 
 h1, h2, h3, h4, .font-display {
   font-family: var(--font-display);
@@ -225,24 +260,35 @@ h1, h2, h3, h4, .font-display {
   text-wrap: balance;
 }
 
+/* Display large */
 h1 {
-  font-size: clamp(2.25rem, 5.5vw, 3.8rem);
+  font-size: clamp(2.25rem, 5.5vw, 3.75rem);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.025em;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
 }
 
+/* Headline */
 h2 {
-  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-size: clamp(1.375rem, 2.8vw, 2rem);
   font-weight: 500;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.018em;
 }
 
+/* Title large */
 h3 {
-  font-size: 1.2rem;
+  font-size: 1.1875rem;
   font-weight: 500;
+  line-height: 1.3;
   letter-spacing: -0.01em;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
 }
 
 p {
@@ -250,23 +296,28 @@ p {
 }
 
 .lede {
-  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  font-size: clamp(1rem, 1.5vw, 1.1875rem);
   color: var(--text-2);
   line-height: 1.6;
   max-width: 62ch;
 }
 
+/* Label — M3's small all-caps-free UI label */
+.label-sm {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
 .font-mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
-
-.font-ui {
-  font-family: var(--font-ui);
-}
-
-.hidden {
-  display: none !important;
-}
+.font-ui { font-family: var(--font-ui); }
+.hidden { display: none !important; }
 
 .sr-only {
   position: absolute;
@@ -280,33 +331,27 @@ p {
   border: 0;
 }
 
+/* Focus ring inherits the element's own shape rather than forcing a radius */
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* ---------- Scrollbars ---------- */
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: var(--pill);
 }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
-}
-
-/* ---------- Buttons (Google Material Pills) ---------- */
+/* ==========================================================================
+   Buttons — Material 3
+   State layers composite over the background with a gradient rather than a
+   pseudo-element, so components are free to use ::before/::after.
+   ========================================================================== */
 
 button {
   font-family: var(--font-ui);
@@ -317,163 +362,206 @@ button {
 }
 
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  height: 48px;
-  padding: 0 26px;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
   border-radius: var(--pill);
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.007em;
   white-space: nowrap;
   text-decoration: none;
   user-select: none;
-  transition: background-color 0.2s var(--ease), box-shadow 0.2s var(--ease),
-    color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.1s var(--ease);
+  border: none;
+  background-color: transparent;
+  background-image: none;
+  transition:
+    background-color var(--dur-md) var(--ease),
+    background-image var(--dur-sm) var(--ease),
+    box-shadow var(--dur-md) var(--ease),
+    color var(--dur-md) var(--ease),
+    border-color var(--dur-md) var(--ease);
 }
 
-.btn:active:not(:disabled) {
-  transform: scale(0.98);
+.btn-lg { height: 48px; padding: 0 30px; font-size: 0.9375rem; }
+.btn-sm { height: 32px; padding: 0 16px; font-size: 0.8125rem; }
+.btn-block { width: 100%; }
+
+/* M3's 40px default sits under the 44px touch floor this shell requires. */
+@media (pointer: coarse) {
+  .btn { height: 44px; }
+  .btn-sm { height: 40px; }
 }
 
-.btn-lg {
-  height: 54px;
-  padding: 0 32px;
-  font-size: 1.0625rem;
-  font-weight: 500;
-}
-
-.btn-sm {
-  height: 38px;
-  padding: 0 18px;
-  font-size: 0.875rem;
-}
-
+/* Filled — the primary action */
 .btn-filled,
 .btn-primary {
-  background: var(--accent);
+  background-color: var(--accent);
   color: var(--on-accent);
-  box-shadow: var(--shadow-1);
 }
-
 .btn-filled:hover:not(:disabled),
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  box-shadow: var(--shadow-2);
-}
-
-.btn-tonal {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.btn-tonal:hover:not(:disabled) {
-  background: var(--accent-soft);
+  background-image: linear-gradient(var(--state-on-accent-hover), var(--state-on-accent-hover));
   box-shadow: var(--shadow-1);
 }
-
-.btn-outlined {
-  background: transparent;
-  color: var(--accent);
-  border: 2px solid var(--border-strong);
+.btn-filled:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  background-image: linear-gradient(var(--state-on-accent-press), var(--state-on-accent-press));
+  box-shadow: none;
 }
 
+/* Tonal — secondary emphasis */
+.btn-tonal {
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+.btn-tonal:hover:not(:disabled) {
+  background-image: linear-gradient(var(--state-accent-hover), var(--state-accent-hover));
+  box-shadow: var(--shadow-1);
+}
+.btn-tonal:active:not(:disabled) {
+  background-image: linear-gradient(var(--state-accent-press), var(--state-accent-press));
+  box-shadow: none;
+}
+
+/* Outlined — M3 uses a 1px outline, never 2px */
+.btn-outlined {
+  background-color: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
 .btn-outlined:hover:not(:disabled) {
-  background: var(--accent-soft);
+  background-image: linear-gradient(var(--state-accent-hover), var(--state-accent-hover));
   border-color: var(--accent);
 }
+.btn-outlined:active:not(:disabled) {
+  background-image: linear-gradient(var(--state-accent-press), var(--state-accent-press));
+}
 
+/* Neutral outlined, for non-primary chrome */
 .btn-secondary {
-  background: var(--surface-3);
+  background-color: transparent;
   color: var(--text);
   border: 1px solid var(--border);
 }
-
 .btn-secondary:hover:not(:disabled) {
-  background: var(--border-strong);
-  color: var(--text);
+  background-image: linear-gradient(var(--state-hover), var(--state-hover));
+  border-color: var(--border-strong);
+}
+.btn-secondary:active:not(:disabled) {
+  background-image: linear-gradient(var(--state-press), var(--state-press));
 }
 
+/* Brand-green filled, for the one "go race" moment */
 .btn-accent {
-  background: var(--g-green);
+  background-color: var(--g-green);
   color: #ffffff;
+}
+.btn-accent:hover:not(:disabled) {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12));
   box-shadow: var(--shadow-1);
 }
-
-.btn-accent:hover:not(:disabled) {
-  background: #2b8e46;
-  box-shadow: var(--shadow-2);
+.btn-accent:active:not(:disabled) {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12));
+  box-shadow: none;
 }
 
+/* Destructive — outlined, never filled, so a misfire is hard */
 .btn-danger {
-  background: transparent;
+  background-color: transparent;
   color: var(--danger);
-  border: 2px solid var(--border-strong);
+  border: 1px solid var(--border);
 }
-
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger-soft);
+  background-color: var(--danger-soft);
   border-color: var(--danger);
 }
 
+/* Text */
 .btn-text {
-  background: transparent;
-  color: var(--text-2);
-  padding: 0 16px;
+  background-color: transparent;
+  color: var(--accent);
+  padding: 0 12px;
 }
-
 .btn-text:hover:not(:disabled) {
-  background: var(--surface-3);
-  color: var(--text);
+  background-image: linear-gradient(var(--state-accent-hover), var(--state-accent-hover));
+}
+.btn-text:active:not(:disabled) {
+  background-image: linear-gradient(var(--state-accent-press), var(--state-accent-press));
 }
 
 .btn:disabled {
-  background: var(--surface-3);
+  background-color: var(--surface-3);
+  background-image: none;
   color: var(--text-3);
   border-color: transparent;
   box-shadow: none;
   cursor: not-allowed;
-  opacity: 0.7;
 }
 
-.btn-block {
-  width: 100%;
-}
-
+/* Icon button — 40px target, 48px on coarse pointers for the 44px floor */
 .icon-btn {
-  width: 44px;
-  height: 44px;
+  position: relative;
+  width: 40px;
+  height: 40px;
   border-radius: var(--pill);
   display: grid;
   place-items: center;
   color: var(--text-2);
   border: none;
-  background: transparent;
+  background-color: transparent;
+  background-image: none;
   cursor: pointer;
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  flex: none;
+  transition: background-color var(--dur-md) var(--ease), color var(--dur-md) var(--ease);
 }
-
 .icon-btn:hover {
-  background: var(--surface-3);
+  background-image: linear-gradient(var(--state-hover), var(--state-hover));
   color: var(--text);
 }
+.icon-btn:active {
+  background-image: linear-gradient(var(--state-press), var(--state-press));
+}
 
-/* ---------- Cards & Surfaces ---------- */
+@media (pointer: coarse) {
+  .icon-btn { width: 48px; height: 48px; }
+}
+
+/* ==========================================================================
+   Surfaces
+   ========================================================================== */
 
 .card,
 .glass-panel {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--r-xl);
   padding: 24px;
-  box-shadow: var(--shadow-1);
-  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+  transition:
+    background-color var(--dur-md) var(--ease),
+    border-color var(--dur-md) var(--ease),
+    box-shadow var(--dur-md) var(--ease);
 }
 
-/* ---------- Text Fields (Material Outlined) ---------- */
+.card-elevated {
+  border-color: transparent;
+  box-shadow: var(--shadow-2);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  border: 0;
+}
+
+/* ==========================================================================
+   Text fields — Material 3 outlined
+   ========================================================================== */
 
 .field {
   position: relative;
@@ -489,18 +577,39 @@ button {
   font-size: 1rem;
   line-height: 1.5;
   color: var(--text);
-  background: var(--surface);
-  border: 2px solid var(--border-strong);
-  border-radius: var(--r-md);
-  padding: 13px 16px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
   outline: none;
-  transition: border-color 0.15s var(--ease);
+  transition: border-color var(--dur-sm) var(--ease), box-shadow var(--dur-sm) var(--ease);
 }
 
+.field input::placeholder,
+.field textarea::placeholder,
+.input-field::placeholder {
+  color: var(--text-3);
+}
+
+/* Blue means focus — an inner ring gives M3's 2px active outline without
+   shifting layout the way a border-width change would. */
 .field input:focus,
 .field textarea:focus,
 .input-field:focus {
   border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.field input[aria-invalid='true'],
+.input-field[aria-invalid='true'],
+.field.has-error input,
+.field.has-error .input-field {
+  border-color: var(--danger);
+}
+.field input[aria-invalid='true']:focus,
+.input-field[aria-invalid='true']:focus,
+.field.has-error input:focus {
+  box-shadow: inset 0 0 0 1px var(--danger);
 }
 
 .field-label,
@@ -513,12 +622,20 @@ button {
 }
 
 .input-hint {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-3);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
-/* ---------- Chips & Badges ---------- */
+.input-error {
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin-top: 6px;
+}
+
+/* ==========================================================================
+   Chips & badges
+   ========================================================================== */
 
 .chip {
   display: inline-flex;
@@ -526,7 +643,7 @@ button {
   gap: 6px;
   height: 32px;
   padding: 0 14px;
-  border-radius: var(--pill);
+  border-radius: var(--r-sm);
   background: var(--surface-3);
   color: var(--text-2);
   font-family: var(--font-display);
@@ -535,17 +652,12 @@ button {
   white-space: nowrap;
 }
 
-.chip-ready {
-  background: var(--success-soft);
-  color: var(--success);
-}
+.chip-ready { background: var(--success-soft); color: var(--success); }
+.chip-accent { background: var(--accent-soft); color: var(--accent); }
 
-.chip-accent {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-/* ---------- Footer Rhythm Dots ---------- */
+/* ==========================================================================
+   Brand marks — the reserved four
+   ========================================================================== */
 
 .footer-dots {
   display: flex;
@@ -554,8 +666,8 @@ button {
 }
 
 .footer-dots i {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -565,10 +677,12 @@ button {
 .footer-dots i:nth-child(3) { background: var(--g-yellow); }
 .footer-dots i:nth-child(4) { background: var(--g-green); }
 
-/* ---------- Animations ---------- */
+/* ==========================================================================
+   Motion
+   ========================================================================== */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -577,10 +691,16 @@ button {
   to { transform: rotate(360deg); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.25s var(--ease) forwards;
-}
+.animate-fade-in { animation: fadeIn var(--dur-md) var(--ease-out) forwards; }
+.animate-spin { animation: spin 1s linear infinite; }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
