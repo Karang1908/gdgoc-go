@@ -404,6 +404,11 @@ export const GameView: React.FC<GameViewProps> = ({
               handleExitFullscreen();
               onViewLeaderboard();
             }}
+            onBackToGarage={() => {
+              bgmEngine.stop();
+              handleExitFullscreen();
+              onBackToGarage();
+            }}
           />
         )}
       </div>
@@ -462,6 +467,7 @@ export const GameView: React.FC<GameViewProps> = ({
         }
 
         .secure-run-loader-card strong { font-size: 1.1rem; }
+        /* Fixed value, not a token: this card always sits on a black canvas. */
         .secure-run-loader-card span { color: #9aa0a6; line-height: 1.45; }
 
         .floating-game-hud {
@@ -490,13 +496,11 @@ export const GameView: React.FC<GameViewProps> = ({
         }
 
         .floating-hud-btn {
-          height: 38px;
+          height: 44px;
           padding: 0 12px;
           border-radius: var(--pill);
-          background: rgba(20, 20, 20, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: rgba(32, 33, 36, 0.88);
+          border: 1px solid rgba(232, 234, 237, 0.16);
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -504,7 +508,7 @@ export const GameView: React.FC<GameViewProps> = ({
           gap: 6px;
           font-family: var(--font-display);
           font-size: 0.82rem;
-          font-weight: 700;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s var(--ease);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -525,13 +529,11 @@ export const GameView: React.FC<GameViewProps> = ({
           display: flex;
           align-items: center;
           gap: 6px;
-          height: 38px;
+          height: 44px;
           padding: 0 12px;
           border-radius: var(--pill);
-          background: rgba(20, 20, 20, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: rgba(32, 33, 36, 0.88);
+          border: 1px solid rgba(232, 234, 237, 0.16);
         }
 
         .floating-car-img {
@@ -543,7 +545,7 @@ export const GameView: React.FC<GameViewProps> = ({
         .floating-car-name {
           font-family: var(--font-display);
           font-size: 0.8rem;
-          font-weight: 700;
+          font-weight: 500;
           color: #ffffff;
         }
 
@@ -577,12 +579,12 @@ export const GameView: React.FC<GameViewProps> = ({
             width: min(340px, calc(100vw - 20px));
             padding: 8px 12px;
             overflow: hidden;
-            border-radius: 14px;
+            border-radius: var(--r-md);
             color: #ffffff;
             background: rgba(12, 12, 12, 0.78);
             box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-            font-size: 0.7rem;
-            font-weight: 700;
+            font-size: 0.75rem;
+            font-weight: 500;
             line-height: 1.2;
             text-align: center;
             white-space: normal;
@@ -608,8 +610,8 @@ export const GameView: React.FC<GameViewProps> = ({
             background: rgba(12, 12, 12, 0.74);
             color: #ffffff;
             box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3);
-            font-size: 0.72rem;
-            font-weight: 700;
+            font-size: 0.75rem;
+            font-weight: 500;
             white-space: nowrap;
             pointer-events: none;
           }
