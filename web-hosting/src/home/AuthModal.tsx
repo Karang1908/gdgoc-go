@@ -288,6 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       </div>
 
       <style>{`
+        /* Google dialogs sit on a plain scrim — no backdrop blur. */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -295,9 +296,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           width: 100vw;
           height: 100vh;
           height: 100dvh;
-          background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: var(--scrim);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -308,11 +307,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .modal-card {
           position: relative;
           width: 100%;
-          max-width: 390px;
+          max-width: 400px;
           border-radius: var(--r-xl);
           background: var(--surface);
-          border: 2px solid var(--border);
-          box-shadow: var(--shadow-3);
+          border: none;
+          box-shadow: var(--shadow-4);
           overflow: hidden;
           max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
           overflow-y: auto;
@@ -322,111 +321,122 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         .modal-close-icon-btn {
           position: absolute;
-          top: 12px;
-          right: 12px;
-          width: 32px;
-          height: 32px;
+          top: 10px;
+          right: 10px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          background: var(--surface-2);
-          border: 1px solid var(--border);
+          background-color: transparent;
+          background-image: none;
+          border: none;
           color: var(--text-2);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: all 0.15s var(--ease);
+          transition: background-color var(--dur-sm) var(--ease), color var(--dur-sm) var(--ease);
           z-index: 5;
           touch-action: manipulation;
         }
 
         .modal-close-icon-btn:hover {
-          background: var(--surface-3);
+          background-image: linear-gradient(var(--state-hover), var(--state-hover));
           color: var(--text);
         }
 
         .modal-header {
-          padding: 18px 20px 8px;
+          padding: 28px 24px 10px;
           text-align: center;
         }
 
         .modal-brand-hub {
-          width: 36px;
-          height: 36px;
+          width: 44px;
+          height: 44px;
           border-radius: var(--pill);
           background: var(--surface-2);
-          border: 1px solid var(--border);
+          border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 8px;
+          margin: 0 auto 14px;
         }
 
         .modal-gdg-mark {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           object-fit: contain;
         }
 
         .modal-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 2px;
-          line-height: 1.2;
+          font-family: var(--font-display);
+          font-size: 1.5rem;
+          font-weight: 500;
+          letter-spacing: -0.015em;
+          margin-bottom: 6px;
+          line-height: 1.25;
         }
 
         .modal-subtitle {
-          font-size: 0.78rem;
+          font-size: 0.875rem;
           color: var(--text-2);
-          line-height: 1.35;
+          line-height: 1.45;
           max-width: 320px;
           margin: 0 auto;
         }
 
+        /* M3 segmented button */
         .tab-switcher {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 4px;
           background: var(--surface-3);
-          padding: 3px;
-          margin: 0 20px 8px;
+          padding: 4px;
+          margin: 16px 24px 12px;
           border-radius: var(--pill);
-          border: 1px solid var(--border);
+          border: none;
         }
 
         .tab-btn {
-          padding: 6px 12px;
+          padding: 9px 12px;
           border-radius: var(--pill);
-          background: transparent;
+          background-color: transparent;
+          background-image: none;
           border: none;
           color: var(--text-2);
           font-family: var(--font-display);
           font-weight: 500;
-          font-size: 0.82rem;
+          font-size: 0.875rem;
           cursor: pointer;
-          transition: all 0.15s var(--ease);
+          transition: background-color var(--dur-sm) var(--ease), color var(--dur-sm) var(--ease);
           user-select: none;
           touch-action: manipulation;
         }
 
-        .tab-btn.active {
-          background: var(--accent-soft);
-          color: var(--accent);
-          font-weight: 700;
-          box-shadow: none;
+        .tab-btn:hover:not(.active) {
+          background-image: linear-gradient(var(--state-hover), var(--state-hover));
+          color: var(--text);
         }
 
+        .tab-btn.active {
+          background-color: var(--surface);
+          color: var(--accent);
+          font-weight: 500;
+          box-shadow: var(--shadow-1);
+        }
+
+        /* Tonal error container: colour plus an icon, never colour alone. */
         .error-banner {
           display: flex;
           align-items: flex-start;
-          gap: 8px;
-          margin: 0 20px 8px;
-          padding: 8px 12px;
+          gap: 10px;
+          margin: 0 24px 10px;
+          padding: 12px 14px;
           background: var(--danger-soft);
-          border: 1px solid var(--danger);
+          border: none;
           border-radius: var(--r-md);
           color: var(--danger);
-          font-size: 0.8rem;
-          line-height: 1.35;
+          font-size: 0.8125rem;
+          line-height: 1.45;
         }
 
         .error-icon {
@@ -435,30 +445,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         .profile-note {
-          margin: 0 20px 8px;
+          margin: 0 24px 10px;
           color: var(--text-2);
-          font-size: 0.7rem;
-          line-height: 1.4;
+          font-size: 0.75rem;
+          line-height: 1.5;
           text-align: center;
         }
 
         .auth-form {
-          padding: 0 20px 18px;
+          padding: 0 24px 24px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 14px;
         }
 
         .field {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 6px;
         }
 
         .field-label {
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
           font-weight: 500;
           color: var(--text-2);
+          margin-bottom: 0;
         }
 
         .input-wrap {
@@ -469,42 +480,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         .input-icon {
           position: absolute;
-          left: 12px;
+          left: 14px;
           color: var(--text-3);
           pointer-events: none;
         }
 
         .input-field {
-          height: 38px;
-          font-size: 0.85rem;
-          border-radius: var(--r-md);
+          height: 48px;
+          font-size: 0.9375rem;
+          border-radius: var(--r-sm);
         }
 
         .input-field.with-icon {
-          padding-left: 36px;
+          padding-left: 44px;
         }
 
         .input-field.with-suffix {
-          padding-right: 36px;
+          padding-right: 48px;
         }
 
         .input-hint {
-          font-size: 0.68rem;
+          font-size: 0.75rem;
           color: var(--text-3);
-          margin-top: 1px;
+          margin-top: 0;
         }
 
         .password-toggle-btn {
           position: absolute;
-          right: 8px;
-          width: 28px;
-          height: 28px;
+          right: 6px;
+          width: 36px;
+          height: 36px;
           color: var(--text-3);
-          padding: 2px;
+          padding: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: color 0.15s ease;
+          transition: color var(--dur-sm) var(--ease), background-color var(--dur-sm) var(--ease);
           border-radius: 50%;
         }
 
@@ -515,13 +526,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .submit-btn {
           margin-top: 6px;
           width: 100%;
-          height: 44px;
-          font-size: 0.88rem;
-          font-weight: 700;
+          height: 48px;
+          font-size: 0.9375rem;
+          font-weight: 500;
           touch-action: manipulation;
         }
 
         @media (max-width: 600px), (pointer: coarse) {
+          .modal-header { padding: 24px 20px 8px; }
+          .tab-switcher { margin: 14px 20px 10px; }
+          .error-banner, .profile-note { margin-left: 20px; margin-right: 20px; }
+          .auth-form { padding: 0 20px 20px; }
+
           .modal-close-icon-btn {
             top: 6px;
             right: 6px;
@@ -532,18 +548,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           .tab-btn { min-height: 44px; }
 
           .input-field {
-            height: 48px;
+            height: 52px;
             font-size: 1rem;
           }
 
           .password-toggle-btn {
-            right: 2px;
+            right: 4px;
             width: 44px;
             height: 44px;
           }
 
-          .input-field.with-suffix { padding-right: 48px; }
-          .submit-btn { min-height: 48px; }
+          .input-field.with-suffix { padding-right: 52px; }
+          .submit-btn { min-height: 52px; }
         }
       `}</style>
     </div>
