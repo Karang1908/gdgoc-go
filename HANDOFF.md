@@ -1,22 +1,33 @@
-# GDGoC Go! — Engineering Handoff
+# GDGoC Go! — Complete Engineering Handoff
 
-Last source review: **19 August 2026**
+Last repository and live-host review: **21 August 2026**
 
 Repository: `https://github.com/Karang1908/gdgoc-go.git`
 
-Primary branch at review time: `main`
+Primary branch: `main`
 
-Production URL: **https://go-gdg.oc.com.ar**
+Reviewed commit: `55d703e`
 
-Netlify site URL: **https://gdgoc-go.netlify.app**
+Live branded Vercel URL: **https://go.gdgocbpdc.tech**
+
+Live FreeDNS/Netlify URL: **https://go-gdg.oc.com.ar**
+
+Netlify project URL: **https://gdgoc-go.netlify.app**
 
 Unity editor version: **6000.0.81f1**
 
-This document is the current operational handoff for the React host, Unity WebGL game,
-Supabase score system, mobile/PWA shell, and deployment process. When this file conflicts
-with older planning documents, verify the implementation in source before following the
-older document. In particular, several older files still describe passing a Supabase JWT
-to Unity or building multiple Unity UI scenes; neither is part of the current architecture.
+This is the operational source of truth for an AI or engineer taking over the repository. It
+covers the React host, Unity WebGL game, Supabase integrity system, PWA/mobile behavior,
+generated assets, both hosting targets, live domains, testing, and safe release procedure.
+Read it before changing code.
+
+When this file conflicts with older planning documents, inspect the current source and
+serialized Unity scene before following the older document. `PLAN.md`, `PLAN-website.md`,
+`docs/PROJECT.md`, `docs/SETUP_GUIDE.md`, `docs/WEBSITE.md`, parts of `README.md`, and parts of
+`CLAUDE.md` preserve useful history but contain stale architecture or gameplay tuning. Examples
+of stale ideas include sending a Supabase JWT to Unity, building multiple Unity UI scenes,
+older fuel intervals, and older GDG Coin unlock distances. None of those overrides the current
+implementation.
 
 ---
 
@@ -38,36 +49,78 @@ to Unity or building multiple Unity UI scenes; neither is part of the current ar
 14. [Common failures and their actual causes](#14-common-failures-and-their-actual-causes)
 15. [Safe change rules for future work](#15-safe-change-rules-for-future-work)
 16. [Recommended release sequence](#16-recommended-release-sequence)
+17. [Known limitations and deliberate technical debt](#17-known-limitations-and-deliberate-technical-debt)
+18. [AI takeover checklist](#18-ai-takeover-checklist)
 
 ---
 
 ## 1. Current state and deployment-critical notes
 
-### Operational snapshot
+### Git and generated-build snapshot
 
-At the time of this final review, local `main` and `origin/main` both point to commit
-`6f3fae9`. The three most recent product changes are:
+At this review, local `main` and `origin/main` both point to `55d703e`. The relevant recent
+commits are:
 
 | Commit | Change |
 |---|---|
-| `6f3fae9` | Refined registration labels, placeholders, and the real-name/email verification notice. |
-| `1aead9d` | Increased the guest-home hero logo size on desktop and mobile. |
-| `844a5ba` | Replaced the guest-home artwork with the high-resolution transparent `GDGoC GO!` logo and the exact tagline `BUILD. CONNECT. RACE.`. |
+| `55d703e` | Updated the FreeDNS guide with Vercel A-record fallback instructions. |
+| `420da75` | Added Vercel Vite settings and the SPA rewrite. |
+| `d3fd596`, `89645a9` | Updated the compiled Unity WebGL artifacts with the final pickup mix. |
+| `9394892` | Set standard coin, GDG Coin, and power-up pickup SFX scales to `0.23`. |
+| `de45462` | Set the React Web Audio background-music master gain to `0.28`. |
+| `6f3fae9` | Finalized registration labels, placeholders, and contact guidance. |
 
-The tracked working tree was clean before this `HANDOFF.md` update. This documentation edit
-will therefore be the only local change until it is committed. No future maintainer should
-assume that an uncommitted handoff update has reached Netlify; check `git status`, GitHub, and
-the Netlify deploy log.
+The working tree was clean before this handoff rewrite. After the rewrite, `HANDOFF.md` should
+be the only expected local change. Always run `git status --short` yourself: the user may have
+made new work since this snapshot, and existing changes must not be overwritten, discarded,
+or bundled into an unrelated commit.
 
-The custom production hostname is `go-gdg.oc.com.ar`. It is managed through FreeDNS and
-attached to the Netlify project whose default hostname is `gdgoc-go.netlify.app`. FreeDNS
-must provide real DNS records for the custom hostname, not a URL-forwarding/redirect record.
-Netlify owns TLS issuance and renewal after DNS verification succeeds.
+`unity-project/Build/` exists locally and is gitignored. The SHA-1 hashes of its current data,
+framework, loader, and WASM outputs match the corresponding tracked files under
+`web-hosting/public/Build/Build/`. The tracked WebGL data file is about 5.4 MB and WASM is
+about 8.5 MB. `web-hosting/public/Build/index.html` is intentionally different from Unity's
+stock output because `copy-unity.js` replaces it with the full-bleed iframe host template.
 
-This review verified the repository and Git state, not the live Supabase migration ledger.
-The production database must be checked for the Migration `0007` RPC signatures and
-privileges before a competitive release; do not infer database state solely from deployed
-frontend code.
+### Live deployment snapshot
+
+Two independent deployments are currently live:
+
+| URL | Host | DNS state verified 21 Aug 2026 | Purpose |
+|---|---|---|---|
+| `https://go.gdgocbpdc.tech` | Vercel | CNAME to the project-specific `vercel-dns-017.com` target; HTTPS 200 | New branded domain and preferred long-term origin. |
+| `https://go-gdg.oc.com.ar` | Netlify | A record to Netlify; HTTPS 200 | Existing FreeDNS deployment/fallback origin. |
+| `https://gdgoc-go.netlify.app` | Netlify | Provider hostname | Netlify project URL and troubleshooting fallback. |
+
+`gdgocbpdc.tech` was registered through get.tech. Its authoritative nameservers are currently
+the four `tech-domains.*.orderbox-dns.com` nameservers. The `go` record is managed in that DNS
+panel, not FreeDNS. The Vercel project-specific target currently resolves and Vercel returns
+the SPA shell for `/leaderboard` plus `application/vnd.unity` responses for `.unityweb`
+artifacts. Do not hard-code provider IPs or the current CNAME target in application source;
+use the exact values displayed by the host when DNS is recreated.
+
+The two origins do not share browser-local state. Supabase sessions, the retry queue, PWA
+installation, service-worker caches, theme, and mute preferences are all origin-scoped. A
+player moving from one hostname to the other may need to sign in and install the PWA again.
+Pick one public URL for event communication rather than alternating links.
+
+### Validation performed for this review
+
+| Check | Result |
+|---|---|
+| `npm run build:spa` | Passed with Vite's informational large Three.js chunk warning. |
+| `git diff --check` | Passed. |
+| Local Unity output vs tracked public build | Core data/framework/loader/WASM SHA-1 hashes match. |
+| `go.gdgocbpdc.tech` DNS/TLS/root/SPA/Unity assets | HTTPS 200; Vercel serves the Unity files and direct `/leaderboard` route. |
+| `go-gdg.oc.com.ar` DNS/TLS/root/SPA route | HTTPS 200 from Netlify. |
+| No-Unity C# compile harness | Fails with 116 missing-stub errors; see Sections 13 and 17. |
+| SQL integrity test | Not run; no isolated migrated test database was supplied. |
+| Live Supabase grants/migration ledger | Not inspected during this review. |
+
+This review verified repository state, DNS, TLS, and HTTP responses. It did **not** query the
+live Supabase migration ledger or private run tables. The user previously confirmed Migration
+`0005` was applied, and the current client requires Migration `0007`, but a future maintainer
+must verify the actual production RPC signatures and grants before a competitive release.
+Never infer database state solely from a deployed frontend bundle.
 
 The application is a React/Vite single-page app that embeds a one-scene Unity WebGL build
 in a same-origin iframe. React owns authentication, profiles, routing, score persistence,
@@ -77,7 +130,7 @@ and the final run telemetry.
 
 The following pieces must be deployed together:
 
-1. The current Unity WebGL build in `web-hosting/public/Build/` (tracked in git for Netlify CI).
+1. The current Unity WebGL build in `web-hosting/public/Build/` (tracked for cloud CI).
 2. The current React host in `web-hosting/`.
 3. Supabase migrations through
    [`0007_competitive_run_integrity.sql`](supabase/migrations/0007_competitive_run_integrity.sql).
@@ -95,11 +148,11 @@ the old RPC accepted a client-created run UUID and trusted a single plausible-lo
 payload. The browser can now create score rows only after a matching server-issued run has
 advanced through the checkpoint state machine.
 
-Migration `0006` adds the `email` column and index to `public.users` so the Supabase project
-administrator can view player email addresses directly in the Table Editor, with automated
-backfilling from `auth.users`.
+Migration `0006` adds the `email` column/index to `public.users` and backfills from
+`auth.users`. Its current grants accidentally make that email publicly selectable as part of
+the profile row; treat the privacy repair in Section 17 as high priority.
 
-Important current UI behavior:
+Important current product behavior:
 
 - Routes are `/`, `/leaderboard`, and `/controls`.
 - The header contains Play, Leaderboard, How to Play, wallet, theme, and account controls on
@@ -130,12 +183,11 @@ The working tree may contain uncommitted Unity, React, migration, PWA, and docum
 changes. Always run `git status --short` before editing or committing, and do not discard
 changes that are unrelated to the current task.
 
-On 19 August, Unity 6000.0.81f1 successfully rebuilt the WebGL player through the live Editor
-using `GDG Go > Build WebGL`. The build includes the Migration `0007` checkpoint and final-score
-telemetry changes. `npm run build` then copied the result into the tracked
-`web-hosting/public/Build/` directory; SHA-1 checks confirmed that the data, framework, WASM, and
-loader files match the Editor output byte for byte. Deploy these WebGL artifacts, the React host,
-and Migration `0007` together. A future green `build:spa` alone still does not update Unity.
+The current Unity WebGL player was built with Unity 6000.0.81f1 and includes the Migration
+`0007` checkpoint/final-score contract plus the final `0.23` pickup SFX mix. `npm run build`
+copied it into `web-hosting/public/Build/`, and the four core build artifacts match the local
+Unity output byte-for-byte. Deploy these WebGL artifacts, the React host, and Migration `0007`
+together. A green `build:spa` alone does not rebuild or refresh Unity.
 
 ---
 
@@ -143,14 +195,16 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 
 | Path | Responsibility |
 |---|---|
-| [`web-hosting/`](web-hosting/) | React 18, TypeScript, Vite, Supabase client, PWA shell, and Netlify deployment root. |
+| [`web-hosting/`](web-hosting/) | React 18, TypeScript, Vite, Supabase client, PWA shell, and deployment root for both Netlify and Vercel. |
 | [`unity-project/`](unity-project/) | Unity 6 project and the single `Game` scene used by the WebGL build. |
 | [`supabase/migrations/`](supabase/migrations/) | Ordered database schema, integrity rules, leaderboard aggregation, score RPC, and email visibility. |
 | [`web-hosting/public/branding/`](web-hosting/public/branding/) | Existing web-facing GDG, vehicle, and game artwork. |
-| [`web-hosting/public/Build/`](web-hosting/public/Build/) | Generated copy of the Unity WebGL build, tracked in Git for autonomous Netlify CI deployment. |
+| [`web-hosting/public/Build/`](web-hosting/public/Build/) | Generated copy of the Unity WebGL build, tracked in Git so cloud builds do not require Unity. |
 | [`unity-project/Build/`](unity-project/Build/) | Generated Unity WebGL output. It is gitignored. |
 | [`web-hosting/dist/`](web-hosting/dist/) | Generated production site. Never edit it manually. |
 | [`web-hosting/scripts/copy-unity.js`](web-hosting/scripts/copy-unity.js) | Copies Unity output into the Vite public tree and replaces Unity's stock page with the full-bleed host template. |
+| [`web-hosting/netlify.toml`](web-hosting/netlify.toml) | Netlify build, SPA fallback, and legacy compressed-asset headers. |
+| [`web-hosting/vercel.json`](web-hosting/vercel.json) | Vercel Vite build/output settings and SPA rewrite. |
 | [`docs/FREEDNS_CUSTOM_DOMAINS.md`](docs/FREEDNS_CUSTOM_DOMAINS.md) | Step-by-step FreeDNS custom-domain setup for Netlify and Vercel, including shared-domain restrictions and troubleshooting. |
 | [`HANDOFF.md`](HANDOFF.md) | Current cross-system handoff and deployment contract. |
 
@@ -172,6 +226,7 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 | [`web-hosting/src/controls/Controls.tsx`](web-hosting/src/controls/Controls.tsx) | `/controls` instructions for gestures, keyboard controls, HUD, pickups, power-ups, and survival tips. |
 | [`web-hosting/src/context/AuthContext.tsx`](web-hosting/src/context/AuthContext.tsx) | Supabase session, validated email registration, public profile persistence, and wallet refresh. |
 | [`web-hosting/src/lib/api.ts`](web-hosting/src/lib/api.ts) | Run-ticket/checkpoint/finalize RPCs, score payload validation, short-interruption retry queue, leaderboard queries, and fallback aggregation. |
+| [`web-hosting/src/lib/bgm.ts`](web-hosting/src/lib/bgm.ts) | Synthesized Web Audio soundtrack, mute persistence, and the `0.28` master gain. |
 | [`web-hosting/src/components/ScoreQueueSync.tsx`](web-hosting/src/components/ScoreQueueSync.tsx) | Background flush of queued runs after sign-in or reconnect. |
 | [`web-hosting/src/lib/gameDisplay.ts`](web-hosting/src/lib/gameDisplay.ts) | Standalone-mode detection, Fullscreen API wrappers, and best-effort landscape lock. |
 | [`web-hosting/src/components/InstallPrompt.tsx`](web-hosting/src/components/InstallPrompt.tsx) | Android install prompt and iOS Safari Add to Home Screen guidance. |
@@ -183,6 +238,7 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 |---|---|
 | [`unity-project/Assets/Scenes/Game.unity`](unity-project/Assets/Scenes/Game.unity) | Serialized runtime values and references. Scene values override C# field defaults. |
 | [`unity-project/Assets/Scripts/Core/GameSession.cs`](unity-project/Assets/Scripts/Core/GameSession.cs) | In-run score, exact pickup-score accumulator, combo, Heat, fuel, power-up flags, crashes, five-second integrity checkpoints, and final telemetry. |
+| [`unity-project/Assets/Scripts/Audio/AudioManager.cs`](unity-project/Assets/Scripts/Audio/AudioManager.cs) | Unity one-shot SFX pool and per-event pickup gain scales. The scene has no Unity music clip. |
 | [`unity-project/Assets/Scripts/Gameplay/WorldScroller.cs`](unity-project/Assets/Scripts/Gameplay/WorldScroller.cs) | Distance, difficulty, cruising speed, boost speed, and braking speed. |
 | [`unity-project/Assets/Scripts/Gameplay/PlayerCar.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCar.cs) | Lane movement, jump/fast-fall, keyboard, swipe, braking, and double-tap boost. |
 | [`unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs) | Crash handling, shields, and temporary invulnerability. |
@@ -196,6 +252,23 @@ and Migration `0007` together. A future green `build:spa` alone still does not u
 | [`unity-project/Assets/Editor/ProjectSetup.cs`](unity-project/Assets/Editor/ProjectSetup.cs) | Project setup, WebGL settings, validation, and the `GDG Go/Build WebGL` menu command. |
 | [`unity-project/Assets/Editor/SceneBuilder.cs`](unity-project/Assets/Editor/SceneBuilder.cs) | Rebuilds the Game scene and its runtime object graph. |
 | [`unity-project/Assets/Editor/PrefabsBuilder.cs`](unity-project/Assets/Editor/PrefabsBuilder.cs) | Generates the prefabs used by the scene. |
+
+### Source-of-truth precedence
+
+Use this order when values disagree:
+
+1. Deployed Supabase schema and grants for database behavior.
+2. `supabase/migrations/0007_competitive_run_integrity.sql` plus its test for the intended
+   integrity contract.
+3. `Assets/Scenes/Game.unity` for serialized runtime tuning and object references.
+4. C# and TypeScript source for runtime algorithms and field defaults.
+5. `HANDOFF.md` for cross-system intent and operational procedure.
+6. `README.md`, `CLAUDE.md`, and `docs/` for background only.
+
+Scene serialization matters: a public Unity field initializer is only the value assigned to a
+new component. Existing scene components retain their serialized values. For example,
+`WorldScroller.cs` currently declares defaults of 38 maximum speed and a 3,000 m ramp, while
+the actual Game scene uses 46 and 1,000 m. The scene is the shipped runtime truth.
 
 ---
 
@@ -235,6 +308,40 @@ The Unity iframe is same-origin by design. Do not host `/Build` on another domai
 reworking the message origin checks, iframe permissions, service-worker cache paths, and
 deployment headers.
 
+### Unity world/streaming contract
+
+The player car never advances along Z. `WorldScroller` runs at execution order `-100` and owns
+the single forward simulation:
+
+- `Distance`: absolute track-space metres completed in the run;
+- `ScrollDelta`: metres advanced in the current frame;
+- `Speed`: current forward speed after brake/boost smoothing;
+- `BaseSpeed`: the unmodified difficulty-ramp speed.
+
+Road, traffic, obstacles, pedestrians, coins, power-ups, and scenery stream toward the fixed
+player. The streaming spawners share the `ScrollingSpawner` base contract: schedule in absolute
+track space, convert with `WorldScroller.TrackToWorldZ`, move every tracked instance by
+`-ScrollDelta`, and cull behind the camera. Mixing track-space schedule values with current
+world-space Z causes frozen, duplicate, or unreachable content. `LaneReservations` coordinates
+hazard lanes and is cleared when the world resets.
+
+The WebGL player contains one scene only: `Assets/Scenes/Game.unity`. React is the menu,
+authentication, garage, result screen, and leaderboard; do not reintroduce Unity menu/login/
+leaderboard scenes without deliberately replacing the current architecture.
+
+### Unity asset-generation contract
+
+Most art/audio comes from the imported Kenney, Quaternius, and Mixamo assets documented in
+`docs/ASSETS.md`. `RawAssets/` is a multi-gigabyte local source cache and is intentionally
+gitignored. Unity-imported assets and their `.meta` files under `unity-project/Assets/` are
+tracked; preserve GUID pairs.
+
+The road and some runtime assets are generated from code. `PrefabsBuilder` and `SceneBuilder`
+are ownership tools, not harmless validators: running them can rewrite prefabs, meshes, scene
+serialization, references, and tuning. `ProjectSetup.ValidateSetup` is the safer first check.
+Review the full generated diff after invoking a builder and do not accept broad rewrites merely
+to satisfy a small requested change.
+
 ---
 
 ## 4. Authentication and player identity
@@ -245,8 +352,8 @@ Player registration collects:
 - **Name**: 2–24 characters (mandatory), shown publicly on the leaderboard. It is persisted
   under the existing `display_name` database column and API property.
 - **Email Address**: Validated email address format (`name@example.com`), stored in `auth.users`
-  and persisted in `public.users.email` for administrator visibility, score verification,
-  and contact.
+  and persisted in `public.users.email` for score verification/contact. The current public
+  table grants expose it more broadly than intended.
 - **Password**: At least 6 characters.
 
 The registration form intentionally uses the neutral placeholders “Your username”, “Your
@@ -260,18 +367,25 @@ The public identity is stored in `public.users`:
 - `username`: unique login handle.
 - `display_name`: public name shown on the leaderboard.
 - `email`: player's submitted email address (added in Migration `0006`). Format validation
-  does not prove ownership while confirmation is disabled.
+  does not prove ownership while confirmation is disabled. Despite the migration comment
+  describing admin visibility, the current grants/policy expose this column to public SELECT;
+  see the security and known-limitations sections.
 
-Sign In supports either **Username** (with backward compatibility for synthetic `@gdg-go.local`
-accounts) or the registered **Email Address**.
+Sign In reliably supports the registered **Email Address**. The UI also says “Username or
+Email”, but the present username branch converts a username to
+`<username>@gdg-go.local`. That works only for older synthetic-email accounts; it does not
+look up the real email belonging to a new real-email account. Therefore do not promise new
+players that username-only login works until the implementation is corrected with a safe
+server-side username-to-auth flow. This is documented again in the known-limitations section.
 
 `AuthContext` restores the Supabase session on load, fetches the public profile, creates a
 fallback profile when necessary, and refreshes wallet/driver totals from the leaderboard
 aggregate.
 
-Supabase email confirmation should remain disabled in the Supabase Dashboard for this instant
-event sign-up flow so that `signUp` immediately establishes an active session without
-requiring email verification delays.
+The current event flow assumes Supabase email confirmation is disabled so `signUp` immediately
+establishes an active session. If confirmation is enabled later, rewrite the signup success
+state and add every live origin to Supabase Auth's Site URL/allowed redirect configuration;
+the current automatic sign-in attempt is not a complete confirmation-email UX.
 
 Authentication remains strictly in the parent React application. Never add the Supabase access
 token, refresh token, anon secret beyond the normal public anon key, or service-role key to
@@ -344,6 +458,29 @@ peak with small frame/rounding headroom.
 | Shield | Absorbs one whole crash, including its combo reset | Until hit |
 | 2× | Doubles the pickup score after the normal combo multiplier | 10 s |
 | Police Freeze | Stops Heat loss | 6 s |
+
+### Current audio mix
+
+There are two separate audio systems:
+
+- React synthesizes the background music in `web-hosting/src/lib/bgm.ts`. Its unmuted master
+  gain is `0.28` in both initial context setup and unmute transitions.
+- Unity plays gameplay SFX through `AudioManager.cs`. `PlayCoin`, `PlayPill`, and
+  `PlayPowerUp` each use a `0.23` per-event volume scale. The Game scene serializes the global
+  SFX gain as `1`, so the effective scale for those three events is currently `0.23`.
+
+The scene's Unity `musicLoop` reference is null, and no runtime code calls `PlayMusic`; the
+React Web Audio engine is the audible music bed. Do not change `musicVolume` in the Unity
+scene expecting it to tune the current soundtrack.
+
+Other Unity SFX intentionally retain their own levels: fuel `0.9`, jump `0.85`, swerve `0.5`,
+hover `0.6`, and crash/police/game-over at their wrapper defaults. The user's final requested
+balance is pickup SFX below the background music: keep the three pickup scales at `0.23` and
+the React master at `0.28` unless a new request explicitly supersedes it.
+
+Changing `AudioManager.cs` is not enough to change the deployed game. Rebuild Unity WebGL,
+copy the build into `web-hosting/public/Build`, confirm the generated data/WASM diff, then
+deploy. A TypeScript-only build will keep the old compiled C# behavior.
 
 ---
 
@@ -545,8 +682,8 @@ Run migrations in numeric order on a fresh project:
    run UUID, bonus, immutable client policies, authenticated RPC, deterministic ranks, and
    repaired aggregates.
 6. [`0006_users_email.sql`](supabase/migrations/0006_users_email.sql):
-   adds `email` column and index to `public.users` for Table Editor admin visibility and backfills
-   from `auth.users`.
+   adds `email` and its index to `public.users`, backfills from `auth.users`, and currently
+   leaves whole-table SELECT available to `anon`/`authenticated` (privacy debt).
 7. [`0007_competitive_run_integrity.sql`](supabase/migrations/0007_competitive_run_integrity.sql):
    private run/checkpoint ledger, server-issued run secrets, exact score arithmetic and
    gameplay-derived validation, single-use finalization, verified score markers, reduced RPC
@@ -556,12 +693,18 @@ For an existing environment on `0005`, apply `0006` (if it is not already presen
 `0007`. The migrations use `if not exists`, policy drops, and function replacement where
 practical, but they are still schema migrations—not scripts to run on every deploy.
 
-Public browser roles can read public profiles, scores, and leaderboard data. They cannot
-insert/update/delete score or leaderboard rows, use the `private` schema, or execute trigger
-helpers. The only competitive write surface is the authenticated trio `start_game_run`,
-`checkpoint_game_run`, and the new nine-argument `submit_game_score`; all three derive player
-identity from `auth.uid()`. Never expose the Supabase `service_role` key to Vite, Unity, Git,
-or the browser.
+Public browser roles can read profiles, scores, and leaderboard data. **Migration `0006`
+currently grants whole-row SELECT on `public.users`, and the original public-read RLS policy
+uses `true`; therefore `public.users.email` is also publicly readable through the data API.**
+That is an unresolved privacy problem, not admin-only visibility. Fix it with a public view or
+column-level privilege/policy design before collecting contact data at scale; do not break the
+profile reads required by the UI while doing so.
+
+Browser roles cannot insert/update/delete score or leaderboard rows, use the `private` schema,
+or execute trigger helpers. The only competitive write surface is the authenticated trio
+`start_game_run`, `checkpoint_game_run`, and the new nine-argument `submit_game_score`; all
+three derive player identity from `auth.uid()`. Never expose the Supabase `service_role` key to
+Vite, Unity, Git, or the browser.
 
 `private.game_runs` and `private.game_run_checkpoints` are operational audit state. They have
 RLS enabled and no browser table grants. `public.scores.coin_score` records exact pickup points,
@@ -653,6 +796,11 @@ preference. Other devices use the existing static vehicle images.
 behavior or non-fingerprinted public assets require existing installations to discard stale
 entries. Vite-hashed SPA assets update naturally, but Unity filenames are stable and deserve
 special attention during releases.
+
+Every hostname creates an independent PWA origin. Installing from `go-gdg.oc.com.ar` and later
+opening `go.gdgocbpdc.tech` creates a second service worker/cache/session context; the first
+installed icon does not migrate. Use the intended long-term hostname in QR codes and event
+instructions before asking players to Add to Home Screen.
 
 ---
 
@@ -778,8 +926,10 @@ The full build performs:
 
 `unity:copy` copies `unity-project/Build` to `web-hosting/public/Build` if present, writes the
 custom edge-to-edge Unity `index.html`, and patches the Unity template CSS. Because
-`web-hosting/public/Build` is tracked in git, remote CI environments (like Netlify) build
-autonomously without requiring Unity in the cloud runner.
+`web-hosting/public/Build` is tracked in git, cloud builds do not require Unity. When the
+gitignored local source build is absent, `unity:copy` logs that fact and leaves the tracked
+public copy intact. Vercel deliberately runs `build:spa` so its build never attempts the
+sibling Unity-copy step.
 
 ### Netlify
 
@@ -789,15 +939,43 @@ defines:
 - build command: `npm run build`;
 - publish directory: `dist`;
 - SPA fallback to `/index.html`;
-- content-encoding and immutable caching for compressed Unity artifacts;
+- optional content-encoding/cache rules for `.br`/`.gz` Unity outputs;
 - no-cache behavior for the root `index.html`.
 
 The build machine must receive `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
-### Production domain and FreeDNS
+The currently tracked Unity filenames end in `.unityweb` and use Unity's decompression
+fallback. Do not rename them to `.br` or add `Content-Encoding: br` blindly; serve the exact
+output produced by the configured Unity build and test it in the browser.
 
-The public site is served at `https://go-gdg.oc.com.ar`; the Netlify project remains
-reachable at `https://gdgoc-go.netlify.app`.
+### Vercel
+
+Deploy with `web-hosting/` as the project Root Directory. `web-hosting/vercel.json` defines:
+
+- framework: Vite;
+- build command: `npm run build:spa`;
+- output directory: `dist`;
+- catch-all rewrite to `/index.html` for the History API router.
+
+The Vercel project needs the same two `VITE_SUPABASE_*` environment variables in every
+environment that should talk to the production database. Redeploy after adding or changing a
+Vite environment variable because values are compiled into the browser bundle.
+
+`build:spa` is intentional on Vercel: the committed `public/Build` directory is already the
+deployment input, while `unity-project/Build` is gitignored and unavailable in the cloud. If
+Unity changes, rebuild and copy locally, commit the changed `public/Build` artifacts, then let
+Vercel run `build:spa`.
+
+### Current custom domains
+
+The preferred branded Vercel origin is `https://go.gdgocbpdc.tech`. The domain is registered
+through get.tech and currently uses OrderBox nameservers. In the registrar DNS panel, the
+`go` CNAME points to the exact project-specific target Vercel displayed. The domain must also
+remain attached to the correct Vercel project under **Settings > Domains** so Vercel can route
+the Host header and renew TLS.
+
+The existing FreeDNS/Netlify origin is `https://go-gdg.oc.com.ar`; the Netlify provider URL
+remains `https://gdgoc-go.netlify.app`.
 
 The important distinction is DNS mapping versus forwarding:
 
@@ -818,8 +996,32 @@ The important distinction is DNS mapping versus forwarding:
 - Netlify provisions HTTPS only after it sees the correct DNS/ownership records. Verify both
   the certificate and the final browser address after propagation.
 
-GitHub pushes to `main` trigger the configured Netlify build. Before pushing a change, run the
-appropriate local production build and remember that `build:spa` does not rebuild Unity.
+The complete provider-neutral FreeDNS procedure is in
+`docs/FREEDNS_CUSTOM_DOMAINS.md`. It includes Vercel's project-specific CNAME route and the A
+record fallback used when a shared FreeDNS domain rejects CNAME. That guide is for FreeDNS;
+the new `gdgocbpdc.tech` domain is controlled in the get.tech/OrderBox DNS panel.
+
+If GitHub automatic deployments are enabled, a push to `main` can publish on both providers.
+Treat a push as a production action: inspect the provider project/branch configuration first.
+Before pushing, run the appropriate local build and remember that neither provider's
+TypeScript build rebuilds the Unity C# project.
+
+### Hosting and Supabase environment checklist
+
+Configure each host independently:
+
+```text
+Root directory: web-hosting
+Node install: npm ci (provider default is acceptable when lockfile is honored)
+Netlify build: npm run build
+Vercel build: npm run build:spa
+Output/publish directory: dist
+Required env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+Required SPA fallback: every app path returns /index.html
+```
+
+Only the public anon key belongs in Vite. Never add `service_role`, database passwords, run
+secrets, or private Supabase keys to provider variables prefixed with `VITE_`.
 
 ---
 
@@ -831,8 +1033,27 @@ appropriate local production build and remember that `build:spa` does not rebuil
 cd web-hosting
 npx tsc --noEmit
 npm run build:spa
+cd ..
 git diff --check
 ```
+
+The repository includes a no-Unity compile harness:
+
+```bash
+dotnet build tools/compile-check/GDGGo.CompileCheck.csproj
+```
+
+On this Mac, the SDK may exist under `$HOME/.dotnet` without being on `PATH`. Do not modify
+global shell configuration merely to run a check; invoke the known executable or use a
+task-scoped PATH.
+
+**Current limitation:** at the 21 August review, this harness fails with 116 errors because
+`UnityStubs.cs`/`UnityEditorStubs.cs` do not cover APIs already used by the project, including
+`AudioClip.Create`, expanded particle-system modules, render textures, camera dimensions, and
+editor build-pipeline types. The recently produced real Unity WebGL build is stronger evidence
+that those APIs compile in Unity. Until stub coverage is repaired, report the harness failure
+accurately and use a real Unity compile/build as the C# gate; do not mislabel all 116 errors as
+game-source regressions.
 
 The database integration test is:
 
@@ -854,8 +1075,10 @@ is not.
 ### Desktop browser
 
 - `/`, `/leaderboard`, and `/controls` work by direct URL and browser back/forward.
-- Sign-up (with mandatory username, name, validated email, password), sign-in,
+- Sign-up (with mandatory username, name, validated email, password), email sign-in,
   sign-out, and theme persistence work.
+- Treat username-only sign-in for newly created real-email accounts as a known bug until it
+  has an implemented and tested server-side mapping.
 - The registration form says Username, Name, Email Address, and Password; its placeholders
   are neutral, and the real-name/email verification notice is readable without overflow.
 - The guest hero uses the sharp transparent logo, the tagline reads exactly
@@ -884,6 +1107,19 @@ Test at minimum a 390 × 844 viewport plus one short landscape viewport:
 - swipe, fast-fall, double-tap boost, mute, restart, and Garage work;
 - Add to Home Screen launches with standalone styling;
 - relaunching after a deployment does not remain stuck on stale Unity files.
+
+### Deployed-host smoke checks
+
+Run these checks against every origin being advertised:
+
+- `https://<origin>/`, `/leaderboard`, and `/controls` all return the SPA, keep the custom
+  hostname in the address bar, and have a valid certificate.
+- `/Build/index.html` and all four `/Build/Build/Build.*.unityweb` files return 200.
+- A real authenticated run starts, checkpoints, finalizes, and refreshes the leaderboard.
+- The Supabase browser requests come from the expected domain and are not blocked by any new
+  Auth redirect/CORS configuration.
+- If the new Vercel origin becomes canonical, install the PWA fresh from that origin and do
+  not assume an old Netlify-origin installation updates across domains.
 
 ### Supabase checks
 
@@ -990,6 +1226,8 @@ card rules are active and that long names truncate. Avoid solving overflow by ap
 There are two generated copies. Rebuild Unity into `unity-project/Build`, then run
 `npm run unity:copy` or `npm run build`. Restart the dev server if necessary, unregister or
 update the service worker, and clear the `gdg-go-*` caches while diagnosing stale local state.
+On Vercel, confirm the generated files were committed before redeploying: its `build:spa`
+command intentionally consumes the tracked copy and does not run Unity or `unity:copy`.
 
 ### Audio is silent on iOS
 
@@ -1001,14 +1239,14 @@ should not be relied upon.
 ### Direct `/controls` or `/leaderboard` gives a 404
 
 The host is missing the SPA fallback. On Netlify, keep the `/* -> /index.html 200` redirect.
-Equivalent rewrite rules are required on any other host.
+On Vercel, keep the catch-all rewrite in `vercel.json`.
 
-### The custom domain redirects to or displays the Netlify hostname
+### The custom domain redirects to or displays a provider hostname
 
-FreeDNS is using a `URL` forwarding record instead of a DNS record. Delete only that incorrect
-host record and recreate the custom hostname with the DNS target currently recommended by
-Netlify. Keep the Netlify ownership TXT record. Once DNS and TLS finish propagating, navigation
-to `https://go-gdg.oc.com.ar` should keep that hostname in the browser address bar.
+The DNS provider is using URL forwarding instead of a real A/CNAME mapping. Delete only that
+incorrect host record and recreate the custom hostname with the target currently displayed by
+Netlify or Vercel. Keep any still-required ownership TXT record. Once DNS and TLS finish
+propagating, navigation should keep the custom hostname in the address bar.
 
 ### Netlify remains on “Pending DNS verification”
 
@@ -1017,6 +1255,21 @@ Confirm the ownership TXT record is quoted as required by the FreeDNS form, is a
 by Netlify. Then confirm `go-gdg.oc.com.ar` resolves to Netlify rather than a FreeDNS URL
 redirect. DNS caches can delay verification; repeatedly changing correct records restarts the
 wait and makes diagnosis harder.
+
+### The Vercel domain says “Invalid Configuration”
+
+Confirm `go.gdgocbpdc.tech` is attached to the correct Vercel project and the `go` CNAME in
+the get.tech/OrderBox panel exactly matches Vercel's current project-specific target. Remove
+conflicting A/AAAA/CNAME data at `go`; do not replace it with a URL redirect. A TXT record is
+needed only when Vercel explicitly presents an ownership challenge.
+
+### A new player can sign in by email but not username
+
+This is the current auth implementation, not a Supabase outage. New accounts authenticate
+with their real email, while the username branch still tries a legacy synthetic
+`@gdg-go.local` address. Use email sign-in. Fixing username sign-in requires a carefully
+designed server-side mapping; never expose a directory of private emails to anonymous browser
+queries merely to make that label work.
 
 ---
 
@@ -1053,6 +1306,11 @@ wait and makes diagnosis harder.
   complete.
 - Before committing, inspect the dirty worktree and avoid bundling or reverting unrelated
   user changes.
+- Do not commit, push, deploy, change DNS, or mutate production Supabase merely because code
+  was edited locally. Those are separate actions and require the user's explicit request.
+- Never read, print, or commit `web-hosting/.env`; use `.env.example` to document names only.
+- Do not run destructive Git commands or regenerate the Unity scene/prefabs to clean a diff.
+  Preserve unknown changes and ask when ownership or intent is unclear.
 
 ---
 
@@ -1071,14 +1329,144 @@ wait and makes diagnosis harder.
    user email in `public.users`, and aggregate row.
 9. Retry the same final run identity/secret to confirm it returns the same score ID.
 10. Test installed PWA launch and service-worker update behavior.
-11. Schedule a coordinated cutover. Applying `0007` first breaks the old host's save call;
-    deploying the new host first cannot start a run against the old database. Use a short
-    maintenance window or an atomic deployment process.
+11. If moving an environment from pre-`0007` code, schedule a coordinated cutover. Applying
+    `0007` first breaks the old host's save call; deploying the new host first cannot start a
+    run against the old database. Use a short maintenance window or atomic process.
 12. Smoke-test `/`, `/controls`, `/leaderboard`, game launch, checkpoints, result banking, and refresh in
     production.
-13. Open `https://go-gdg.oc.com.ar` directly, verify the certificate, confirm the browser keeps
-    the custom hostname, and repeat the installed-PWA launch check from that origin.
+13. Open both `https://go.gdgocbpdc.tech` and `https://go-gdg.oc.com.ar`, verify certificates,
+    confirm each keeps its custom hostname, and smoke-test the host players will actually use.
+14. Publish only one canonical event link. If changing origins, update Supabase Auth URL
+    configuration as needed and communicate that existing PWA installs/sessions do not move.
 
 That sequence prevents the most dangerous partial releases: a new frontend calling RPCs that
 do not exist yet, an old frontend calling the deliberately removed one-shot RPC, or an old
 Unity binary omitting the required exact pickup score/checkpoints.
+
+---
+
+## 17. Known limitations and deliberate technical debt
+
+These are current facts, not requests to silently fix them while doing unrelated work.
+
+### High priority
+
+1. **Player emails are publicly selectable.** Migration `0006` puts email in
+   `public.users`, grants SELECT to `anon`, and inherits the `using (true)` profile policy.
+   The stated goal was admin contact visibility, but the implemented result exposes email via
+   the public data API. A proper repair should keep public leaderboard fields readable while
+   moving/restricting contact data. It needs a new tested migration and a frontend query audit.
+2. **Username login is misleading for new accounts.** Real-email signup stores the real email
+   in Supabase Auth. Username sign-in still synthesizes `<username>@gdg-go.local`, so only
+   legacy synthetic-email accounts can use it. Email login works. Do not solve this by making
+   the public email exposure an intentional username directory.
+3. **Score validation is tamper-resistant, not server-authoritative.** Migration `0007` blocks
+   direct row writes, client-created runs, instant fabricated totals, impossible arithmetic,
+   stale/backward checkpoints, cross-user tickets, and duplicate finalization. A determined
+   client can still automate or imitate plausible real-time play within the accepted envelope.
+   Eliminating that class requires a deterministic replay verifier or server-side simulation.
+
+### Medium priority
+
+4. **No automated React browser/unit suite exists.** Current dependable gates are the
+   TypeScript/Vite build, a real Unity compile/build, the SQL integrity test, and manual
+   desktop/mobile/PWA smoke testing. Responsive/fullscreen regressions require disciplined QA.
+5. **The no-Unity C# compile harness is stale.** It currently reports 116 missing-stub errors
+   across APIs the real Unity build already uses. `README.md` and `CLAUDE.md` still describe it
+   as a green gate. Repair stubs against actual Unity signatures before relying on it again.
+6. **Leaderboard fallbacks are bounded and legacy-heavy.** The normal path reads
+   `public.leaderboard`. If unavailable, the client aggregates at most 1,000 score rows; this
+   can become incomplete at scale and does not reproduce every database tie-break detail.
+   Unused exported helpers such as `fetchLeaderboard`, `fetchUserBest`, and
+   `recordGdgCoinGain` remain in `api.ts` from earlier iterations.
+7. **The retry queue is device/origin local.** It stores up to 20 final payloads and run
+   secrets in `localStorage['gdg-go:pending-scores:v2']`. It is useful for brief network loss,
+   not durable offline play. Site-data clearing, origin changes, or a delay beyond server-time
+   tolerance loses the ability to finalize. Any script executing on the origin can read local
+   storage, so preventing XSS remains important.
+8. **Stable Unity filenames amplify cache risk.** `Build.data.unityweb` and
+   `Build.wasm.unityweb` are not content-hashed. The service worker uses stale-while-revalidate
+   and a manual `gdg-go-v2` cache namespace. Increment the namespace or otherwise plan cache
+   invalidation for releases where players must receive a new Unity contract immediately.
+9. **Two live origins split users and operations.** Netlify and Vercel currently both serve the
+   app. That is useful redundancy, but sessions, queues, installs, analytics, and cache state
+   split by origin. Decide which URL is canonical before public promotion.
+10. **Large generated WebGL binaries are tracked in Git.** This is deliberate so Netlify and
+   Vercel can deploy without Unity, but it makes reviews and history heavy. Never hand-edit
+   them; associate every binary change with its Unity source commit/build.
+11. **Client-side signup has a concurrency edge case.** It checks username availability before
+    creating the Auth user, then upserts the profile. The database unique index is the final
+    arbiter. Two simultaneous claims can leave one Auth account without a usable public
+    profile. `start_game_run` correctly fails closed when the profile is missing.
+
+### Documentation debt
+
+- `CLAUDE.md` contains stale fuel and GDG Coin tuning even though its architectural notes on
+  streaming, asset sourcing, generated meshes, and compile checks remain useful.
+- `docs/PROJECT.md`, `docs/SETUP_GUIDE.md`, and `docs/WEBSITE.md` predate the final one-scene,
+  React-owned auth/score, dual-host deployment in places.
+- `README.md` is a useful orientation, but this handoff and the serialized scene win on exact
+  current values.
+
+---
+
+## 18. AI takeover checklist
+
+An incoming AI should follow this sequence before touching code:
+
+1. Read this entire file, then `git status --short`, `git branch -vv`, and recent `git log`.
+2. Identify whether the user wants inspection, diagnosis, implementation, database mutation,
+   deployment, DNS work, or some combination. Do not infer authorization for the others.
+3. Inspect the actual source files named in the relevant section. Do not work from screenshots,
+   old plans, or conversation memory alone.
+4. For Unity tuning, inspect both the C# field and `Assets/Scenes/Game.unity`. For score-related
+   tuning, inspect Migration `0007` and its test in the same task.
+5. Preserve the dirty worktree. Never reset, discard, regenerate, commit, push, deploy, or edit
+   production infrastructure unless the user explicitly asks for that action.
+6. Keep secrets out of output and Git. Do not read `web-hosting/.env` to learn variable names;
+   use `.env.example`. Never place a service-role key or run secret in a `VITE_` value or Unity.
+7. Make source edits with a narrow diff. Generated Unity scene/prefab builders can rewrite
+   broad asset graphs, so run them only when the requested change requires regeneration.
+8. Verify proportionally:
+   - React/docs-only: `npx tsc --noEmit`, `npm run build:spa`, `git diff --check`.
+   - Unity C#: attempt the harness but expect its documented stub failures; require a real
+     Unity compile, WebGL build, `unity:copy`, and web build.
+   - Integrity/schema: isolated migrations and the SQL test, then inspect grants/signatures.
+   - Mobile UI: real narrow portrait and short landscape plus installed-PWA behavior.
+9. Before release, inspect `git diff --stat`, generated artifacts, environment variables, and
+   provider root/build/output settings. A successful SPA build does not prove Unity changed.
+10. Hand back a concise report naming files changed, checks run, checks not run, and any
+    remaining risk. State clearly whether anything was committed, pushed, deployed, or applied
+    to Supabase.
+
+### Fast command reference
+
+```bash
+# Repository state
+git status --short
+git branch -vv
+git log -8 --oneline
+
+# React/Vite
+cd web-hosting
+npm ci
+npx tsc --noEmit
+npm run build:spa       # consumes the tracked public Unity build
+npm run build           # copies local unity-project/Build first, if present
+npm run dev             # Vite on port 3000
+
+# Unity script compile harness, from repository root (currently stale; see Section 17)
+dotnet build tools/compile-check/GDGGo.CompileCheck.csproj
+
+# Database integrity test — isolated migrated test DB only
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/0007_competitive_run_integrity_test.sql
+
+# Final hygiene
+git diff --check
+git status --short
+```
+
+This document should be updated whenever architecture, serialized tuning, the score/RPC
+contract, live domains, build commands, environment variables, or deployment ownership
+changes. Do not let it become another historical plan.
