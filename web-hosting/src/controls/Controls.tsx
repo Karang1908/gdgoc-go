@@ -235,10 +235,16 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         border-radius: var(--pill);
         background: var(--surface-2);
         color: var(--text-2);
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .controls-back:hover { color: var(--text); background: var(--surface-3); }
+
+      /* Touch size follows the pointer, not the width: a landscape phone is
+         844px wide and still needs a 44px target. */
+      @media (pointer: coarse) {
+        .controls-back { min-height: 44px; }
+      }
 
       .controls-intro-row {
         display: flex;
@@ -270,7 +276,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         margin-bottom: 52px;
         padding: clamp(22px, 4vw, 36px);
         border: 1px solid rgba(66, 133, 244, 0.45);
-        border-radius: 16px;
+        border-radius: var(--r-lg);
         background: var(--accent-soft);
       }
 
@@ -278,7 +284,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .guide-section h2 {
         margin-bottom: 8px;
         font-size: clamp(1.35rem, 2.6vw, 1.8rem);
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .mission-copy p,
@@ -315,7 +321,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .control-surface {
         overflow: hidden;
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: var(--r-lg);
         background: var(--surface);
       }
 
@@ -329,7 +335,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       }
 
       .control-surface-title > svg { flex: 0 0 auto; color: var(--accent); }
-      .control-surface-title h3 { margin-bottom: 2px; font-size: 1rem; font-weight: 700; }
+      .control-surface-title h3 { margin-bottom: 2px; font-size: 1rem; font-weight: 500; }
       .control-surface-title p { color: var(--text-2); font-size: 0.78rem; line-height: 1.4; }
       .control-list, .key-list { padding: 8px 18px 12px; }
 
@@ -345,7 +351,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .control-row:last-child { border-bottom: 0; }
       .control-row > span:last-child { display: flex; min-width: 0; flex-direction: column; }
       .control-row strong { font-size: 0.85rem; }
-      .control-row small { color: var(--text-2); font-size: 0.72rem; line-height: 1.35; }
+      .control-row small { color: var(--text-2); font-size: 0.75rem; line-height: 1.35; }
 
       .control-icon {
         display: grid;
@@ -384,8 +390,8 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         background: var(--surface-2);
         color: var(--text);
         font-family: var(--font-ui);
-        font-size: 0.72rem;
-        font-weight: 700;
+        font-size: 0.75rem;
+        font-weight: 500;
         box-shadow: 0 2px 0 var(--border);
       }
 
@@ -395,7 +401,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         gap: 8px;
         padding-top: 12px;
         color: var(--text-2);
-        font-size: 0.72rem;
+        font-size: 0.75rem;
       }
 
       .hud-strip {
@@ -403,7 +409,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         grid-template-columns: repeat(3, minmax(0, 1fr));
         overflow: hidden;
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: var(--r-lg);
         background: var(--surface);
       }
 
@@ -431,11 +437,11 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .pickup-list {
         padding: 20px;
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: var(--r-lg);
         background: var(--surface);
       }
 
-      .pickup-list h3 { margin-bottom: 14px; font-size: 1rem; font-weight: 700; }
+      .pickup-list h3 { margin-bottom: 14px; font-size: 1rem; font-weight: 500; }
 
       .pickup-row {
         display: grid;
@@ -447,7 +453,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
 
       .pickup-row:last-child { border-bottom: 0; }
       .pickup-row strong { font-size: 0.84rem; }
-      .pickup-row p { color: var(--text-2); font-size: 0.73rem; line-height: 1.45; }
+      .pickup-row p { color: var(--text-2); font-size: 0.75rem; line-height: 1.45; }
 
       .pickup-mark {
         display: grid;
@@ -468,7 +474,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .power-row svg { color: var(--accent); margin-top: 1px; }
       .power-row span { display: flex; flex-direction: column; }
       .power-row strong { font-size: 0.82rem; }
-      .power-row small { color: var(--text-2); font-size: 0.7rem; line-height: 1.35; }
+      .power-row small { color: var(--text-2); font-size: 0.75rem; line-height: 1.35; }
 
       .survival-notes { margin-bottom: 52px; }
       .survival-notes ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 36px; padding-left: 20px; }
@@ -482,7 +488,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         align-items: center;
         padding: 18px 20px;
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: var(--r-lg);
         background: var(--surface);
       }
 
