@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Play, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AuthModal } from './AuthModal';
 import { CarPicker } from './CarPicker';
 import { exitFullscreenDisplay, requestFullscreenDisplay } from '../lib/gameDisplay';
 import { AppRoute } from '../lib/routes';
@@ -12,13 +11,11 @@ const GameView = lazy(() => import('./GameView').then((module) => ({
 
 interface HomeProps {
   navigate: (route: AppRoute) => void;
-  isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
 }
 
 export const Home: React.FC<HomeProps> = ({
   navigate,
-  isAuthModalOpen,
   setIsAuthModalOpen,
 }) => {
   const { session } = useAuth();
@@ -94,13 +91,6 @@ export const Home: React.FC<HomeProps> = ({
           </div>
         </div>
 
-        {/* Auth Modal for Sign In / Sign Up */}
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-          canDismiss={true}
-        />
-
         <style>{`
           .hero-landing-container {
             height: 100%;
@@ -117,7 +107,7 @@ export const Home: React.FC<HomeProps> = ({
             display: grid;
             grid-template-columns: 1fr 1fr;
             align-items: center;
-            gap: clamp(20px, 3vw, 44px);
+            gap: clamp(20px, 3vw, 56px);
             max-width: 1240px;
             width: 100%;
             margin: 0 auto;
@@ -135,9 +125,9 @@ export const Home: React.FC<HomeProps> = ({
             font-size: clamp(2.2rem, 4.4vw, 3.75rem);
             font-weight: 700;
             line-height: 1.08;
-            letter-spacing: -0.03em;
+            letter-spacing: -0.032em;
             color: var(--text);
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             text-wrap: balance;
           }
 
@@ -147,36 +137,38 @@ export const Home: React.FC<HomeProps> = ({
 
           .hero-lede {
             font-family: var(--font-body);
-            font-size: clamp(0.95rem, 1.4vw, 1.15rem);
-            line-height: 1.5;
+            font-size: clamp(0.95rem, 1.4vw, 1.125rem);
+            line-height: 1.6;
             color: var(--text-2);
-            max-width: 520px;
-            margin-bottom: 28px;
+            max-width: 52ch;
+            margin-bottom: 32px;
           }
 
           .hero-actions {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             flex-wrap: wrap;
           }
 
+          /* Google keeps its primary action at medium weight; bolding a pill
+             button is a non-Google tell. */
           .hero-cta-btn {
-            height: 50px;
-            padding: 0 26px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            height: 48px;
+            padding: 0 28px;
+            font-size: 0.9375rem;
+            font-weight: 500;
             border-radius: var(--pill);
             touch-action: manipulation;
           }
 
           .hero-secondary-btn {
-            height: 50px;
-            padding: 0 22px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            height: 48px;
+            padding: 0 24px;
+            font-size: 0.9375rem;
+            font-weight: 500;
             border-radius: var(--pill);
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             touch-action: manipulation;
           }
 
@@ -201,9 +193,13 @@ export const Home: React.FC<HomeProps> = ({
             height: auto;
             max-height: clamp(280px, 46vh, 420px);
             object-fit: contain;
-            filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
+            filter: drop-shadow(0 8px 24px rgba(60, 64, 67, 0.18));
             user-select: none;
             pointer-events: none;
+          }
+
+          :root[data-theme='dark'] .hero-brand-logo {
+            filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.5));
           }
 
           @media (max-width: 820px) {
@@ -236,14 +232,14 @@ export const Home: React.FC<HomeProps> = ({
             .hero-title {
               font-size: clamp(1.45rem, 5.8vw, 1.95rem);
               line-height: 1.12;
-              margin-bottom: 6px;
+              margin-bottom: 8px;
               text-align: center;
               width: 100%;
             }
             .hero-lede {
-              font-size: 0.8rem;
-              line-height: 1.35;
-              margin-bottom: 12px;
+              font-size: 0.8125rem;
+              line-height: 1.45;
+              margin-bottom: 14px;
               max-width: 320px;
               text-align: center;
               width: 100%;
@@ -259,8 +255,8 @@ export const Home: React.FC<HomeProps> = ({
               flex: 1 1 0;
               min-height: 48px;
               padding: 0 8px;
-              font-size: 0.78rem;
-              font-weight: 700;
+              font-size: 0.8125rem;
+              font-weight: 500;
               white-space: nowrap;
               min-width: 0;
             }
@@ -271,7 +267,7 @@ export const Home: React.FC<HomeProps> = ({
               margin-top: 6px;
             }
           }
-        `}</style>
+      `}</style>
       </main>
     );
   }
