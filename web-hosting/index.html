@@ -3,15 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Pinch-zoom stays enabled: Google's own pages allow it, and blocking it
+         fails WCAG 1.4.4. Gameplay is unaffected because the Unity iframe sets
+         `touch-action: none !important` and `body.game-active` does the same,
+         and every mobile input is 16px so iOS never auto-zooms on focus. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     
     <!-- PWA & Mobile WebApp Capabilities -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "default", not "black-translucent": translucent draws the iOS status
+         bar text in white and pulls content underneath it, which makes the
+         clock and battery invisible against this app's white app bar. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="GDGoC Go!" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#202124" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
     
     <title>GDGoC Go! · High-Speed Police Chase</title>
@@ -38,6 +46,23 @@
     </script>
   </head>
   <body>
+    <!--
+      THESIS: A GDG event game that presents itself as a Google product, not as
+      a game site wearing Google's colours. Refuses the arcade-neon dark-UI
+      default the category ships.
+      OWN-WORLD: Google Sans display over Google Sans Text; Google's neutral
+      ramp (#FFFFFF/#F8F9FA/#F1F3F4 light, #202124/#292A2D/#303134 dark);
+      Blue 600 / Blue 200 carries every action; the brand four are reserved for
+      brand moments only — footer marks, coin values, rank one. Material 3
+      pills, 1px outlines, two-layer elevation, 8%/12% state layers.
+      STORY: A visitor reads what the game is, sees one obvious blue action,
+      and either joins the chase or checks the ranks.
+      FIRST VIEWPORT: Split hero — display headline and lede left with the
+      filled primary pill and an outlined secondary; the GDGoC Go! mark right.
+      FORM: Google product surface; brief-pinned direction, no concept roll.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with
+      the finish review, the verdict, and DESIGN.md.
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
