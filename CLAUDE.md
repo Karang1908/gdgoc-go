@@ -30,7 +30,21 @@ dotnet build tools/compile-check/GDGGo.CompileCheck.csproj
 ```
 
 Type-checks every script in `Assets/Scripts` **and** `Assets/Editor` against hand-written
-Unity stubs, in ~20s, with no Unity install. Use it after every edit.
+Unity stubs, in ~1s, with no Unity install.
+
+**It does not currently pass.** Verified 2026-08-21: 116 errors, and every one is a gap in
+the hand-written stubs rather than a defect in the game source — `AudioClip.Create`,
+`GameObject.CreatePrimitive`/`PrimitiveType`, the particle-system modules, render textures,
+camera dimensions, and the editor build-pipeline types (`BuildPipeline`, `BuildPlayerOptions`,
+`BuildOptions`). The error codes are all missing-member/missing-type shapes — CS1061, CS0103,
+CS0426, CS0117, CS1729, CS0246, CS0234 — with **zero** parse errors, and the shipped WebGL
+build compiles these same files in real Unity.
+
+So: run it and diff against that baseline. A *new* CS1xxx parse error or an error naming a
+symbol the project itself defines is a real regression. One more missing Unity API is stub
+debt. Until the stubs are repaired, a real Unity compile is the only trustworthy C# gate —
+do not report these 116 as game-source breakage, and do not treat a red build as proof you
+broke something.
 
 The `.NET SDK` lives at `~/.dotnet` (installed via the official `dotnet-install.sh`,
 not the Homebrew cask — the cask's package installer needs `sudo`). It is **not** on a
@@ -97,19 +111,27 @@ real Unity. Using a new Unity API means adding it to `tools/compile-check/UnityS
 same number of metres and boosting costs fuel rather than secretly shortening the run.
 Reaching 0 calls `EndGame()` exactly like Heat does.
 
-- Range = `WorldScroller.startSpeed × fuelSecondsAtCruise` = **672 m** at current tuning.
-- One can restores `fuelPerCan` (0.28) = **188 m**.
-- `CoinSpawner` schedules cans every **190 m**, tightening to **85 m** once below
+- Range = `WorldScroller.startSpeed × fuelSecondsAtCruise` = 19 × 45 = **855 m**.
+- One can restores `fuelPerCan` (0.35) = **299 m**.
+- `CoinSpawner` schedules cans every **85 m**, tightening to **45 m** once below
   `LowFuelThreshold` (0.25) — a run should end from bad driving, never from bad luck.
-- Boosting drains `boostFuelMultiplier` (2.1×) faster.
+- Boosting drains `boostFuelMultiplier` (1.45×) faster.
 - Fuel is `CoinType.Fuel` so it reuses coin streaming and the magnet, but
   `CoinPickup.Collect` short-circuits **before** `OnCoinCollected` — routing it through
   scoring would inflate the coin counter and extend the combo.
 - Its material is deliberately outside the Google palette (hot orange `#FF6B0D`): a fuel
   can that reads as "another coin" defeats the mechanic.
 
-The GDG pill is gated behind `gdgPillUnlockDistance` (500 m) so the signature pickup is a
-milestone rather than something tripped over in the first seconds, and it spawns a
+**Every number above is read from `Assets/Scenes/Game.unity`, not from the C# initializer.**
+A public field's initializer is only what a *newly added* component gets; an existing scene
+component keeps its serialized value. The two currently disagree — `WorldScroller.maxSpeed`
+declares 38 and the scene serializes 46; `rampDistance` declares 3000 and the scene
+serializes 1000. Quote a C# default as shipped tuning and you will be wrong. This is also
+why the fuel and GDG figures above went stale once already.
+
+The GDG pill is gated behind `gdgPillUnlockDistance`, but at the current **25 m** that gate
+is nominal. What actually paces the pickup is `pillMilestoneInterval` (a guaranteed pill
+every **100 m**) plus a **5.5%** `gdgPillChance` roll on each eligible coin. It spawns a
 `PickupBurst` on collect.
 
 ## The road tile is generated, not imported
