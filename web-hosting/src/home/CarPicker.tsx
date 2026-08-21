@@ -112,7 +112,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
       <div className="picker-header">
         <div className="picker-header-top">
           <div className="garage-badge">
-            <span>VEHICLE SELECTOR</span>
+            <span>Vehicle selector</span>
           </div>
 
           {session && (
@@ -120,7 +120,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
               <div className="wallet-chip standard" title={`Cumulative Standard Coins: ${(userCoins || 0).toLocaleString()}`}>
                 <Coins size={13} className="coin-svg" />
                 <span className="font-mono">{(userCoins || 0).toLocaleString()}</span>
-                <span className="wallet-chip-lbl">COINS</span>
+                <span className="wallet-chip-lbl">Coins</span>
               </div>
               <div className="wallet-chip gdg" title={`Cumulative GDG Coins: ${(userGdgCoins || 0).toLocaleString()}`}>
                 <img src="/branding/gdg-pill.png" alt="GDG" className="inline-gdg-pill-icon" />
@@ -219,7 +219,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
                 }}
               >
                 <Play size={18} fill="currentColor" />
-                <span>START POLICE CHASE</span>
+                <span>Start police chase</span>
               </button>
             </div>
           </div>
@@ -309,8 +309,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           border: 1px solid var(--border);
           border-radius: var(--pill);
           font-family: var(--font-display);
-          font-size: 0.68rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-2);
           letter-spacing: 0.04em;
         }
@@ -328,8 +328,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           height: 26px;
           padding: 0 8px;
           border-radius: var(--pill);
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           background: var(--surface-2);
           border: 1px solid var(--border);
         }
@@ -363,8 +363,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .wallet-chip-lbl {
-          font-size: 0.58rem;
-          font-weight: 800;
+          font-size: 0.75rem;
+          font-weight: 500;
           opacity: 0.8;
           letter-spacing: 0.04em;
         }
@@ -401,7 +401,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           min-width: 42px;
           border-radius: 50%;
           background: var(--surface);
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           color: var(--text);
           display: flex;
           align-items: center;
@@ -426,7 +426,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           gap: clamp(16px, 2.5vw, 28px);
           padding: clamp(14px, 2vh, 24px) clamp(16px, 2.5vw, 28px);
           background: var(--surface);
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           border-radius: var(--r-xl);
           box-shadow: var(--shadow-2);
           align-items: stretch;
@@ -481,8 +481,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .showcase-type-tag {
           display: inline-block;
           font-family: var(--font-mono);
-          font-size: 0.62rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           padding: 1px 5px;
           border-radius: 4px;
           border: 1px solid;
@@ -499,7 +499,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .showcase-subtitle {
-          font-size: 0.74rem;
+          font-size: 0.75rem;
           font-weight: 500;
           color: var(--accent);
         }
@@ -509,8 +509,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--pill);
-          font-size: 0.7rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-2);
           flex-shrink: 0;
         }
@@ -538,15 +538,14 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           gap: 6px;
           margin-bottom: 4px;
           color: var(--text-2);
-          font-size: 0.62rem;
-          font-weight: 700;
-          text-transform: uppercase;
+          font-size: 0.75rem;
+          font-weight: 500;
           letter-spacing: 0.03em;
         }
 
         .vehicle-stat-label .font-mono {
           color: var(--text);
-          font-size: 0.64rem;
+          font-size: 0.75rem;
         }
 
         .vehicle-stat-track {
@@ -569,7 +568,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         .launch-showcase-btn {
           width: 100%;
           min-height: 48px;
-          font-weight: 700;
+          font-weight: 500;
           font-size: 0.88rem;
           letter-spacing: 0.02em;
           touch-action: manipulation;
@@ -602,7 +601,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           height: 40px;
           border-radius: var(--r-md);
           background: var(--surface);
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           cursor: pointer;
           transition: all 0.2s var(--ease);
           text-align: left;
@@ -652,8 +651,8 @@ export const CarPicker: React.FC<CarPickerProps> = ({
 
         .thumb-name {
           font-family: var(--font-display);
-          font-size: 0.74rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text);
           white-space: nowrap;
           overflow: hidden;
@@ -661,7 +660,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
         }
 
         .thumb-stats {
-          font-size: 0.6rem;
+          font-size: 0.75rem;
           color: var(--text-2);
           white-space: nowrap;
           overflow: hidden;
@@ -708,7 +707,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             height: clamp(108px, 20vh, 154px);
             min-height: 0;
             max-height: none;
-            border-radius: 14px;
+            border-radius: var(--r-md);
             padding: 4px;
           }
           .showcase-desc {
@@ -721,10 +720,10 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             font-size: clamp(1.08rem, 5vw, 1.32rem);
           }
           .showcase-subtitle {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
           }
           .showcase-type-tag {
-            font-size: 0.56rem;
+            font-size: 0.75rem;
           }
           .thumbnails-dock {
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -798,10 +797,10 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           .vehicle-stat-bars { gap: 8px; }
           .vehicle-stat-label {
             margin-bottom: 3px;
-            font-size: 0.56rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-label .font-mono {
-            font-size: 0.58rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-track {
             height: 5px;
@@ -866,24 +865,24 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             font-size: clamp(1.24rem, 5.8vw, 1.48rem);
           }
           .showcase-subtitle {
-            font-size: 0.74rem;
+            font-size: 0.75rem;
           }
           .showcase-type-tag {
-            font-size: 0.58rem;
+            font-size: 0.75rem;
           }
           .showcase-index-pill {
             padding: 3px 9px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-bars {
             gap: 10px;
           }
           .vehicle-stat-label {
             margin-bottom: 4px;
-            font-size: 0.6rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-label .font-mono {
-            font-size: 0.62rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-track {
             height: 6px;
@@ -1021,17 +1020,17 @@ export const CarPicker: React.FC<CarPickerProps> = ({
             font-size: 1.12rem;
           }
           .showcase-subtitle {
-            font-size: 0.66rem;
+            font-size: 0.75rem;
           }
           .showcase-type-tag {
-            font-size: 0.52rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-label {
             margin-bottom: 2px;
-            font-size: 0.52rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-label .font-mono {
-            font-size: 0.54rem;
+            font-size: 0.75rem;
           }
           .vehicle-stat-track {
             height: 4px;
@@ -1039,7 +1038,7 @@ export const CarPicker: React.FC<CarPickerProps> = ({
           .launch-showcase-btn {
             height: 42px;
             min-height: 42px;
-            font-size: 0.74rem;
+            font-size: 0.75rem;
           }
           .carousel-arrow-btn {
             top: 50%;
