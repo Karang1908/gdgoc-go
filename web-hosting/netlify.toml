@@ -11,6 +11,24 @@
   to = "/index.html"
   status = 200
 
+# ---------- Security headers ----------
+# connect-src is the load-bearing one: run secrets and the retry queue live in
+# localStorage, so even a successful XSS must not be able to POST them to an
+# attacker's host. script-src keeps 'unsafe-inline' because index.html runs an
+# inline pre-paint theme script and Unity's generated host page bootstraps
+# inline; external script origins are still blocked. 'wasm-unsafe-eval' is
+# required by the Unity WebGL player.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000"
+
 # ---------- Caching & content-encoding ----------
 
 # Unity outputs .br (brotli) variants alongside the original files. Netlify
