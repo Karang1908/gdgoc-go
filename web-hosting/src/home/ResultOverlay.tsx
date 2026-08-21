@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import {
   RotateCcw,
   Trophy,
+  ArrowLeft,
   ArrowRight,
   ShieldAlert,
   Fuel,
@@ -24,6 +25,7 @@ interface ResultOverlayProps {
   submissionResult: ScoreSubmissionResult | null;
   onPlayAgain: () => void;
   onViewLeaderboard: () => void;
+  onBackToGarage: () => void;
 }
 
 export const ResultOverlay: React.FC<ResultOverlayProps> = ({
@@ -33,6 +35,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
   submissionResult,
   onPlayAgain,
   onViewLeaderboard,
+  onBackToGarage,
 }) => {
   const { userStats, userCoins, userGdgCoins } = useAuth();
   const isBusted = payload.reason === 'police';
@@ -73,12 +76,12 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           {isHighscore ? (
             <div className="chip record-chip badge-gold">
               <Award size={14} />
-              <span>NEW PERSONAL RECORD</span>
+              <span>New personal record</span>
             </div>
           ) : (
             <div className={`chip status-chip ${isBusted ? 'police-chip' : 'fuel-chip'}`}>
               {isBusted ? <ShieldAlert size={14} /> : <Fuel size={14} />}
-              <span>{isBusted ? 'BUSTED BY POLICE' : 'FUEL EXHAUSTED'}</span>
+              <span>{isBusted ? 'Busted by police' : 'Fuel exhausted'}</span>
             </div>
           )}
 
@@ -92,7 +95,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         {/* Hero Score Box */}
         <div className="score-hero-box">
-          <span className="score-label">FINAL SCORE</span>
+          <span className="score-label">Final score</span>
           <div className="score-number-row">
             <span className="score-number font-mono">{payload.score.toLocaleString()}</span>
             <span className="score-pts">PTS</span>
@@ -154,7 +157,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         {/* Banked Wallet Banner */}
         <div className="banked-wallet-banner">
-          <span className="banked-label">TOTAL BANK:</span>
+          <span className="banked-label">Total bank</span>
           <div className="banked-chips">
             <span className="banked-chip">
               <Coins size={12} style={{ color: 'var(--g-yellow)' }} />
@@ -176,11 +179,20 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         <div className="result-actions">
           <button
             id="play-again-btn"
-            className="btn btn-filled btn-lg action-btn"
+            className="btn btn-filled btn-lg action-btn action-primary"
             onClick={onPlayAgain}
           >
             <RotateCcw size={16} />
-            <span>PLAY AGAIN</span>
+            <span>Play again</span>
+          </button>
+
+          <button
+            id="back-to-garage-btn"
+            className="btn btn-outlined btn-lg action-btn"
+            onClick={onBackToGarage}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to garage</span>
           </button>
 
           <button
@@ -189,7 +201,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
             onClick={onViewLeaderboard}
           >
             <Trophy size={16} />
-            <span>LEADERBOARD</span>
+            <span>Leaderboard</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -203,9 +215,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           width: 100vw;
           height: 100vh;
           height: 100dvh;
-          background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(0, 0, 0, 0.78);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -216,9 +226,10 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         .result-card {
           width: 100%;
           max-width: 420px;
+          min-width: 0;
           border-radius: var(--r-xl);
           background: var(--surface);
-          border: 2px solid var(--border);
+          border: 1px solid var(--border);
           box-shadow: var(--shadow-3);
           overflow: hidden;
           max-height: calc(100dvh - max(20px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom)));
@@ -236,7 +247,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         .status-chip {
           margin-bottom: 6px;
           height: 24px;
-          font-size: 0.72rem;
+          font-size: 0.75rem;
         }
 
         .status-chip.police-chip {
@@ -281,8 +292,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         .score-label {
           font-family: var(--font-display);
-          font-size: 0.68rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-3);
           letter-spacing: 0.08em;
         }
@@ -303,20 +314,20 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
         .score-pts {
           font-size: 0.95rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--accent);
         }
 
         .previous-best {
-          font-size: 0.72rem;
+          font-size: 0.75rem;
           color: var(--text-3);
         }
 
         .run-bonus {
           margin-top: 2px;
           color: #B26A00;
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
         }
 
         :root[data-theme='dark'] .run-bonus { color: #FFD54F; }
@@ -360,13 +371,13 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .stat-name {
-          font-size: 0.65rem;
+          font-size: 0.75rem;
           color: var(--text-3);
         }
 
         .stat-value {
           font-size: 0.85rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--text);
         }
 
@@ -382,8 +393,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
 
         .banked-label {
-          font-size: 0.65rem;
-          font-weight: 800;
+          font-size: 0.75rem;
+          font-weight: 500;
           color: var(--text-3);
           letter-spacing: 0.05em;
         }
@@ -399,7 +410,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           align-items: center;
           gap: 4px;
           font-size: 0.75rem;
-          font-weight: 700;
+          font-weight: 500;
           color: var(--text);
         }
 
@@ -420,10 +431,21 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           padding: 0 16px 12px;
         }
 
+        /* Play again is the primary action and takes the full row; Garage and
+           Leaderboard share the row beneath it. */
+        .action-primary {
+          grid-column: 1 / -1;
+        }
+
+        @media (max-width: 380px) {
+          .result-actions { grid-template-columns: 1fr; }
+        }
+
         .action-btn {
           min-height: 48px;
+          min-width: 0;
           font-size: 0.82rem;
-          font-weight: 700;
+          font-weight: 500;
           letter-spacing: 0.03em;
           padding: 0 12px;
           touch-action: manipulation;
@@ -437,8 +459,8 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           min-height: 28px;
           margin: -4px 16px 8px;
           color: var(--text-2);
-          font-size: 0.72rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 500;
         }
 
         .score-save-status.saved { color: var(--g-green); }
