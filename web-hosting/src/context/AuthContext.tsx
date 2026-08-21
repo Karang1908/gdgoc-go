@@ -7,7 +7,6 @@ export interface UserProfile {
   id: string;
   username: string;
   display_name: string;
-  email?: string;
 }
 
 interface AuthContextType {
@@ -67,20 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
+      // Never request `email`: migration 0008 revokes SELECT on that column,
+      // and asking for it fails the entire request. The player's address lives
+      // in session.user.email, and public.users.email is server-maintained.
       const { data, error: profileErr } = await supabase
         .from('users')
-        .select('id, username, display_name, email')
+        .select('id, username, display_name')
         .eq('id', userId)
         .maybeSingle();
 
       if (profileErr) {
-        // Fallback without email column if table doesn't have it yet
-        const { data: fallbackData } = await supabase
-          .from('users')
-          .select('id, username, display_name')
-          .eq('id', userId)
-          .maybeSingle();
-        return fallbackData as UserProfile;
+        console.warn('[Auth] Error fetching profile:', profileErr.message);
+        return null;
       }
       return data as UserProfile;
     } catch (e) {
@@ -102,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: session.user.id,
             username: fallbackUsername,
             display_name: session.user.user_metadata?.display_name || fallbackUsername,
-            email: session.user.email || undefined,
           };
           await supabase.from('users').upsert(userProfile);
         }
@@ -160,20 +156,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cleanEmail = userEmail.trim().toLowerCase();
 
     try {
-      // 1. Check if username is already taken in public.users
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('username')
-        .eq('username', cleanUsername)
-        .maybeSingle();
+      // 1. Is the handle free? Asked through an RPC so the client never runs a
+      //    query against public.users, which now holds operator-only contact data.
+      const { data: available } = await supabase
+        .rpc('username_is_available', { p_username: cleanUsername });
 
-      if (existingUser) {
+      if (available === false) {
         throw new Error('This username is already taken. Please choose another one.');
       }
 
-      // 2. Auth Sign Up with user's validated email
+      // 2. The auth identity is the deterministic synthetic address, which is
+      //    what lets players sign in later with username + password alone and
+      //    needs no username -> email lookup anywhere. The address they typed is
+      //    operator contact data and is stored in step 3.
+      const authEmail = usernameToEmail(cleanUsername);
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
+        email: authEmail,
         password,
         options: {
           data: {
@@ -194,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If signUp didn't automatically establish a session, sign in immediately
       if (!authData.session) {
         const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
+          email: authEmail,
           password,
         });
         if (signInErr) {
@@ -202,27 +201,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 3. Upsert public.users profile row (including email)
+      // 3. Create the public profile and record the operator-facing address.
+      //    register_profile is SECURITY DEFINER, so the browser can write an
+      //    email column it has no privilege to read back.
       const newProfile: UserProfile = {
         id: authData.user.id,
         username: cleanUsername,
         display_name: cleanDisplayName || cleanUsername,
-        email: cleanEmail,
       };
 
-      const { error: profileError } = await supabase
-        .from('users')
-        .upsert(newProfile);
+      const { error: profileError } = await supabase.rpc('register_profile', {
+        p_username: cleanUsername,
+        p_display_name: cleanDisplayName || cleanUsername,
+        p_email: cleanEmail,
+      });
 
       if (profileError) {
-        console.warn('[Auth] Profile creation with email warning:', profileError.message);
-        // Fallback without email column in case migration hasn't run yet
-        const fallbackProfile = {
-          id: authData.user.id,
-          username: cleanUsername,
-          display_name: cleanDisplayName || cleanUsername,
-        };
-        await supabase.from('users').upsert(fallbackProfile);
+        throw new Error(profileError.message);
       }
 
       setProfile(newProfile);
@@ -239,9 +234,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setLoading(true);
 
-    const cleanInput = identifier.trim();
-    const isEmail = cleanInput.includes('@');
-    const primaryEmail = isEmail ? cleanInput.toLowerCase() : usernameToEmail(cleanInput.toLowerCase());
+    // Players sign in with their username. It maps to the same synthetic
+    // address signUp registered, so no lookup of any kind is required.
+    const cleanInput = identifier.trim().toLowerCase();
+    const primaryEmail = cleanInput.includes('@') ? cleanInput : usernameToEmail(cleanInput);
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -251,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
-          throw new Error('Incorrect username/email or password.');
+          throw new Error('Incorrect username or password.');
         }
         throw new Error(authError.message);
       }
