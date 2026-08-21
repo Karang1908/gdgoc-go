@@ -176,7 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="field">
             <label className="field-label" htmlFor="auth-username">
-              {tab === 'signup' ? 'Username' : 'Username or Email'}
+              Username
             </label>
             <div className="input-wrap">
               <User size={16} className="input-icon" />
@@ -184,15 +184,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 id="auth-username"
                 type="text"
                 className="input-field with-icon"
-                placeholder={tab === 'signup' ? 'Your username' : 'Your username or email'}
+                placeholder="Your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                autoComplete={tab === 'signup' ? 'username' : 'username email'}
+                autoComplete="username"
                 required
               />
             </div>
             <span className="input-hint">
-              {tab === 'signup' ? '3–24 chars (letters, numbers, _, -)' : 'Your registered handle or email'}
+              {tab === 'signup' ? '3–24 chars (letters, numbers, _, -)' : 'The handle you registered with'}
             </span>
           </div>
 
