@@ -18,6 +18,10 @@ interface AuthContextType {
   userStats: DriverStats | null;
   loading: boolean;
   error: string | null;
+  /** Increments on each successful explicit sign-in or sign-up. Deliberately
+   *  not derived from onAuthStateChange: supabase-js re-emits SIGNED_IN on tab
+   *  focus and token refresh, which would fire on plain page reloads. */
+  loginEvent: number;
   signUp: (username: string, email: string, password: string, displayName: string) => Promise<void>;
   signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -35,6 +39,7 @@ export function usernameToEmail(username: string): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [loginEvent, setLoginEvent] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userCoins, setUserCoins] = useState<number>(0);
@@ -221,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setProfile(newProfile);
+      setLoginEvent((n) => n + 1);
     } catch (err: any) {
       const msg = err?.message || 'Failed to sign up';
       setError(msg);
@@ -264,6 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.from('users').upsert(userProfile);
         }
         setProfile(userProfile);
+        setLoginEvent((n) => n + 1);
       }
     } catch (err: any) {
       const msg = err?.message || 'Failed to sign in';
@@ -299,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userStats,
         loading,
         error,
+        loginEvent,
         signUp,
         signIn,
         signOut,
