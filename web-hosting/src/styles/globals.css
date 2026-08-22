@@ -241,6 +241,12 @@ body.game-active #root {
   background-color: var(--bg);
 }
 
+/* One prompt at a time: the first-visit greeting owns the screen while it is
+   open, so the install banner waits its turn. */
+body.welcome-open .install-prompt {
+  display: none;
+}
+
 /* The install banner is fixed above the content. While it is on screen the
    scroll owners reserve its height so the last row stays reachable. */
 body.install-prompt-visible .leaderboard-container,
