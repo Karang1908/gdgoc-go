@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar';
 import { Home } from './home/Home';
 import { AuthModal } from './home/AuthModal';
 import { InstallPrompt } from './components/InstallPrompt';
+import { WelcomeDialog } from './components/WelcomeDialog';
 import { ScoreQueueSync } from './components/ScoreQueueSync';
 import { AppRoute, pathForRoute, routeFromPath } from './lib/routes';
 
@@ -117,6 +118,13 @@ export function App() {
             isOpen={isAuthModalOpen}
             onClose={() => setIsAuthModalOpen(false)}
             canDismiss={true}
+          />
+
+          {/* First-visit greeting. Suppressed while the auth dialog is open so
+              two dialogs never stack, and never over a live run. */}
+          <WelcomeDialog
+            suppressed={isAuthModalOpen}
+            onHowToPlay={() => navigate('controls')}
           />
         </div>
 
