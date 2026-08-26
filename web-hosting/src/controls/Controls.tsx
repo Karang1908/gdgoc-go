@@ -124,6 +124,23 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
               <div className="mouse-note"><MousePointer2 size={16} /><span>Mouse drags mirror phone swipes; two quick clicks boost.</span></div>
             </div>
           </div>
+
+          <div className="control-surface controller-surface">
+            <div className="control-surface-title">
+              <Gamepad2 size={21} />
+              <div>
+                <h3>Xbox controller</h3>
+                <p>Press any controller button once after the game opens to activate it in the browser.</p>
+              </div>
+            </div>
+            <div className="key-list controller-key-list">
+              <div className="key-row"><span><kbd>Left stick</kbd><kbd>D-Pad</kbd></span><strong>Move left or right</strong></div>
+              <div className="key-row"><span><kbd>A</kbd></span><strong>Jump</strong></div>
+              <div className="key-row"><span><kbd>B</kbd><kbd>↓</kbd></span><strong>Brake / fast-drop</strong></div>
+              <div className="key-row"><span><kbd>RT</kbd></span><strong>Hold to boost</strong></div>
+              <div className="mouse-note"><Gamepad2 size={16} /><span>You can connect or reconnect the controller while the game is running.</span></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -314,7 +331,7 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
 
       .control-deck {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
       }
 
@@ -338,6 +355,12 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
       .control-surface-title h3 { margin-bottom: 2px; font-size: 1rem; font-weight: 500; }
       .control-surface-title p { color: var(--text-2); font-size: 0.78rem; line-height: 1.4; }
       .control-list, .key-list { padding: 8px 18px 12px; }
+
+      .controller-key-list .key-row > span:first-child {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
 
       .control-row {
         display: grid;
@@ -514,6 +537,17 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
         .hud-item + .hud-item { border-top: 1px solid var(--border); border-left: 0; }
         .survival-notes { margin-bottom: 36px; }
         .survival-notes ul { grid-template-columns: 1fr; gap: 9px; }
+      }
+
+      @media (min-width: 761px) and (max-width: 980px) {
+        .control-deck { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .controller-surface { grid-column: 1 / -1; }
+        .controller-key-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          column-gap: 24px;
+        }
+        .controller-key-list .mouse-note { grid-column: 1 / -1; }
       }
 
       @media (max-width: 440px) {
