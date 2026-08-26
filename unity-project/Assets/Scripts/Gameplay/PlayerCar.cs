@@ -11,8 +11,8 @@ namespace GDGGo.Gameplay
     /// WorldScroller reads; this component's own motion is purely lateral (lane) and
     /// vertical (jump).
     ///
-    /// Input supports keyboard, phone gestures, Xbox-style gamepads, and the public
-    /// Move/Jump/Brake methods used by optional on-screen controls.
+    /// Input supports keyboard, phone gestures, Xbox and PlayStation gamepads, and
+    /// the public Move/Jump/Brake methods used by optional on-screen controls.
     ///
     /// Note there is no CharacterController. The class used to require one and then
     /// never call Move() on it, which left a stray capsule collider fighting the
@@ -196,9 +196,10 @@ namespace GDGGo.Gameplay
         }
 
         /// <summary>
-        /// Xbox controller layout: left stick or D-pad changes lanes, A jumps, B/down
-        /// brakes or fast-falls, and the right trigger boosts. Stick actions must return
-        /// near centre before firing again so one deliberate press always means one lane.
+        /// Xbox / PS5 layout: left stick or D-pad changes lanes, A / Cross jumps,
+        /// B / Circle or down brakes and fast-falls, and RT / R2 boosts. Stick actions
+        /// must return near centre before firing again so one deliberate press always
+        /// means one lane.
         /// </summary>
         private void ReadGamepad()
         {
