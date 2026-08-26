@@ -129,16 +129,16 @@ export const Controls: React.FC<ControlsProps> = ({ onStartPlaying }) => (
             <div className="control-surface-title">
               <Gamepad2 size={21} />
               <div>
-                <h3>Xbox controller</h3>
+                <h3>Xbox and PS5 controllers</h3>
                 <p>Press any controller button once after the game opens to activate it in the browser.</p>
               </div>
             </div>
             <div className="key-list controller-key-list">
               <div className="key-row"><span><kbd>Left stick</kbd><kbd>D-Pad</kbd></span><strong>Move left or right</strong></div>
-              <div className="key-row"><span><kbd>A</kbd></span><strong>Jump</strong></div>
-              <div className="key-row"><span><kbd>B</kbd><kbd>↓</kbd></span><strong>Brake / fast-drop</strong></div>
-              <div className="key-row"><span><kbd>RT</kbd></span><strong>Hold to boost</strong></div>
-              <div className="mouse-note"><Gamepad2 size={16} /><span>You can connect or reconnect the controller while the game is running.</span></div>
+              <div className="key-row"><span><kbd>A</kbd><kbd>Cross</kbd></span><strong>Jump</strong></div>
+              <div className="key-row"><span><kbd>B</kbd><kbd>Circle</kbd><kbd>↓</kbd></span><strong>Brake / fast-drop</strong></div>
+              <div className="key-row"><span><kbd>RT</kbd><kbd>R2</kbd></span><strong>Hold to boost</strong></div>
+              <div className="mouse-note"><Gamepad2 size={16} /><span>You can connect or reconnect an Xbox or PS5 controller while the game is running.</span></div>
             </div>
           </div>
         </div>
