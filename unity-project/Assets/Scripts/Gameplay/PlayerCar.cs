@@ -1,4 +1,5 @@
 using UnityEngine;
+using Gamepad = UnityEngine.InputSystem.Gamepad;
 
 namespace GDGGo.Gameplay
 {
@@ -10,9 +11,8 @@ namespace GDGGo.Gameplay
     /// WorldScroller reads; this component's own motion is purely lateral (lane) and
     /// vertical (jump).
     ///
-    /// Input is deliberately three-way because this ships as a public web game, not a
-    /// kiosk: keyboard for desktop, swipe for phones, and the public Move/Jump/Brake
-    /// methods for on-screen buttons built from the Kenney mobile-control sprites.
+    /// Input supports keyboard, phone gestures, Xbox-style gamepads, and the public
+    /// Move/Jump/Brake methods used by optional on-screen controls.
     ///
     /// Note there is no CharacterController. The class used to require one and then
     /// never call Move() on it, which left a stray capsule collider fighting the
@@ -49,16 +49,30 @@ namespace GDGGo.Gameplay
         [Tooltip("Seconds of boost awarded by a double tap.")]
         public float doubleTapBoostSeconds = 1.2f;
 
+        [Tooltip("How far the left stick must move before it triggers a lane change or fast-fall.")]
+        [Range(0.5f, 0.95f)]
+        public float gamepadStickPressThreshold = 0.65f;
+
+        [Tooltip("How close the left stick must return to centre before another movement can trigger.")]
+        [Range(0.05f, 0.45f)]
+        public float gamepadStickReleaseThreshold = 0.30f;
+
+        [Tooltip("How far the right trigger must be held before boost activates.")]
+        [Range(0.1f, 0.9f)]
+        public float gamepadTriggerThreshold = 0.35f;
+
         /// <summary>The active player car. Cached so per-coin magnet logic does not have
         /// to run a scene-wide search on every coin, every frame.</summary>
         public static PlayerCar Current { get; private set; }
 
         public int CurrentLane { get; private set; } = LaneModel.CentreLane;
         public bool IsJumping { get; private set; }
-        public bool IsBraking => _keyboardBraking || _buttonBraking || Time.unscaledTime < _brakeTapUntil;
+        public bool IsBraking => _keyboardBraking || _gamepadBraking || _buttonBraking ||
+                                 Time.unscaledTime < _brakeTapUntil;
 
         /// <summary>True while boosting, whether from held input or an active Nitro pickup.</summary>
-        public bool IsBoosting => _keyboardBoostHeld || _buttonBoostHeld || Time.unscaledTime < _touchBoostUntil ||
+        public bool IsBoosting => _keyboardBoostHeld || _gamepadBoostHeld || _buttonBoostHeld ||
+                                  Time.unscaledTime < _touchBoostUntil ||
                                   (Core.GameSession.Instance != null && Core.GameSession.Instance.HasNitro);
 
         /// <summary>Current world speed. Owned by WorldScroller; mirrored here for callers.</summary>
@@ -69,9 +83,13 @@ namespace GDGGo.Gameplay
         private float _jumpTimer;
         private float _groundY;
         private bool _keyboardBraking;
+        private bool _gamepadBraking;
         private bool _buttonBraking;
         private bool _keyboardBoostHeld;
+        private bool _gamepadBoostHeld;
         private bool _buttonBoostHeld;
+        private bool _gamepadHorizontalArmed = true;
+        private bool _gamepadDownArmed = true;
         private float _brakeTapUntil = -1f;
         private float _touchBoostUntil = -1f;
         private float _lastTapTime = -10f;
@@ -103,14 +121,19 @@ namespace GDGGo.Gameplay
             if (acceptInput)
             {
                 ReadKeyboard();
+                ReadGamepad();
                 ReadTouch();
             }
             else
             {
                 _keyboardBraking = false;
+                _gamepadBraking = false;
                 _buttonBraking = false;
                 _keyboardBoostHeld = false;
+                _gamepadBoostHeld = false;
                 _buttonBoostHeld = false;
+                _gamepadHorizontalArmed = true;
+                _gamepadDownArmed = true;
                 _brakeTapUntil = -1f;
                 _touchBoostUntil = -1f;
             }
@@ -170,6 +193,67 @@ namespace GDGGo.Gameplay
 
             _keyboardBraking = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
             _keyboardBoostHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        }
+
+        /// <summary>
+        /// Xbox controller layout: left stick or D-pad changes lanes, A jumps, B/down
+        /// brakes or fast-falls, and the right trigger boosts. Stick actions must return
+        /// near centre before firing again so one deliberate press always means one lane.
+        /// </summary>
+        private void ReadGamepad()
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad == null)
+            {
+                _gamepadBraking = false;
+                _gamepadBoostHeld = false;
+                _gamepadHorizontalArmed = true;
+                _gamepadDownArmed = true;
+                return;
+            }
+
+            Vector2 stick = gamepad.leftStick.ReadValue();
+            Vector2 dpad = gamepad.dpad.ReadValue();
+            float pressThreshold = Mathf.Clamp(gamepadStickPressThreshold, 0.5f, 0.95f);
+            float releaseThreshold = Mathf.Clamp(gamepadStickReleaseThreshold, 0.05f, pressThreshold - 0.05f);
+
+            float horizontal = Mathf.Abs(dpad.x) > Mathf.Abs(stick.x) ? dpad.x : stick.x;
+            if (_gamepadHorizontalArmed)
+            {
+                if (horizontal <= -pressThreshold)
+                {
+                    MoveLeft();
+                    _gamepadHorizontalArmed = false;
+                }
+                else if (horizontal >= pressThreshold)
+                {
+                    MoveRight();
+                    _gamepadHorizontalArmed = false;
+                }
+            }
+            else if (Mathf.Abs(horizontal) <= releaseThreshold)
+            {
+                _gamepadHorizontalArmed = true;
+            }
+
+            bool downHeld = stick.y <= -pressThreshold || dpad.y <= -pressThreshold;
+            bool fastFallPressed = gamepad.buttonEast.wasPressedThisFrame;
+            if (_gamepadDownArmed && downHeld)
+            {
+                fastFallPressed = true;
+                _gamepadDownArmed = false;
+            }
+            else if (!downHeld && stick.y >= -releaseThreshold && dpad.y >= -releaseThreshold)
+            {
+                _gamepadDownArmed = true;
+            }
+
+            if (gamepad.buttonSouth.wasPressedThisFrame) Jump();
+            if (fastFallPressed) FastFall();
+
+            _gamepadBraking = downHeld || gamepad.buttonEast.isPressed;
+            _gamepadBoostHeld = gamepad.rightTrigger.ReadValue() >=
+                                Mathf.Clamp(gamepadTriggerThreshold, 0.1f, 0.9f);
         }
 
         /// <summary>
