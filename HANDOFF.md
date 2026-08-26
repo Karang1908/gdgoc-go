@@ -184,7 +184,7 @@ changes. Always run `git status --short` before editing or committing, and do no
 changes that are unrelated to the current task.
 
 The current Unity WebGL player was built with Unity 6000.0.81f1 and includes the Migration
-`0007` checkpoint/final-score contract, the final `0.23` pickup SFX mix, and Xbox-style
+`0007` checkpoint/final-score contract, the final `0.23` pickup SFX mix, and Xbox/PS5
 controller support through Unity Input System 1.19. `npm run build` copied it into
 `web-hosting/public/Build/`, and the four core build artifacts match the local Unity output
 byte-for-byte. Deploy these WebGL artifacts, the React host, and Migration `0007` together.
@@ -241,7 +241,7 @@ A green `build:spa` alone does not rebuild or refresh Unity.
 | [`unity-project/Assets/Scripts/Core/GameSession.cs`](unity-project/Assets/Scripts/Core/GameSession.cs) | In-run score, exact pickup-score accumulator, combo, Heat, fuel, power-up flags, crashes, five-second integrity checkpoints, and final telemetry. |
 | [`unity-project/Assets/Scripts/Audio/AudioManager.cs`](unity-project/Assets/Scripts/Audio/AudioManager.cs) | Unity one-shot SFX pool and per-event pickup gain scales. The scene has no Unity music clip. |
 | [`unity-project/Assets/Scripts/Gameplay/WorldScroller.cs`](unity-project/Assets/Scripts/Gameplay/WorldScroller.cs) | Distance, difficulty, cruising speed, boost speed, and braking speed. |
-| [`unity-project/Assets/Scripts/Gameplay/PlayerCar.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCar.cs) | Lane movement, jump/fast-fall, keyboard, swipe, Xbox-style gamepad input, braking, and boost. |
+| [`unity-project/Assets/Scripts/Gameplay/PlayerCar.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCar.cs) | Lane movement, jump/fast-fall, keyboard, swipe, Xbox/PS5 gamepad input, braking, and boost. |
 | [`unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs`](unity-project/Assets/Scripts/Gameplay/PlayerCollision.cs) | Crash handling, shields, and temporary invulnerability. |
 | [`unity-project/Assets/Scripts/Gameplay/NearMissDetector.cs`](unity-project/Assets/Scripts/Gameplay/NearMissDetector.cs) | Fixed +50 near-miss awards with cooldown. |
 | [`unity-project/Assets/Scripts/Coins/CoinSpawner.cs`](unity-project/Assets/Scripts/Coins/CoinSpawner.cs) | Standard coin patterns, GDG Coin frequency/milestones, and fuel scheduling. |
@@ -413,16 +413,19 @@ the Unity iframe query string or Unity StreamingAssets.
 - Hold either Shift key: boost.
 - Mouse drags mirror swipes; two quick clicks trigger the touch boost.
 
-### Xbox controller
+### Xbox and PS5 controllers
 
 - Left stick or D-pad left/right: move one lane. The stick must return near centre before
   another lane change can trigger, preventing drift or a held direction from skipping lanes.
-- `A`: jump.
-- `B`, left-stick down, or D-pad down: brake; while airborne, fast-fall.
-- Hold `RT`: boost.
+- Xbox `A` or PS5 `Cross`: jump.
+- Xbox `B`, PS5 `Circle`, left-stick down, or D-pad down: brake; while airborne, fast-fall.
+- Hold Xbox `RT` or PS5 `R2`: boost.
 - Unity reads the controller through Input System `Gamepad.current`. Controllers may be
   connected or reconnected during a run. In a browser, the player may need to press any
   controller button once after the game opens before the Gamepad API exposes input.
+- Input System 1.19 includes `DualSenseGamepadHID`; on WebGL, browser controllers arrive as
+  `WebGLGamepad`. Both inherit the generic `Gamepad` controls used by `PlayerCar`, so the
+  gameplay path does not need platform-specific branches.
 - The project uses `activeInputHandler: 2` (`Both`) so legacy keyboard/touch input and the
   Input System gamepad path can coexist. Do not switch the project to old input only.
 
