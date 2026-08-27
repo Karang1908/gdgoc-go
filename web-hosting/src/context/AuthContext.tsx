@@ -24,6 +24,7 @@ interface AuthContextType {
   loginEvent: number;
   signUp: (username: string, email: string, password: string, displayName: string) => Promise<void>;
   signIn: (identifier: string, password: string) => Promise<void>;
+  signInClubAssociation: (issuedId: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshCoins: () => Promise<void>;
   clearError: () => void;
@@ -35,6 +36,25 @@ export const SYNTHETIC_DOMAIN = 'gdg-go.local';
 
 export function usernameToEmail(username: string): string {
   return `${username.trim().toLowerCase()}@${SYNTHETIC_DOMAIN}`;
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const seed = new TextEncoder().encode(value);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', seed);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function clubIdToCredentials(issuedId: string): Promise<{ email: string; password: string }> {
+  const normalizedId = issuedId.trim().toLowerCase();
+  const [emailHash, passwordHash] = await Promise.all([
+    sha256Hex(normalizedId),
+    sha256Hex(`gdg-go:clubs-and-associations:v2:${normalizedId}`),
+  ]);
+
+  return {
+    email: `club-${emailHash.slice(0, 48)}@${SYNTHETIC_DOMAIN}`,
+    password: `GDG!${passwordHash.slice(0, 48)}`,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -281,6 +301,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInClubAssociation = async (issuedId: string, displayName: string) => {
+    setError(null);
+    setLoading(true);
+
+    const cleanIssuedId = issuedId.trim();
+    const cleanDisplayName = displayName.trim();
+    let clubSessionStarted = false;
+
+    try {
+      const { email: authEmail, password: derivedPassword } = await clubIdToCredentials(cleanIssuedId);
+
+      // Returning players resolve to the same Supabase Auth user on every
+      // browser. For a first visit, create that deterministic identity and then
+      // let the database validate that the operator actually issued this ID.
+      const signInResult = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: derivedPassword,
+      });
+      let authData: { user: User | null; session: Session | null } = signInResult.data;
+
+      if (signInResult.error) {
+        const signUpResult = await supabase.auth.signUp({
+          email: authEmail,
+          password: derivedPassword,
+          options: {
+            data: {
+              username: cleanIssuedId,
+              display_name: cleanDisplayName,
+              identity_type: 'club_or_association',
+            },
+          },
+        });
+
+        if (signUpResult.error) {
+          throw new Error('That ID could not be signed in. Check the ID and try again.');
+        }
+
+        authData = signUpResult.data;
+      }
+
+      if (!authData.session || !authData.user) {
+        throw new Error('Clubs and Associations access requires email confirmation to be disabled in Supabase Auth.');
+      }
+      clubSessionStarted = true;
+
+      const { data: claimedProfile, error: claimError } = await supabase.rpc(
+        'claim_club_or_association',
+        {
+          p_issued_id: cleanIssuedId,
+          p_display_name: cleanDisplayName,
+        },
+      );
+
+      if (claimError) {
+        throw new Error(claimError.message || 'That Clubs and Associations ID is not valid.');
+      }
+
+      const row = Array.isArray(claimedProfile) ? claimedProfile[0] : claimedProfile;
+      if (!row?.id || !row?.username || !row?.display_name) {
+        throw new Error('The Clubs and Associations profile could not be loaded.');
+      }
+
+      const userProfile: UserProfile = {
+        id: String(row.id),
+        username: String(row.username),
+        display_name: String(row.display_name),
+      };
+
+      setProfile(userProfile);
+      setLoginEvent((n) => n + 1);
+    } catch (err: any) {
+      // Never leave an unclaimed synthetic Auth account active. Without a
+      // matching issued row it must not fall through to the normal game shell.
+      if (clubSessionStarted) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      }
+
+      const msg = err?.message || 'Failed to sign in with that Clubs and Associations ID';
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     try {
@@ -309,6 +417,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginEvent,
         signUp,
         signIn,
+        signInClubAssociation,
         signOut,
         refreshCoins,
         clearError,
