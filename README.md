@@ -31,7 +31,7 @@ Think Subway Surfers, but you're the getaway car.
 4. Run `npm ci` in `web-hosting/`, create `.env.local` from `.env.example`, and set the
    public Supabase URL and anon key there. Unity receives no Supabase credential.
 5. Apply every file in `supabase/migrations/` in numeric order through
-   `0007_competitive_run_integrity.sql`.
+   `0010_clubs_and_associations.sql`.
 6. Open `Assets/Scenes/Game.unity` and press **Play**.
 7. Build with **GDG Go → Build WebGL**, then run `npm run build` from `web-hosting/`.
 8. Follow the coordinated database/Unity/React release sequence in `HANDOFF.md`.
@@ -106,3 +106,10 @@ This blocks direct score edits and fabricated instant totals. WebGL still execut
 player's device, so a determined bot can automate or imitate plausible real-time play. Only a
 server-owned simulation or deterministic replay verifier can eliminate that remaining class.
 See `HANDOFF.md` for the exact contract and release procedure.
+
+## Temporary Clubs and Associations access
+
+The auth dialog also supports an existing external ID plus mandatory name. Apply Migration `0010`;
+the first sign-in automatically registers the ID in `public.clubs_and_associations`. Follow
+[`docs/CLUBS_AND_ASSOCIATIONS.md`](docs/CLUBS_AND_ASSOCIATIONS.md). Issued IDs are access
+credentials for this temporary passwordless route.
