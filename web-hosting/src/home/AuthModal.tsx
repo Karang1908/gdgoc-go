@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, Mail, AlertCircle, Loader2, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Mail, AlertCircle, Loader2, X, Building2, IdCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+type AuthTab = 'signup' | 'login' | 'clubs';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,26 +15,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   canDismiss = true,
 }) => {
-  const { signIn, signUp, error, clearError } = useAuth();
+  const { signIn, signUp, signInClubAssociation, error, clearError } = useAuth();
 
-  const [tab, setTab] = useState<'signup' | 'login'>('signup');
+  const [tab, setTab] = useState<AuthTab>('signup');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [clubIssuedId, setClubIssuedId] = useState('');
+  const [clubDisplayName, setClubDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleTabSwitch = (nextTab: 'signup' | 'login') => {
+  const handleTabSwitch = (nextTab: AuthTab) => {
     setTab(nextTab);
     clearError();
     setLocalError(null);
   };
 
   const validate = () => {
+    if (tab === 'clubs') {
+      if (!clubIssuedId.trim()) {
+        setLocalError('Please enter the ID issued to you');
+        return false;
+      }
+      if (clubIssuedId.trim().length > 64) {
+        setLocalError('ID must be 64 characters or fewer');
+        return false;
+      }
+      if (!clubDisplayName.trim()) {
+        setLocalError('Please enter your name');
+        return false;
+      }
+      if (clubDisplayName.trim().length < 2) {
+        setLocalError('Name must be at least 2 characters');
+        return false;
+      }
+      return true;
+    }
+
     if (!username.trim()) {
       setLocalError('Please enter a username');
       return false;
@@ -88,6 +112,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       if (tab === 'signup') {
         await signUp(username.trim(), email.trim(), password, displayName.trim());
+      } else if (tab === 'clubs') {
+        await signInClubAssociation(clubIssuedId.trim(), clubDisplayName.trim());
       } else {
         await signIn(username.trim(), password);
       }
@@ -129,12 +155,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <h2 className="modal-title">
-            {tab === 'signup' ? 'Create driver profile' : 'Welcome back'}
+            {tab === 'signup'
+              ? 'Create driver profile'
+              : tab === 'clubs'
+                ? 'Clubs and Associations'
+                : 'Welcome back'}
           </h2>
           <p className="modal-subtitle">
             {tab === 'signup'
               ? 'Register your handle to save high scores and rank on the global leaderboard.'
-              : 'Sign in to access your garage and continue competing.'}
+              : tab === 'clubs'
+                ? 'Use the ID issued by the organisers to access your driver profile.'
+                : 'Sign in to access your garage and continue competing.'}
           </p>
         </div>
 
@@ -156,11 +188,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             Sign In
           </button>
+          <button
+            type="button"
+            id="tab-clubs-btn"
+            className={`tab-btn clubs-tab-btn ${tab === 'clubs' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('clubs')}
+          >
+            <Building2 size={15} aria-hidden="true" />
+            <span>Clubs and Associations</span>
+          </button>
         </div>
 
         {tab === 'signup' && (
           <p className="profile-note">
             Please use your real name and email address so we can verify scores and contact you when needed.
+          </p>
+        )}
+
+        {tab === 'clubs' && (
+          <p className="profile-note">
+            Both fields are required. Your issued ID and the name you enter will appear on the leaderboard.
           </p>
         )}
 
@@ -174,27 +221,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="field">
-            <label className="field-label" htmlFor="auth-username">
-              Username
-            </label>
-            <div className="input-wrap">
-              <User size={16} className="input-icon" />
-              <input
-                id="auth-username"
-                type="text"
-                className="input-field with-icon"
-                placeholder="Your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                required
-              />
+          {tab !== 'clubs' && (
+            <div className="field">
+              <label className="field-label" htmlFor="auth-username">
+                Username
+              </label>
+              <div className="input-wrap">
+                <User size={16} className="input-icon" />
+                <input
+                  id="auth-username"
+                  type="text"
+                  className="input-field with-icon"
+                  placeholder="Your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <span className="input-hint">
+                {tab === 'signup' ? '3–24 chars (letters, numbers, _, -)' : 'The handle you registered with'}
+              </span>
             </div>
-            <span className="input-hint">
-              {tab === 'signup' ? '3–24 chars (letters, numbers, _, -)' : 'The handle you registered with'}
-            </span>
-          </div>
+          )}
 
           {tab === 'signup' && (
             <>
@@ -211,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     placeholder="Your name"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={24}
+                    maxLength={64}
                     required
                   />
                 </div>
@@ -240,34 +289,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </>
           )}
 
-          <div className="field">
-            <label className="field-label" htmlFor="auth-password">
-              Password
-            </label>
-            <div className="input-wrap">
-              <Lock size={16} className="input-icon" />
-              <input
-                id="auth-password"
-                type={showPassword ? 'text' : 'password'}
-                className="input-field with-icon with-suffix"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle-btn icon-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          {tab === 'clubs' && (
+            <>
+              <div className="field animate-fade-in">
+                <label className="field-label" htmlFor="club-issued-id">
+                  Issued ID
+                </label>
+                <div className="input-wrap">
+                  <IdCard size={16} className="input-icon" />
+                  <input
+                    id="club-issued-id"
+                    type="text"
+                    className="input-field with-icon"
+                    placeholder="Your issued ID"
+                    value={clubIssuedId}
+                    onChange={(e) => setClubIssuedId(e.target.value)}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    maxLength={24}
+                    required
+                  />
+                </div>
+                <span className="input-hint">Enter the ID exactly as it was provided</span>
+              </div>
+
+              <div className="field animate-fade-in">
+                <label className="field-label" htmlFor="club-display-name">
+                  Name
+                </label>
+                <div className="input-wrap">
+                  <User size={16} className="input-icon" />
+                  <input
+                    id="club-display-name"
+                    type="text"
+                    className="input-field with-icon"
+                    placeholder="Your name"
+                    value={clubDisplayName}
+                    onChange={(e) => setClubDisplayName(e.target.value)}
+                    autoComplete="name"
+                    maxLength={24}
+                    required
+                  />
+                </div>
+                <span className="input-hint">Shown publicly on the leaderboard</span>
+              </div>
+            </>
+          )}
+
+          {tab !== 'clubs' && (
+            <div className="field">
+              <label className="field-label" htmlFor="auth-password">
+                Password
+              </label>
+              <div className="input-wrap">
+                <Lock size={16} className="input-icon" />
+                <input
+                  id="auth-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="input-field with-icon with-suffix"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn icon-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <span className="input-hint">Minimum 6 characters</span>
             </div>
-            <span className="input-hint">Minimum 6 characters</span>
-          </div>
+          )}
 
           <button
             type="submit"
@@ -281,7 +380,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>Processing...</span>
               </>
             ) : (
-              <span>{tab === 'signup' ? 'Start Racing' : 'Sign In'}</span>
+              <span>{tab === 'login' ? 'Sign In' : 'Start Racing'}</span>
             )}
           </button>
         </form>
@@ -307,7 +406,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         .modal-card {
           position: relative;
           width: 100%;
-          max-width: 400px;
+          max-width: 480px;
           border-radius: var(--r-xl);
           background: var(--surface);
           border: none;
@@ -387,7 +486,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         /* M3 segmented button */
         .tab-switcher {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: max-content max-content minmax(0, 1fr);
           gap: 4px;
           background: var(--surface-3);
           padding: 4px;
@@ -410,6 +509,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           transition: background-color var(--dur-sm) var(--ease), color var(--dur-sm) var(--ease);
           user-select: none;
           touch-action: manipulation;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
         }
 
         .tab-btn:hover:not(.active) {
@@ -560,6 +664,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           .input-field.with-suffix { padding-right: 52px; }
           .submit-btn { min-height: 52px; }
+        }
+
+        @media (max-width: 480px) {
+          .tab-switcher {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .clubs-tab-btn {
+            grid-column: 1 / -1;
+          }
         }
       `}</style>
     </div>
