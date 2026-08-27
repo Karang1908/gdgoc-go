@@ -1,12 +1,12 @@
 # GDGoC Go! — Complete Engineering Handoff
 
-Last repository and live-host review: **21 August 2026**
+Last repository and live-host review: **27 August 2026**
 
 Repository: `https://github.com/Karang1908/gdgoc-go.git`
 
 Primary branch: `main`
 
-Reviewed commit: `55d703e`
+Reviewed commit: `25a7aec`
 
 Live branded Vercel URL: **https://go.gdgocbpdc.tech**
 
@@ -133,7 +133,7 @@ The following pieces must be deployed together:
 1. The current Unity WebGL build in `web-hosting/public/Build/` (tracked for cloud CI).
 2. The current React host in `web-hosting/`.
 3. Supabase migrations through
-   [`0007_competitive_run_integrity.sql`](supabase/migrations/0007_competitive_run_integrity.sql).
+   [`0010_clubs_and_associations.sql`](supabase/migrations/0010_clubs_and_associations.sql).
 
 Migration `0007` is mandatory for the current frontend and Unity source. It replaces the
 one-shot Migration `0005` score RPC with server-issued run tickets, server-timed checkpoints,
@@ -148,9 +148,10 @@ the old RPC accepted a client-created run UUID and trusted a single plausible-lo
 payload. The browser can now create score rows only after a matching server-issued run has
 advanced through the checkpoint state machine.
 
-Migration `0006` adds the `email` column/index to `public.users` and backfills from
-`auth.users`. Its current grants accidentally make that email publicly selectable as part of
-the profile row; treat the privacy repair in Section 17 as high priority.
+Migration `0008` repairs Migration `0006`'s email exposure, Migration `0009` implements the
+current username/password identity contract, and Migration `0010` adds the temporary private
+issued-ID registry. The locally edited auth frontend requires `0010` before its new third tab
+can sign in successfully.
 
 Important current product behavior:
 
@@ -163,6 +164,9 @@ Important current product behavior:
 - In the registration modal (`AuthModal.tsx`), **nothing is optional**: username, name,
   validated email address, and password are all mandatory. The database field remains
   `display_name`, but the player-facing label is intentionally just “Name”.
+- A local, not-yet-deployed third auth route named **Clubs and Associations** accepts an
+  existing external ID plus mandatory name. It requires Migration `0010`; apply and deploy both
+  halves together. The first sign-in registers the ID automatically.
 - Registration placeholders do not suggest fake example identities. A visible notice asks
   players to use their real name and email address for score verification and contact.
 - There is intentionally **no persistent bottom Play/Leaderboard navigation**.
@@ -352,9 +356,9 @@ Player registration collects:
 - **Username**: 3–24 characters (letters, numbers, `_`, `-`), unique across drivers.
 - **Name**: 2–24 characters (mandatory), shown publicly on the leaderboard. It is persisted
   under the existing `display_name` database column and API property.
-- **Email Address**: Validated email address format (`name@example.com`), stored in `auth.users`
-  and persisted in `public.users.email` for score verification/contact. The current public
-  table grants expose it more broadly than intended.
+- **Email Address**: Validated email address format (`name@example.com`), stored as operator
+  contact data in `public.users.email` for score verification/contact. The Auth identity itself
+  uses a deterministic synthetic address after Migration `0009`.
 - **Password**: At least 6 characters.
 
 The registration form intentionally uses the neutral placeholders “Your username”, “Your
@@ -367,26 +371,36 @@ The public identity is stored in `public.users`:
 - `id`: matching `auth.users.id` UUID.
 - `username`: unique login handle.
 - `display_name`: public name shown on the leaderboard.
-- `email`: player's submitted email address (added in Migration `0006`). Format validation
-  does not prove ownership while confirmation is disabled. Despite the migration comment
-  describing admin visibility, the current grants/policy expose this column to public SELECT;
-  see the security and known-limitations sections.
+- `email`: player's submitted contact address (added in Migration `0006`, restricted by
+  Migration `0008`). Browser roles cannot select it; operators can read it in Supabase Studio
+  or with a service-role connection. Format validation does not prove ownership.
 
-Sign In reliably supports the registered **Email Address**. The UI also says “Username or
-Email”, but the present username branch converts a username to
-`<username>@gdg-go.local`. That works only for older synthetic-email accounts; it does not
-look up the real email belonging to a new real-email account. Therefore do not promise new
-players that username-only login works until the implementation is corrected with a safe
-server-side username-to-auth flow. This is documented again in the known-limitations section.
+Normal Sign In uses **username + password**. Migration `0009` makes the Auth identity
+`<username>@gdg-go.local`, while `register_profile` stores the real contact email in the
+browser-invisible `public.users.email` column. No public username-to-email lookup exists.
+
+The temporary **Clubs and Associations** route uses two mandatory inputs:
+
+- **Issued ID**: any non-empty ID up to 64 characters, registered automatically in
+  `public.clubs_and_associations` on first use.
+- **Name**: 2–24 characters, copied into the public profile and shown on the leaderboard.
+
+The ID maps deterministically to `club-<sha256-of-normalized-id>@gdg-go.local` plus a derived
+Auth password, so arbitrary ID characters are supported and the same ID restores one Supabase
+user and score history across browsers. The authenticated `claim_club_or_association` RPC
+creates the hidden ID row on first use, binds it to `auth.uid()`, and upserts `public.users`.
+The ID table has RLS enabled and no browser table grants. Possession of the ID is the credential;
+the name is editable public profile data, not a second secret. Follow
+[`docs/CLUBS_AND_ASSOCIATIONS.md`](docs/CLUBS_AND_ASSOCIATIONS.md).
 
 `AuthContext` restores the Supabase session on load, fetches the public profile, creates a
 fallback profile when necessary, and refreshes wallet/driver totals from the leaderboard
 aggregate.
 
 The current event flow assumes Supabase email confirmation is disabled so `signUp` immediately
-establishes an active session. If confirmation is enabled later, rewrite the signup success
-state and add every live origin to Supabase Auth's Site URL/allowed redirect configuration;
-the current automatic sign-in attempt is not a complete confirmation-email UX.
+establishes an active session. Both standard registration and first-time issued-ID access rely
+on this. If confirmation is enabled later, rewrite both success states; synthetic `.local`
+addresses cannot receive confirmation mail.
 
 Authentication remains strictly in the parent React application. Never add the Supabase access
 token, refresh token, anon secret beyond the normal public anon key, or service-role key to
@@ -705,17 +719,23 @@ Run migrations in numeric order on a fresh project:
    private run/checkpoint ledger, server-issued run secrets, exact score arithmetic and
    gameplay-derived validation, single-use finalization, verified score markers, reduced RPC
    privileges, and removal of the vulnerable Migration `0005` one-shot RPC signature.
+8. [`0008_restrict_player_email.sql`](supabase/migrations/0008_restrict_player_email.sql):
+   removes browser access to `public.users.email` while preserving public profile reads.
+9. [`0009_username_login.sql`](supabase/migrations/0009_username_login.sql):
+   separates the real contact address from the deterministic synthetic Auth address and adds
+   the protected `register_profile` plus public-safe username availability RPCs.
+10. [`0010_clubs_and_associations.sql`](supabase/migrations/0010_clubs_and_associations.sql):
+    private first-use ID records and the authenticated claim RPC for the temporary Clubs and
+    Associations route.
 
-For an existing environment on `0005`, apply `0006` (if it is not already present), then
-`0007`. The migrations use `if not exists`, policy drops, and function replacement where
-practical, but they are still schema migrations—not scripts to run on every deploy.
+For an existing environment, apply every missing migration in numeric order through `0010`.
+The migrations use `if not exists`, policy drops, and function replacement where practical,
+but they are still schema migrations—not scripts to run on every deploy.
 
-Public browser roles can read profiles, scores, and leaderboard data. **Migration `0006`
-currently grants whole-row SELECT on `public.users`, and the original public-read RLS policy
-uses `true`; therefore `public.users.email` is also publicly readable through the data API.**
-That is an unresolved privacy problem, not admin-only visibility. Fix it with a public view or
-column-level privilege/policy design before collecting contact data at scale; do not break the
-profile reads required by the UI while doing so.
+Public browser roles can read only the public profile columns plus scores and leaderboard data.
+Migration `0008` removes browser read/write access to `public.users.email`; Migration `0009`
+uses `register_profile` to write contact data without exposing it. The Clubs and Associations
+table is not browser-readable at all.
 
 Browser roles cannot insert/update/delete score or leaderboard rows, use the `private` schema,
 or execute trigger helpers. The only competitive write surface is the authenticated trio
@@ -888,7 +908,7 @@ instructions stay truthful.
 1. Install Node.js compatible with the committed lockfile (Node 20 LTS is the safest choice).
 2. Install Unity **6000.0.81f1** with WebGL Build Support.
 3. Create `web-hosting/.env.local` from `.env.example` and set the Supabase URL/anon key.
-4. Apply Supabase migrations `0001` through `0007` in order.
+4. Apply Supabase migrations `0001` through `0010` in order.
 5. Install web dependencies:
 
 ```bash
@@ -1079,11 +1099,21 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
   -f supabase/tests/0007_competitive_run_integrity_test.sql
 ```
 
-Run it only against an isolated local/test database that already has migrations `0001`–`0007`;
+Run it only against an isolated local/test database that already has migrations `0001`–`0010`;
 it opens a transaction and rolls back its fixtures. It checks the known fabricated million-
 point payload, the standard-coin-as-400 and all-GDG-Coin exploits, table/schema privileges,
 old RPC removal, cross-driver run ownership, required checkpoint cadence, normal
 start/checkpoint/finalize flow, and lost-response idempotency.
+
+Run the issued-ID access test separately:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/0010_clubs_and_associations_test.sql
+```
+
+It verifies the private table grants, RPC role boundary, valid claim/profile sync, and rejection
+of an ordinary Auth identity. It also rolls back its fixtures.
 
 Use `npm run build` before release to verify the Unity copy path as well. A Vite warning about
 the large lazy Three.js chunk is currently informational; an actual TypeScript or build error
@@ -1092,10 +1122,10 @@ is not.
 ### Desktop browser
 
 - `/`, `/leaderboard`, and `/controls` work by direct URL and browser back/forward.
-- Sign-up (with mandatory username, name, validated email, password), email sign-in,
+- Sign-up (with mandatory username, name, validated email, password), username sign-in,
   sign-out, and theme persistence work.
-- Treat username-only sign-in for newly created real-email accounts as a known bug until it
-  has an implemented and tested server-side mapping.
+- Clubs and Associations rejects missing IDs, accepts IDs such as `2024A7PS0249U`, restores the
+  same ID across a second browser, and publishes the ID plus supplied name to the leaderboard.
 - The registration form says Username, Name, Email Address, and Password; its placeholders
   are neutral, and the real-name/email verification notice is readable without overflow.
 - The guest hero uses the sharp transparent logo, the tagline reads exactly
@@ -1280,13 +1310,14 @@ the get.tech/OrderBox panel exactly matches Vercel's current project-specific ta
 conflicting A/AAAA/CNAME data at `go`; do not replace it with a URL redirect. A TXT record is
 needed only when Vercel explicitly presents an ownership challenge.
 
-### A new player can sign in by email but not username
+### Username sign-in or Clubs and Associations fails
 
-This is the current auth implementation, not a Supabase outage. New accounts authenticate
-with their real email, while the username branch still tries a legacy synthetic
-`@gdg-go.local` address. Use email sign-in. Fixing username sign-in requires a carefully
-designed server-side mapping; never expose a directory of private emails to anonymous browser
-queries merely to make that label work.
+The current frontend requires Migration `0009` for username registration/login and Migration
+`0010` for ID claims. Verify both were applied in order and that Supabase Email Auth is enabled
+with confirmation disabled. If the first draft of `0010` was already applied, rerun the updated
+migration to remove its restrictive ID-format constraint and install the first-use registration
+function. An existing inactive ID or a case-insensitive `public.users.username` collision will
+still be rejected.
 
 ---
 
@@ -1334,8 +1365,8 @@ queries merely to make that label work.
 ## 16. Recommended release sequence
 
 1. Review `git status` and the diff.
-2. Apply migrations through `0007` to an isolated staging database.
-3. Run `supabase/tests/0007_competitive_run_integrity_test.sql` in staging/local PostgreSQL.
+2. Apply migrations through `0010` to an isolated staging database.
+3. Run both SQL tests in `supabase/tests/` in staging/local PostgreSQL.
 4. Validate the Unity Game scene and build Unity WebGL into `unity-project/Build`.
 5. Run the full web build so `copy-unity.js` refreshes the embedded build in
    `web-hosting/public/Build`.
@@ -1368,16 +1399,12 @@ These are current facts, not requests to silently fix them while doing unrelated
 
 ### High priority
 
-1. **Player emails are publicly selectable.** Migration `0006` puts email in
-   `public.users`, grants SELECT to `anon`, and inherits the `using (true)` profile policy.
-   The stated goal was admin contact visibility, but the implemented result exposes email via
-   the public data API. A proper repair should keep public leaderboard fields readable while
-   moving/restricting contact data. It needs a new tested migration and a frontend query audit.
-2. **Username login is misleading for new accounts.** Real-email signup stores the real email
-   in Supabase Auth. Username sign-in still synthesizes `<username>@gdg-go.local`, so only
-   legacy synthetic-email accounts can use it. Email login works. Do not solve this by making
-   the public email exposure an intentional username directory.
-3. **Score validation is tamper-resistant, not server-authoritative.** Migration `0007` blocks
+1. **Clubs and Associations IDs are bearer credentials.** The temporary route intentionally
+   has no user-entered password or OTP. Anyone who knows an active ID can access that identity
+   and change its public name. Existing organisational IDs are accepted as requested, but a
+   predictable/public ID is convenience rather than strong authentication. Replace this flow
+   with OTP/SSO if it becomes permanent.
+2. **Score validation is tamper-resistant, not server-authoritative.** Migration `0007` blocks
    direct row writes, client-created runs, instant fabricated totals, impossible arithmetic,
    stale/backward checkpoints, cross-user tickets, and duplicate finalization. A determined
    client can still automate or imitate plausible real-time play within the accepted envelope.
@@ -1385,33 +1412,33 @@ These are current facts, not requests to silently fix them while doing unrelated
 
 ### Medium priority
 
-4. **No automated React browser/unit suite exists.** Current dependable gates are the
+3. **No automated React browser/unit suite exists.** Current dependable gates are the
    TypeScript/Vite build, a real Unity compile/build, the SQL integrity test, and manual
    desktop/mobile/PWA smoke testing. Responsive/fullscreen regressions require disciplined QA.
-5. **The no-Unity C# compile harness is stale.** It currently reports 116 missing-stub errors
+4. **The no-Unity C# compile harness is stale.** It currently reports 116 missing-stub errors
    across APIs the real Unity build already uses. `README.md` and `CLAUDE.md` still describe it
    as a green gate. Repair stubs against actual Unity signatures before relying on it again.
-6. **Leaderboard fallbacks are bounded and legacy-heavy.** The normal path reads
+5. **Leaderboard fallbacks are bounded and legacy-heavy.** The normal path reads
    `public.leaderboard`. If unavailable, the client aggregates at most 1,000 score rows; this
    can become incomplete at scale and does not reproduce every database tie-break detail.
    Unused exported helpers such as `fetchLeaderboard`, `fetchUserBest`, and
    `recordGdgCoinGain` remain in `api.ts` from earlier iterations.
-7. **The retry queue is device/origin local.** It stores up to 20 final payloads and run
+6. **The retry queue is device/origin local.** It stores up to 20 final payloads and run
    secrets in `localStorage['gdg-go:pending-scores:v2']`. It is useful for brief network loss,
    not durable offline play. Site-data clearing, origin changes, or a delay beyond server-time
    tolerance loses the ability to finalize. Any script executing on the origin can read local
    storage, so preventing XSS remains important.
-8. **Stable Unity filenames amplify cache risk.** `Build.data.unityweb` and
+7. **Stable Unity filenames amplify cache risk.** `Build.data.unityweb` and
    `Build.wasm.unityweb` are not content-hashed. The service worker uses stale-while-revalidate
    and a manual `gdg-go-v2` cache namespace. Increment the namespace or otherwise plan cache
    invalidation for releases where players must receive a new Unity contract immediately.
-9. **Two live origins split users and operations.** Netlify and Vercel currently both serve the
+8. **Two live origins split users and operations.** Netlify and Vercel currently both serve the
    app. That is useful redundancy, but sessions, queues, installs, analytics, and cache state
    split by origin. Decide which URL is canonical before public promotion.
-10. **Large generated WebGL binaries are tracked in Git.** This is deliberate so Netlify and
+9. **Large generated WebGL binaries are tracked in Git.** This is deliberate so Netlify and
    Vercel can deploy without Unity, but it makes reviews and history heavy. Never hand-edit
    them; associate every binary change with its Unity source commit/build.
-11. **Client-side signup has a concurrency edge case.** It checks username availability before
+10. **Client-side signup has a concurrency edge case.** It checks username availability before
     creating the Auth user, then upserts the profile. The database unique index is the final
     arbiter. Two simultaneous claims can leave one Auth account without a usable public
     profile. `start_game_run` correctly fails closed when the profile is missing.
